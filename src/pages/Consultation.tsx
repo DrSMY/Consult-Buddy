@@ -68,12 +68,27 @@ export default function Consultation() {
     }
     setConsultation(data);
     if (data.ai_recommendations) {
-      const rec = data.ai_recommendations as unknown as Recommendation;
+      const raw = data.ai_recommendations as any;
+      // Weight-loss consultations have a different shape — redirect to dedicated page
+      if (data.program === "weight-loss") {
+        navigate(`/weight-loss/${data.id}`, { replace: true });
+        return;
+      }
+      const rec: Recommendation = {
+        recommended_peptides: raw.recommended_peptides || [],
+        safety_flags: raw.safety_flags || [],
+        required_blood_tests: raw.required_blood_tests || [],
+        recommended_blood_tests: raw.recommended_blood_tests || [],
+        recommended_supplements: raw.recommended_supplements || [],
+        doctor_note: raw.doctor_note || "",
+        next_steps: raw.next_steps || "",
+        patient_guidelines: raw.patient_guidelines || "",
+        clinical_summary: raw.clinical_summary || "",
+      };
       setRecommendations(rec);
       // Restore saved lab tier & notes
-      const saved = data.ai_recommendations as any;
-      if (saved.selected_lab_tier) setLabTier(saved.selected_lab_tier);
-      if (saved.lab_notes) setLabNotes(saved.lab_notes);
+      if (raw.selected_lab_tier) setLabTier(raw.selected_lab_tier);
+      if (raw.lab_notes) setLabNotes(raw.lab_notes);
       if (data.status === "completed") {
         setSelectionConfirmed(true);
         setSelectedPeptides(new Set(rec.recommended_peptides.map((p) => p.name)));
