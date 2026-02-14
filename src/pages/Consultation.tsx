@@ -7,7 +7,8 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Activity, ArrowLeft, AlertTriangle, CheckCircle, FileText, ClipboardList, User, Copy, Loader2, FlaskConical } from "lucide-react";
+import { Activity, ArrowLeft, AlertTriangle, CheckCircle, FileText, ClipboardList, User, Copy, Loader2, FlaskConical, Info } from "lucide-react";
+import PeptideDetailSheet from "@/components/PeptideDetailSheet";
 
 interface PeptideRec {
   name: string;
@@ -49,6 +50,7 @@ export default function Consultation() {
   const [selectedPeptides, setSelectedPeptides] = useState<Set<string>>(new Set());
   const [selectedSupplements, setSelectedSupplements] = useState<Set<string>>(new Set());
   const [selectionConfirmed, setSelectionConfirmed] = useState(false);
+  const [detailPeptide, setDetailPeptide] = useState<string | null>(null);
 
   useEffect(() => {
     loadConsultation();
@@ -323,7 +325,16 @@ export default function Consultation() {
                           />
                         )}
                         <div className="flex-1 flex items-center justify-between">
-                          <h4 className="font-semibold">{p.name}</h4>
+                          <div className="flex items-center gap-2">
+                            <h4 className="font-semibold">{p.name}</h4>
+                            <button
+                              onClick={(e) => { e.stopPropagation(); setDetailPeptide(p.name); }}
+                              className="text-muted-foreground hover:text-primary transition-colors"
+                              title="View clinical details"
+                            >
+                              <Info className="h-4 w-4" />
+                            </button>
+                          </div>
                           <Badge variant={p.priority === "Primary" ? "default" : "secondary"}>
                             {p.priority}
                           </Badge>
@@ -481,6 +492,12 @@ export default function Consultation() {
             </TabsContent>
           </Tabs>
         )}
+
+        <PeptideDetailSheet
+          peptideName={detailPeptide}
+          open={!!detailPeptide}
+          onOpenChange={(open) => !open && setDetailPeptide(null)}
+        />
       </main>
     </div>
   );
