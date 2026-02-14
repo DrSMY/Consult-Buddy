@@ -329,10 +329,11 @@ export default function Consultation() {
                             <h4 className="font-semibold">{p.name}</h4>
                             <button
                               onClick={(e) => { e.stopPropagation(); setDetailPeptide(p.name); }}
-                              className="text-muted-foreground hover:text-primary transition-colors"
+                              className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary hover:bg-primary/20 hover:border-primary/50 transition-colors"
                               title="View clinical details"
                             >
-                              <Info className="h-4 w-4" />
+                              <Info className="h-3 w-3" />
+                              Details
                             </button>
                           </div>
                           <Badge variant={p.priority === "Primary" ? "default" : "secondary"}>
