@@ -11,8 +11,9 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { intakeQuestions, getVisibleQuestions, intakeSections } from "@/data/intakeQuestions";
-import { Activity, ArrowLeft, ArrowRight, Mic, MicOff, Check } from "lucide-react";
+import { ArrowLeft, ArrowRight, Mic, MicOff, Check } from "lucide-react";
 import type { IntakeQuestion } from "@/data/intakeQuestions";
+import AppHeader from "@/components/AppHeader";
 
 export default function PatientIntake() {
   const { programId } = useParams();
@@ -265,21 +266,8 @@ export default function PatientIntake() {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto flex items-center gap-3 px-4 py-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
-            <Activity className="h-5 w-5 text-primary" />
-          </div>
-          <div className="flex-1">
-            <h1 className="text-lg font-semibold">Patient Intake</h1>
-            <p className="text-xs text-muted-foreground">Peptides Program</p>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen gradient-surface">
+      <AppHeader title="Patient Intake" subtitle="Peptides Program" showBack />
 
       <main className="container mx-auto max-w-2xl px-4 py-6">
         <div className="mb-6">

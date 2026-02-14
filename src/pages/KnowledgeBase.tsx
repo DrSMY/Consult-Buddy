@@ -7,9 +7,10 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import {
-  ArrowLeft, Search, ChevronDown, FlaskConical, Syringe, Pill,
+  Search, ChevronDown, FlaskConical, Syringe, Pill,
   Activity, ShieldAlert, TestTubes, Combine, BookOpen, Loader2,
 } from "lucide-react";
+import AppHeader from "@/components/AppHeader";
 
 interface Protocol {
   id: string;
@@ -96,21 +97,8 @@ export default function KnowledgeBase() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto flex items-center gap-3 px-4 py-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
-            <BookOpen className="h-5 w-5 text-primary" />
-          </div>
-          <div className="flex-1">
-            <h1 className="text-lg font-semibold">Peptide Knowledge Base</h1>
-            <p className="text-xs text-muted-foreground">{protocols.length} protocols available</p>
-          </div>
-        </div>
-      </header>
+    <div className="min-h-screen gradient-surface">
+      <AppHeader title="Knowledge Base" subtitle={`${protocols.length} protocols`} showBack />
 
       <main className="container mx-auto max-w-4xl px-4 py-6 space-y-6">
         <div className="relative">
