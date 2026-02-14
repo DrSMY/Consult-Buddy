@@ -225,6 +225,15 @@ export default function Consultation() {
           <Badge variant={consultation?.status === "completed" ? "default" : "secondary"}>
             {consultation?.status}
           </Badge>
+          {selectionConfirmed && (
+            <Button variant="outline" size="sm" onClick={() => {
+              setSelectionConfirmed(false);
+              // Restore full AI recommendations to allow re-selection
+              loadConsultation();
+            }}>
+              Edit Selection
+            </Button>
+          )}
         </div>
       </header>
 

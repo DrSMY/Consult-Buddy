@@ -10,6 +10,7 @@ import Dashboard from "./pages/Dashboard";
 import PatientIntake from "./pages/PatientIntake";
 import Consultation from "./pages/Consultation";
 import KnowledgeBase from "./pages/KnowledgeBase";
+import PatientFiles from "./pages/PatientFiles";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -28,6 +29,7 @@ const App = () => (
             <Route path="/program/:programId" element={<ProtectedRoute><PatientIntake /></ProtectedRoute>} />
             <Route path="/consultation/:id" element={<ProtectedRoute><Consultation /></ProtectedRoute>} />
             <Route path="/knowledge-base" element={<ProtectedRoute><KnowledgeBase /></ProtectedRoute>} />
+            <Route path="/patient-files" element={<ProtectedRoute><PatientFiles /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
