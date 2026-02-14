@@ -1,85 +1,80 @@
 
 
-# Weight Loss / GLP-1 Program Integration
+# Enhance Weight Loss / GLP-1 with Original DocSlim Logic
 
-## Overview
-Integrate the DocSlim weight loss flow into DOCassist as the second program path ("Weight Loss / GLP-1"), adapting the uploaded components to match the existing architecture and DOCassist design system.
+## What Improves
 
-## What Gets Built
+The uploaded `gemini.ts` reveals several details the current implementation is missing. This plan upgrades the AI guide generation and adds the follow-up flow.
 
-The Weight Loss / GLP-1 program will be a **3-step intake + treatment + summary** flow, mirroring the logic from the uploaded DocSlim code but adapted to work within DOCassist's existing routing, database, and UI patterns.
+## 1. Richer AI Patient Guide Prompt (Edge Function)
 
-### Step 1: Identity & Demographics
-- Patient name, mobile, booking ref, age, gender
-- Height (cm/ft toggle) and Weight (kg/lbs toggle)
-- Auto-calculated BMI with color-coded category badge
-- AI Smart Fill (paste raw text, auto-extract fields using Lovable AI)
+The current `generate-glp1-guide` prompt is generic. The original `gemini.ts` has:
 
-### Step 2: Clinical Analysis & Medical History
-- Auto-calculated BMR, daily maintenance calories, and weight-loss target calories (Mifflin-St Jeor formula)
-- Activity level selector (Sedentary, Lightly Active, Moderately Active, Very Active) with multiplier descriptions
-- Chronic illnesses and current medications (free text)
-- Previous GLP-1 use toggle with medication/dose history
-- Pregnancy screening for female patients
+- **Oral vs Injectable differentiation**: Rybelsus gets distinct "HOW TO TAKE" and "STORAGE" sections (swallow whole, empty stomach, 30-min wait) vs injection instructions for others.
+- **Medication-specific video links**: Mounjaro and Wegovy each have YouTube tutorial links embedded in the guide.
+- **Structured sections**: Introduction, Patient Summary, Storage, Administration, Nutrition (with 40-50% protein / 40-50% fiber / less than 20% carb macro split), Side Effects, Red Flags, Follow-up Plan.
+- **Lifestyle-only path**: When medication is "Other", the guide shifts to a pure lifestyle/nutrition plan without injection content.
+- **Doctor signature**: Each guide ends with a specific sign-off.
 
-### Step 3: Treatment Plan
-- GLP-1 medication selector: Mounjaro, Wegovy, Ozempic, Rybelsus, Other
-- Dose picker with medication-specific options (e.g., Mounjaro: 2.5mg, 5mg, 7.5mg, 10mg, 12.5mg, 15mg)
-- Blood test required toggle
-- Additional treatment notes
-- Auto-generated Clinical Suggestion (doctor's note) incorporating BMI category, medication, dose, protein targets, calorie targets, GLP-1 history
-- AI-generated Patient Care Guide
-- Summary/Review screen with copy-to-clipboard for clinical record and patient guide
+**File**: `supabase/functions/consultation/index.ts` -- rewrite the `generate-glp1-guide` section to match the original prompt structure.
 
-## Technical Plan
+## 2. Follow-up Flow (from `FollowupForm.tsx`)
 
-### 1. New Data File: `src/data/glp1Config.ts`
-Define all GLP-1 specific constants extracted from the uploaded code:
-- `Gender`, `ActivityLevel`, `MedicationType` enums
-- Dose arrays: `MOUNJARO_DOSES`, `WEGOVY_DOSES`, `OZEMPIC_DOSES`, `RYBELSUS_DOSES`
-- `ACTIVITY_MULTIPLIERS` and `ACTIVITY_DESCRIPTIONS` records
-- `GLP1Patient` interface (the patient data shape for the weight-loss flow)
-- `TreatmentPlan` interface
-- BMI/BMR calculation helpers
+The `types.ts` reveals a `FollowupData` interface with:
+- Previous dose and next dose
+- Side effects tracking
+- Weight lost since last visit
+- Follow-up notes
 
-### 2. New Page: `src/pages/WeightLossIntake.tsx`
-A single multi-step page component (replaces the 3 separate DocSlim components) with internal step state:
-- **Step 0 - Selection**: New Patient vs Follow-up (from `SelectionPage.tsx` logic)
-- **Step 1 - Identity**: Adapted from `IdentityForm.tsx` -- patient demographics, height/weight with unit toggles, smart fill
-- **Step 2 - Clinical**: Adapted from `PatientForm.tsx` -- BMI/BMR/calorie display, activity level, medical history, GLP-1 history
-- **Step 3 - Treatment**: Adapted from `TreatmentForm.tsx` -- medication selection, dose, blood test, notes, auto-generated clinical suggestion, AI patient guide generation
-- On submit: saves to existing `consultations` table with `program: "weight-loss"`
+Currently, clicking "Patient Follow-up" on the selection screen just goes to the same new-patient form. This plan adds a proper follow-up form with:
+- Search/select existing weight-loss patient from database
+- Quick dose adjustment (previous dose shown, select next dose)
+- Side effects and weight change tracking
+- Saves as a linked follow-up consultation
 
-### 3. New Page: `src/pages/WeightLossConsultation.tsx`
-The review/summary page after submission (adapted from `SummaryReview.tsx`):
-- Clinical Record section with copy button
-- Patient Care Guide section with copy button
-- Uses data from the `consultations` table `ai_recommendations` JSON field
+**File**: `src/pages/WeightLossIntake.tsx` -- add a follow-up step after selecting "Patient Follow-up".
 
-### 4. Update Dashboard: `src/pages/Dashboard.tsx`
-- Change `active: false` to `active: true` for the Weight Loss card
-- Route click to `/program/weight-loss`
+## 3. CSV Export Capability (from `csv.ts`)
 
-### 5. Update Router: `src/App.tsx`
-- Add route for `/weight-loss/:id` pointing to the consultation review page
-- The existing `/program/weight-loss` route already maps to `PatientIntake`, but we'll create a conditional: if `programId === "weight-loss"`, render `WeightLossIntake` instead
+The original app can export patient treatment data as CSV. This will be added as a utility and wired to the Patient Files page for weight-loss consultations.
 
-### 6. Backend Function for AI Guide Generation
-- Create or update the existing `consultation` edge function to handle a `generate-glp1-guide` action
-- Uses Lovable AI (Gemini) to generate a patient-facing care guide based on the clinical data (medication, dose, BMI, protein targets, etc.)
-- No external API key needed
+**File**: Create `src/utils/csvExport.ts` with adapted export logic.
 
-### 7. Database
-- No schema changes needed -- the existing `consultations` table handles this via its flexible `intake_answers` (JSON) and `ai_recommendations` (JSON) columns, plus the `program` field set to `"weight-loss"`
+## Technical Details
 
-## File Summary
+### Edge Function Changes (`supabase/functions/consultation/index.ts`)
+
+Replace the `generate-glp1-guide` prompt with two paths:
+
+```text
+IF medication is Mounjaro/Wegovy/Ozempic/Rybelsus (GLP-1):
+  - Detect oral (Rybelsus) vs injectable
+  - Include medication-specific storage instructions
+  - Include oral vs injection administration guide
+  - Embed video links (Mounjaro, Wegovy)
+  - Structured: Intro > Summary > Storage > Admin > Nutrition > Side Effects > Red Flags > Follow-up
+  - Macro split: Protein 40-50%, Fiber 40-50%, Carbs <20%
+  
+ELSE (Other/Lifestyle):
+  - Lifestyle-only guide: nutrition plan, activity plan, mindset, hydration
+  - No injection/storage sections
+```
+
+### WeightLossIntake Follow-up Flow
+
+When user selects "Patient Follow-up":
+1. Fetch previous weight-loss consultations for this doctor
+2. Show searchable patient list
+3. On select, pre-fill identity from previous consultation
+4. Show follow-up form: previous dose, next dose selector, side effects, weight change
+5. Save as new consultation with `followupData` in `intake_answers`
+
+### File Summary
 
 | Action | File |
 |--------|------|
-| Create | `src/data/glp1Config.ts` |
-| Create | `src/pages/WeightLossIntake.tsx` |
-| Create | `src/pages/WeightLossConsultation.tsx` |
-| Edit | `src/pages/Dashboard.tsx` (enable weight-loss card) |
-| Edit | `src/App.tsx` (add routes + conditional rendering) |
-| Edit | `supabase/functions/consultation/index.ts` (add GLP-1 guide generation) |
+| Edit | `supabase/functions/consultation/index.ts` (richer GLP-1 guide prompts) |
+| Edit | `src/pages/WeightLossIntake.tsx` (follow-up flow) |
+| Create | `src/utils/csvExport.ts` (CSV export for weight-loss data) |
+| Edit | `src/data/glp1Config.ts` (add FollowupData interface) |
 
