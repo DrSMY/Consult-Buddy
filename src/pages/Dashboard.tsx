@@ -22,7 +22,7 @@ export default function Dashboard() {
       title: "Weight Loss / GLP-1",
       description: "GLP-1 medication consultations for weight management programs.",
       icon: Scale,
-      active: false,
+      active: true,
     },
   ];
 
