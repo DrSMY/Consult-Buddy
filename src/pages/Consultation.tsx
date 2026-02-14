@@ -195,6 +195,32 @@ export default function Consultation() {
     toast({ title: "Selection confirmed and saved" });
   };
 
+  const handleEditSelection = async () => {
+    // Revert status to review so doctor can re-select
+    await supabase
+      .from("consultations")
+      .update({ status: "review" })
+      .eq("id", id);
+
+    // Re-fetch to get original AI recs and unlock UI
+    const { data } = await supabase
+      .from("consultations")
+      .select("*")
+      .eq("id", id)
+      .maybeSingle();
+
+    if (data?.ai_recommendations) {
+      const rec = data.ai_recommendations as unknown as Recommendation;
+      setRecommendations(rec);
+      setConsultation(data);
+      // Pre-select all current peptides/supplements for editing
+      setSelectedPeptides(new Set(rec.recommended_peptides.map((p) => p.name)));
+      setSelectedSupplements(new Set(rec.recommended_supplements.map((s) => s.name)));
+    }
+    setSelectionConfirmed(false);
+    toast({ title: "Selection unlocked for editing" });
+  };
+
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     toast({ title: `${label} copied to clipboard` });
@@ -226,11 +252,7 @@ export default function Consultation() {
             {consultation?.status}
           </Badge>
           {selectionConfirmed && (
-            <Button variant="outline" size="sm" onClick={() => {
-              setSelectionConfirmed(false);
-              // Restore full AI recommendations to allow re-selection
-              loadConsultation();
-            }}>
+            <Button variant="outline" size="sm" onClick={handleEditSelection}>
               Edit Selection
             </Button>
           )}
