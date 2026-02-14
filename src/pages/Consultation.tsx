@@ -144,6 +144,90 @@ export default function Consultation() {
   // The final lab tests based on selected tier
   const finalLabTests = useMemo(() => labTier === "advanced" ? derivedAdvancedTests : derivedBasicTests, [labTier, derivedBasicTests, derivedAdvancedTests]);
 
+  // Clinical rationale for each lab test
+  const labTestRationale: Record<string, string> = {
+    // Metabolic & Organ Function
+    "CMP": "Comprehensive Metabolic Panel evaluates kidney/liver function, electrolytes, and glucose — critical for safe peptide metabolism and dosing adjustments.",
+    "Comprehensive Metabolic Panel": "Evaluates kidney/liver function, electrolytes, and glucose — critical for safe peptide metabolism and dosing adjustments.",
+    "BMP": "Basic Metabolic Panel checks electrolytes, kidney function, and blood sugar to ensure safe peptide administration.",
+    "Basic Metabolic Panel": "Checks electrolytes, kidney function, and blood sugar to ensure safe peptide administration.",
+    "Liver Function Tests": "Monitors ALT, AST, and bilirubin to detect hepatotoxicity risk before and during peptide therapy.",
+    "Hepatic Function Panel": "Assesses liver enzymes and proteins to ensure the liver can safely process peptide compounds.",
+    "Renal Function Panel": "Evaluates kidney filtration and waste removal capacity, essential for peptides cleared renally.",
+    "GGT": "Gamma-glutamyl transferase is a sensitive marker for liver stress, important when using hepatically-metabolized peptides.",
+    // Hematology
+    "CBC": "Complete Blood Count monitors red/white cells and platelets — detects anemia, infection risk, or clotting issues that could complicate therapy.",
+    "Complete Blood Count": "Monitors red/white cells and platelets — detects anemia, infection risk, or clotting issues that could complicate therapy.",
+    "CBC with Differential": "Detailed blood cell analysis including WBC subtypes, important for detecting immune changes during peptide therapy.",
+    // Hormones
+    "IGF-1": "Insulin-like Growth Factor 1 is the primary biomarker for growth hormone activity — essential to monitor GH-releasing peptide effectiveness and safety.",
+    "Testosterone (Total)": "Measures total testosterone levels to establish baseline and monitor hormonal peptide effects on the HPG axis.",
+    "Testosterone (Free)": "Free testosterone reflects bioavailable hormone levels, more clinically relevant for assessing peptide-driven hormonal changes.",
+    "Testosterone Total & Free": "Assesses both total and bioavailable testosterone to monitor peptide effects on hormonal balance.",
+    "Estradiol": "Monitors estrogen levels to detect aromatization and hormonal imbalance during testosterone-modulating peptide therapy.",
+    "DHEA-S": "Adrenal androgen marker that helps assess overall hormonal balance and adrenal function during peptide therapy.",
+    "Cortisol (AM)": "Morning cortisol evaluates HPA axis function — important for peptides affecting stress response and recovery.",
+    "Cortisol": "Evaluates adrenal function and stress response, which can be modulated by certain peptide therapies.",
+    "Progesterone": "Monitors progesterone levels for hormonal balance assessment during peptide-based hormone optimization.",
+    "LH": "Luteinizing Hormone helps assess pituitary-gonadal axis function, especially relevant for GnRH-related peptides.",
+    "FSH": "Follicle-Stimulating Hormone evaluates reproductive endocrine function and pituitary response.",
+    "SHBG": "Sex Hormone-Binding Globulin affects bioavailable hormone levels — important for interpreting testosterone results during therapy.",
+    "Prolactin": "Elevated prolactin can indicate pituitary issues; some peptides may affect dopamine pathways influencing prolactin.",
+    "Growth Hormone": "Direct GH measurement helps assess baseline secretion and response to GH-secretagogue peptides.",
+    // Thyroid
+    "TSH": "Thyroid-Stimulating Hormone screens for thyroid dysfunction that could affect metabolism and peptide efficacy.",
+    "Free T3": "Active thyroid hormone level — important since some peptides can influence thyroid metabolism and energy regulation.",
+    "Free T4": "Thyroxine level helps assess thyroid function, which interacts with metabolic peptide pathways.",
+    "Thyroid Panel": "Comprehensive thyroid assessment ensures metabolic pathways are functioning properly for optimal peptide response.",
+    "Thyroid Panel (TSH, Free T3, Free T4)": "Full thyroid assessment — metabolic function directly impacts peptide absorption and efficacy.",
+    // Lipids & Cardiovascular
+    "Lipid Panel": "Monitors cholesterol and triglycerides — some peptides can favorably alter lipid metabolism; baseline is essential.",
+    "Lipid Panel (Total, LDL, HDL, Triglycerides)": "Comprehensive lipid profile to track cardiovascular risk and peptide effects on fat metabolism.",
+    "hs-CRP": "High-sensitivity C-reactive protein detects systemic inflammation — key for anti-inflammatory peptide monitoring (e.g., BPC-157, TB-500).",
+    "Homocysteine": "Elevated homocysteine indicates cardiovascular and methylation risk — relevant for peptides targeting vascular health.",
+    "Fibrinogen": "Clotting factor that indicates thrombotic risk, important when using peptides that may affect coagulation.",
+    // Glucose & Insulin
+    "Fasting Glucose": "Baseline blood sugar is critical since several peptides (e.g., GH-releasing) can affect insulin sensitivity.",
+    "Fasting Insulin": "Measures insulin resistance — GH-releasing peptides can reduce insulin sensitivity, making this a key safety marker.",
+    "HbA1c": "Glycated hemoglobin reflects 3-month average glucose — monitors long-term metabolic impact of peptide therapy.",
+    "Hemoglobin A1c": "3-month glucose average — essential for tracking metabolic impact of growth hormone and metabolic peptides.",
+    "Insulin": "Assesses insulin secretion and resistance, important for peptides that modulate glucose metabolism.",
+    "HOMA-IR": "Homeostatic Model Assessment for Insulin Resistance — calculated marker for metabolic health during peptide therapy.",
+    // Inflammatory & Immune
+    "ESR": "Erythrocyte Sedimentation Rate detects inflammation — useful for monitoring tissue-healing peptides like BPC-157.",
+    "ANA": "Antinuclear Antibody screens for autoimmune conditions that could be affected by immune-modulating peptides.",
+    "IL-6": "Interleukin-6 is a key inflammatory cytokine — monitors immune response during immunomodulatory peptide therapy.",
+    "TNF-alpha": "Tumor Necrosis Factor alpha measures inflammatory load — relevant for anti-inflammatory peptide protocols.",
+    "CRP": "C-Reactive Protein indicates acute inflammation — important baseline for healing and recovery peptides.",
+    // Vitamins & Minerals
+    "Vitamin D (25-OH)": "Vitamin D status affects immune function, bone health, and hormone production — synergistic with many peptide protocols.",
+    "Vitamin D": "Essential for immune and hormonal health — deficiency can reduce peptide therapy effectiveness.",
+    "Vitamin B12": "B12 is critical for neurological function and energy metabolism — supports peptide-driven recovery processes.",
+    "Folate": "Folate supports methylation and cell repair processes that complement peptide-driven tissue healing.",
+    "Iron Panel": "Iron studies assess oxygen-carrying capacity — important for peptides targeting performance and recovery.",
+    "Ferritin": "Stored iron levels indicate overall iron status — low ferritin can impair recovery peptide effectiveness.",
+    "Magnesium": "Essential mineral for 300+ enzymatic reactions — magnesium status affects peptide receptor sensitivity.",
+    "Zinc": "Zinc is crucial for immune function and hormone production — supports GH-releasing peptide pathways.",
+    // Kidney
+    "BUN/Creatinine": "Evaluates kidney filtration — ensures safe renal clearance of peptide metabolites.",
+    "Creatinine": "Kidney function marker critical for dose adjustments of renally-cleared peptides.",
+    "eGFR": "Estimated Glomerular Filtration Rate assesses kidney capacity to safely excrete peptide byproducts.",
+    "Cystatin C": "More sensitive kidney function marker than creatinine — useful for precise renal monitoring during therapy.",
+    // Other
+    "PSA": "Prostate-Specific Antigen monitors prostate health — important for male patients on hormonal or GH-releasing peptides.",
+    "Urinalysis": "Screens for kidney stress, infection, and metabolic byproducts during peptide therapy.",
+    "Hemoglobin/Hematocrit": "Monitors oxygen-carrying capacity and polycythemia risk, especially with testosterone-modulating peptides.",
+    "Hematocrit": "Elevated hematocrit increases blood viscosity — critical to monitor with GH and testosterone-affecting peptides.",
+  };
+
+  const getTestRationale = (testName: string, relatedPeptides: { peptide: string; tier: "mandatory" | "recommended" | "legacy" }[]) => {
+    const rationale = labTestRationale[testName];
+    const peptideInfo = relatedPeptides.length > 0
+      ? relatedPeptides.map((rp) => `${rp.peptide} (${rp.tier === "mandatory" ? "Mandatory" : rp.tier === "recommended" ? "Recommended" : "Standard"})`).join(", ")
+      : null;
+    return { rationale: rationale || "Clinical monitoring test to ensure patient safety during peptide therapy.", peptideInfo };
+  };
+
   // Map each test to the peptides that require/recommend it
   const testToPeptideMap = useMemo(() => {
     if (!recommendations) return new Map<string, { peptide: string; tier: "mandatory" | "recommended" | "legacy" }[]>();
@@ -486,20 +570,21 @@ ${labLines || "As directed by your doctor"}`;
                                   {t}
                                 </Badge>
                               </TooltipTrigger>
-                              <TooltipContent side="top" className="max-w-xs">
-                                {relatedPeptides.length > 0 ? (
-                                  <div className="space-y-1">
-                                    <p className="font-medium text-xs">Required for:</p>
-                                    {relatedPeptides.map((rp, j) => (
-                                      <p key={j} className="text-xs">
-                                        <span className="font-medium">{rp.peptide}</span>
-                                        <span className="text-muted-foreground"> — {rp.tier === "mandatory" ? "Mandatory baseline test" : rp.tier === "recommended" ? "Recommended for comprehensive monitoring" : "Standard protocol test"}</span>
-                                      </p>
-                                    ))}
-                                  </div>
-                                ) : (
-                                  <p className="text-xs">Standard clinical panel test</p>
-                                )}
+                              <TooltipContent side="top" className="max-w-sm p-3">
+                                {(() => {
+                                  const { rationale, peptideInfo } = getTestRationale(t, relatedPeptides);
+                                  return (
+                                    <div className="space-y-2">
+                                      <p className="font-semibold text-xs">{t}</p>
+                                      <p className="text-xs leading-relaxed text-muted-foreground">{rationale}</p>
+                                      {peptideInfo && (
+                                        <div className="pt-1 border-t border-border">
+                                          <p className="text-[10px] font-medium text-primary">Related peptides: <span className="font-normal text-muted-foreground">{peptideInfo}</span></p>
+                                        </div>
+                                      )}
+                                    </div>
+                                  );
+                                })()}
                               </TooltipContent>
                             </Tooltip>
                           );
