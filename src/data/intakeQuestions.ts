@@ -6,6 +6,14 @@ export interface IntakeQuestion {
   options?: string[];
   conditionalOn?: { questionId: string; value: string };
   unit?: string;
+  /** If true, show a Yes/No gate before revealing options */
+  hasGate?: boolean;
+  /** Label for the Yes/No gate (defaults to "Do you have any?") */
+  gateLabel?: string;
+  /** If true, include an "Other" free-text option */
+  hasOther?: boolean;
+  /** If true, include a notes textarea below the question */
+  hasNotes?: boolean;
 }
 
 export const intakeSections = [
@@ -25,12 +33,11 @@ export const intakeQuestions: IntakeQuestion[] = [
   { id: "activity_level", section: "Demographics & Baseline", question: "Activity level", type: "select", options: ["Sedentary", "Light activity", "Regular training (3-4x/week)", "Intense training (5+ times/week)"] },
 
   // SECTION 2: Health Status
-  { id: "health_conditions", section: "Health Status & Medical Background", question: "Do you have any of the following health conditions?", type: "multiselect", options: ["No known medical conditions", "High blood pressure", "High cholesterol", "Prediabetes or diabetes", "Thyroid disorder", "Hormonal imbalance (e.g., low testosterone, PCOS)", "Autoimmune or inflammatory condition", "Chronic joint, muscle, or back pain", "Sleep disorder (insomnia, sleep apnea, etc.)", "Mental health condition (stress, anxiety, depression)", "Other diagnosed condition"] },
-  { id: "allergies", section: "Health Status & Medical Background", question: "Do you have any known allergies or sensitivities?", type: "select", options: ["No known allergies", "Yes – medications", "Yes – vitamins or supplements", "Yes – both medications and supplements"] },
-  { id: "allergy_details", section: "Health Status & Medical Background", question: "Please specify the allergies/sensitivities", type: "text", conditionalOn: { questionId: "allergies", value: "Yes" } },
+  { id: "health_conditions", section: "Health Status & Medical Background", question: "Do you have any known health conditions?", type: "multiselect", hasGate: true, gateLabel: "Do you have any known health conditions?", hasOther: true, hasNotes: true, options: ["High blood pressure", "High cholesterol", "Prediabetes or diabetes", "Thyroid disorder", "Hormonal imbalance (e.g., low testosterone, PCOS)", "Autoimmune or inflammatory condition", "Chronic joint, muscle, or back pain", "Sleep disorder (insomnia, sleep apnea, etc.)", "Mental health condition (stress, anxiety, depression)"] },
+  { id: "allergies", section: "Health Status & Medical Background", question: "Do you have any known allergies or sensitivities?", type: "multiselect", hasGate: true, gateLabel: "Do you have any known allergies or sensitivities?", hasOther: true, hasNotes: true, options: ["Medications", "Vitamins or supplements", "Food allergies", "Environmental allergies"] },
 
   // SECTION 3: Health Goals
-  { id: "health_goals", section: "Primary Health Objectives", question: "What are your main health goals? (Select all that apply)", type: "multiselect", options: ["Healthy aging & longevity", "Build muscle & recover better", "Heal injuries & reduce pain", "Improve metabolism & reduce belly fat", "Improve sleep & reset body clock", "Cognitive function & mood enhancement", "Sexual health", "Immune function & inflammation", "Gut health", "Skin & hair"] },
+  { id: "health_goals", section: "Primary Health Objectives", question: "What are your main health goals? (Select all that apply)", type: "multiselect", hasOther: true, hasNotes: true, options: ["Healthy aging & longevity", "Build muscle & recover better", "Heal injuries & reduce pain", "Improve metabolism & reduce belly fat", "Improve sleep & reset body clock", "Cognitive function & mood enhancement", "Sexual health", "Immune function & inflammation", "Gut health", "Skin & hair"] },
 
   // SECTION 4: Objective-specific - Longevity
   { id: "energy_levels", section: "Objective-Specific Questions", question: "How would you rate your overall energy levels?", type: "select", options: ["Very good", "Good", "Moderate", "Low"], conditionalOn: { questionId: "health_goals", value: "Healthy aging & longevity" } },
