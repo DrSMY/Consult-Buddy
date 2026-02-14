@@ -20,6 +20,9 @@ export default function PatientIntake() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
+  const [gateAnswers, setGateAnswers] = useState<Record<string, "yes" | "no" | null>>({});
+  const [otherText, setOtherText] = useState<Record<string, string>>({});
+  const [notes, setNotes] = useState<Record<string, string>>({});
   const [currentStep, setCurrentStep] = useState(0);
   const [patientName, setPatientName] = useState("");
   const [saving, setSaving] = useState(false);
@@ -39,12 +42,16 @@ export default function PatientIntake() {
 
   const toggleMultiSelect = (id: string, option: string) => {
     const current = (answers[id] as string[]) || [];
-    if (option === "No known medical conditions" || option === "No known allergies") {
-      setAnswer(id, [option]);
-      return;
+    setAnswer(id, current.includes(option) ? current.filter((v) => v !== option) : [...current, option]);
+  };
+
+  const handleGateChange = (id: string, value: "yes" | "no") => {
+    setGateAnswers((prev) => ({ ...prev, [id]: value }));
+    if (value === "no") {
+      setAnswer(id, []);
+      setOtherText((prev) => ({ ...prev, [id]: "" }));
+      setNotes((prev) => ({ ...prev, [id]: "" }));
     }
-    const filtered = current.filter((v) => v !== "No known medical conditions" && v !== "No known allergies");
-    setAnswer(id, filtered.includes(option) ? filtered.filter((v) => v !== option) : [...filtered, option]);
   };
 
   const startSpeechToText = (fieldId: string) => {
@@ -94,13 +101,26 @@ export default function PatientIntake() {
       return;
     }
     setSaving(true);
+
+    // Merge gate answers, other text, and notes into the final answers
+    const finalAnswers: Record<string, any> = { ...answers };
+    for (const [id, gate] of Object.entries(gateAnswers)) {
+      if (gate === "no") finalAnswers[id] = [];
+    }
+    for (const [id, text] of Object.entries(otherText)) {
+      if (text.trim()) finalAnswers[`${id}_other`] = text.trim();
+    }
+    for (const [id, note] of Object.entries(notes)) {
+      if (note.trim()) finalAnswers[`${id}_notes`] = note.trim();
+    }
+
     const { data, error } = await supabase
       .from("consultations")
       .insert({
         user_id: user.id,
         patient_name: patientName,
         program: programId || "peptides",
-        intake_answers: answers as any,
+        intake_answers: finalAnswers as any,
         status: "review",
       })
       .select("id")
@@ -116,9 +136,34 @@ export default function PatientIntake() {
 
   const renderQuestion = (q: IntakeQuestion) => {
     const value = answers[q.id];
+    const gate = gateAnswers[q.id];
+    const showOptions = !q.hasGate || gate === "yes";
+
     return (
-      <div key={q.id} className="space-y-2">
+      <div key={q.id} className="space-y-3">
         <Label className="text-sm font-medium">{q.question}</Label>
+
+        {/* Yes/No gate for applicable questions */}
+        {q.hasGate && (
+          <div className="flex gap-2">
+            <Badge
+              variant={gate === "no" ? "default" : "outline"}
+              className={`cursor-pointer px-4 py-1.5 text-sm transition-all ${gate === "no" ? "bg-primary text-primary-foreground" : "hover:bg-secondary"}`}
+              onClick={() => handleGateChange(q.id, "no")}
+            >
+              No
+            </Badge>
+            <Badge
+              variant={gate === "yes" ? "default" : "outline"}
+              className={`cursor-pointer px-4 py-1.5 text-sm transition-all ${gate === "yes" ? "bg-primary text-primary-foreground" : "hover:bg-secondary"}`}
+              onClick={() => handleGateChange(q.id, "yes")}
+            >
+              Yes
+            </Badge>
+          </div>
+        )}
+
+        {/* Text input */}
         {q.type === "text" && (
           <div className="relative">
             <Textarea
@@ -138,6 +183,8 @@ export default function PatientIntake() {
             </Button>
           </div>
         )}
+
+        {/* Number input */}
         {q.type === "number" && (
           <div className="flex items-center gap-2">
             <Input
@@ -149,6 +196,8 @@ export default function PatientIntake() {
             {q.unit && <span className="text-sm text-muted-foreground">{q.unit}</span>}
           </div>
         )}
+
+        {/* Select */}
         {q.type === "select" && q.options && (
           <div className="flex flex-wrap gap-2">
             {q.options.map((opt) => (
@@ -163,22 +212,52 @@ export default function PatientIntake() {
             ))}
           </div>
         )}
-        {q.type === "multiselect" && q.options && (
-          <div className="flex flex-wrap gap-2">
-            {q.options.map((opt) => {
-              const selected = ((value as string[]) || []).includes(opt);
-              return (
-                <Badge
-                  key={opt}
-                  variant={selected ? "default" : "outline"}
-                  className={`cursor-pointer px-3 py-1.5 text-sm transition-all ${selected ? "bg-primary text-primary-foreground" : "hover:bg-secondary"}`}
-                  onClick={() => toggleMultiSelect(q.id, opt)}
-                >
-                  {selected && <Check className="h-3 w-3 mr-1" />}
-                  {opt}
-                </Badge>
-              );
-            })}
+
+        {/* Multiselect with gate support */}
+        {q.type === "multiselect" && q.options && showOptions && (
+          <div className="space-y-3">
+            <div className="flex flex-wrap gap-2">
+              {q.options.map((opt) => {
+                const selected = ((value as string[]) || []).includes(opt);
+                return (
+                  <Badge
+                    key={opt}
+                    variant={selected ? "default" : "outline"}
+                    className={`cursor-pointer px-3 py-1.5 text-sm transition-all ${selected ? "bg-primary text-primary-foreground" : "hover:bg-secondary"}`}
+                    onClick={() => toggleMultiSelect(q.id, opt)}
+                  >
+                    {selected && <Check className="h-3 w-3 mr-1" />}
+                    {opt}
+                  </Badge>
+                );
+              })}
+            </div>
+
+            {/* Other free-text option */}
+            {q.hasOther && (
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Other (please specify)</Label>
+                <Input
+                  value={otherText[q.id] || ""}
+                  onChange={(e) => setOtherText((prev) => ({ ...prev, [q.id]: e.target.value }))}
+                  placeholder="Specify other..."
+                  className="text-sm"
+                />
+              </div>
+            )}
+
+            {/* Notes section */}
+            {q.hasNotes && (
+              <div className="space-y-1">
+                <Label className="text-xs text-muted-foreground">Additional notes</Label>
+                <Textarea
+                  value={notes[q.id] || ""}
+                  onChange={(e) => setNotes((prev) => ({ ...prev, [q.id]: e.target.value }))}
+                  placeholder="Add any relevant details..."
+                  className="text-sm min-h-[60px]"
+                />
+              </div>
+            )}
           </div>
         )}
       </div>
