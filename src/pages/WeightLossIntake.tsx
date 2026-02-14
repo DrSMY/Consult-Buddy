@@ -324,9 +324,9 @@ export default function WeightLossIntake() {
               <CardContent className="py-12 text-center text-muted-foreground">
                 <AlertTriangle className="h-8 w-8 mx-auto mb-3 opacity-40" />
                 <p className="font-medium">No previous weight-loss patients found</p>
-                <p className="text-sm mt-1">Start a new patient encounter first.</p>
-                <Button variant="outline" className="mt-4" onClick={() => setFlowType(null)}>
-                  <ArrowLeft className="h-4 w-4 mr-1" /> Back
+                <p className="text-sm mt-1">You can start a new follow-up encounter manually.</p>
+                <Button className="mt-4" onClick={() => { setSelectedPrevConsultation({}); setStep(0); }}>
+                  <UserPlus className="h-4 w-4 mr-1" /> New Follow-up Patient
                 </Button>
               </CardContent>
             </Card>
@@ -364,9 +364,12 @@ export default function WeightLossIntake() {
               })}
             </div>
           )}
-          <div className="mt-6">
+          <div className="mt-6 flex justify-between">
             <Button variant="outline" onClick={() => setFlowType(null)}>
               <ArrowLeft className="h-4 w-4 mr-1" /> Back
+            </Button>
+            <Button onClick={() => { setSelectedPrevConsultation({}); setStep(0); }}>
+              <UserPlus className="h-4 w-4 mr-1" /> New Follow-up Patient
             </Button>
           </div>
         </main>
