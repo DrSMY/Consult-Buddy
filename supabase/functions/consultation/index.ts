@@ -73,30 +73,107 @@ serve(async (req) => {
     if (action === "generate-glp1-guide") {
       const { patient_data, treatment_data } = body;
 
-      const prompt = `Generate a comprehensive patient care guide for a weight loss / GLP-1 patient with the following data:
+      const glp1Meds = ["Mounjaro", "Wegovy", "Ozempic", "Rybelsus"];
+      const isGlp1 = !!treatment_data.medication && glp1Meds.includes(treatment_data.medication);
+      const isOral = treatment_data.medication === "Rybelsus";
 
-Patient: ${patient_data.name}, Age ${patient_data.age}, ${patient_data.gender}
-BMI: ${patient_data.bmi?.toFixed(1) || 'N/A'}
-Medication: ${treatment_data.medication} ${treatment_data.dose || treatment_data.otherDetail || ''}
-Weight: ${patient_data.weight} kg
-Activity Level: ${patient_data.activityLevel}
-Chronic Illnesses: ${patient_data.chronicIllnesses || 'None'}
-Current Medications: ${patient_data.medications || 'None'}
-Previous GLP-1 Use: ${patient_data.previousGlp1Use ? 'Yes' : 'No'}
-Weight Loss Target: ${patient_data.weightLossCalories ? Math.round(patient_data.weightLossCalories) + ' kcal/day' : 'N/A'}
-Blood Test Required: ${treatment_data.bloodTestRequired ? 'Yes' : 'No'}
+      const medName = treatment_data.medication === "Other"
+        ? (treatment_data.otherDetail || "Custom Program")
+        : (treatment_data.medication || "Lifestyle Program");
+      const dose = treatment_data.dose || "";
 
-Generate a patient-friendly guide covering:
-1. Medication overview and how it works
-2. Injection/administration instructions
-3. Expected side effects and management
-4. Dietary recommendations (protein targets: ${patient_data.weight ? Math.round(Number(patient_data.weight) * 1.2) : '?'}g - ${patient_data.weight ? Math.round(Number(patient_data.weight) * 1.5) : '?'}g/day)
-5. Lifestyle recommendations
-6. When to contact the doctor
-7. Storage instructions
-${treatment_data.bloodTestRequired ? '8. Blood test information with Dardoc link: https://www.dardoc.com/dubai/lab-test/weight-loss-blood-test' : ''}
+      const salutation = patient_data.gender === "Male" ? "Mr" : (patient_data.gender === "Female" ? "Ms" : "");
 
-Use clear, warm, supportive language. Format with clear sections.`;
+      let videoLink = "";
+      if (treatment_data.medication === "Mounjaro") videoLink = "https://youtube.com/shorts/S0c4uOykHOs";
+      else if (treatment_data.medication === "Wegovy") videoLink = "https://youtu.be/mWSu8hZZOAs?si=mad5y_oeapGbJYno";
+
+      const weight = Number(patient_data.weight) || 0;
+      const protMin = Math.round(weight * 1.2);
+      const protMax = Math.round(weight * 1.5);
+
+      let prompt = "";
+      if (isGlp1) {
+        const greeting = `Hi ${salutation} ${patient_data.name}, this is a guide for you to start your journey with us and take the medication as advised.`;
+
+        const storageSection = isOral
+          ? "::: STORAGE INSTRUCTIONS :::\nStore in a dry place at room temperature (below 30°C). Keep in original blister pack until used to protect from moisture."
+          : "::: STORAGE INSTRUCTIONS :::\nRefrigeration (2-8°C), room temp limits (30°C for 21 days), do not freeze, protect from light.";
+
+        const adminSection = isOral
+          ? `::: HOW TO TAKE :::\nTake one tablet daily on an empty stomach. Swallow whole with a small sip of water (no more than 4oz/120ml). Wait at least 30 minutes before your first food, drink, or other oral medications.`
+          : `::: HOW TO INJECT :::\nStep-by-step instructions for ${medName}. Rotate sites. ${videoLink ? `Include this video link: ${videoLink}` : ""}`;
+
+        prompt = `Create a professional Patient-Centered Care Guide for ${patient_data.name} starting ${medName} ${dose}.
+CRITICAL INSTRUCTION: Start exactly with: "${greeting}"
+
+Follow this structure strictly:
+
+::: INTRODUCTION :::
+Purpose of guide, medication name (${medName} ${dose}), explanation of GLP-1/GIP receptor agonists (appetite reduction, delayed gastric emptying, metabolism), and the medical journey ahead.
+
+::: PATIENT SUMMARY :::
+Weight: ${patient_data.weight}kg, Height: ${patient_data.height}cm, BMI: ${patient_data.bmi?.toFixed?.(1) || "N/A"}.
+Estimated Daily Calories for Weight Loss: ${patient_data.weightLossCalories ? Math.round(patient_data.weightLossCalories) : "---"} kcal/day.
+
+${storageSection}
+
+${adminSection}
+
+::: NUTRITION & DIET STRUCTURE :::
+Protein Target: ${protMin}–${protMax} g/day.
+Hydration: 2–3 liters/day.
+Macronutrient distribution:
+• Protein: 40–50%
+• Fiber-rich whole foods: 40–50%
+• Carbohydrates: <20% (low-GI grains)
+
+::: COMMON SIDE EFFECTS & MANAGEMENT :::
+Nausea, constipation, diarrhea, heartburn with home management tips.
+
+::: RED-FLAG SYMPTOMS :::
+Severe abdominal pain, persistent vomiting, dehydration. Advise when to seek urgent care.
+
+::: FOLLOW-UP PLAN :::
+Mandatory review after 4th dose. Assess tolerance and response.
+${treatment_data.bloodTestRequired ? "REQUIRED: Complete Weight Loss Blood Test (https://www.dardoc.com/dubai/lab-test/weight-loss-blood-test)" : ""}
+
+Sign as:
+Dr Sami M. Yesuf
+SCOPE Certified Physician`;
+      } else {
+        const lifestyleGreeting = `Hi ${salutation} ${patient_data.name}, this is your personalized guide for a healthy lifestyle and sustainable weight management journey with us${treatment_data.medication === "Other" ? ` alongside your ${treatment_data.otherDetail} treatment` : ""}.`;
+
+        prompt = `Create a professional Weight Loss & Lifestyle Guide for ${patient_data.name}.
+CRITICAL INSTRUCTION: Start with: "${lifestyleGreeting}"
+
+Focus strictly on lifestyle modifications:
+
+::: NUTRITION & DIETARY ADVICE :::
+Provide a comprehensive high protein nutrition plan.
+Target Protein: ${protMin}–${protMax} g/day.
+Macro Breakdown:
+• Protein: 40-50%
+• Fiber-rich whole foods: 40-50%
+• Carbohydrates: <20% (Whole grains, low-GI).
+
+::: PHYSICAL ACTIVITY PLAN :::
+Activity Level: ${patient_data.activityLevel}. Provide specific cardio and strength training recommendations based on their weight (${patient_data.weight}kg).
+
+::: CONSISTENCY & MINDSET :::
+Strategies for habit formation, tracking progress, and overcoming weight-loss plateaus.
+
+::: HYDRATION & RECOVERY :::
+Guidelines for water intake and the importance of sleep in metabolism.
+
+::: FOLLOW-UP PLAN :::
+Regular check-ins (monthly) to monitor progress.
+${treatment_data.bloodTestRequired ? "Note: Please complete the required lab test: https://www.dardoc.com/dubai/lab-test/weight-loss-blood-test" : ""}
+
+Sign as:
+Dr Sami M. Yesuf
+SCOPE Certified Physician`;
+      }
 
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
@@ -107,7 +184,7 @@ Use clear, warm, supportive language. Format with clear sections.`;
         body: JSON.stringify({
           model: "google/gemini-3-flash-preview",
           messages: [
-            { role: "system", content: "You are a clinical care guide writer for a weight loss clinic. Write clear, patient-friendly guides." },
+            { role: "system", content: "You are a clinical care guide writer for a weight loss clinic. Write clear, patient-friendly guides. Follow the structure exactly as given." },
             { role: "user", content: prompt },
           ],
         }),
