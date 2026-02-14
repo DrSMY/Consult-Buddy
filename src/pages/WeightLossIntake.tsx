@@ -16,12 +16,12 @@ import {
   CalendarDays, Ruler, Weight as WeightIcon, Calculator, Flame, Utensils,
   TrendingDown, Info, ClipboardList, Pill, StickyNote, FileText, Sparkles,
   BookOpen, Loader2, FlaskConical, Check, Wand2, RefreshCw, Copy, ClipboardCheck,
-  Activity, Zap, ThermometerSnowflake, User,
+  Activity, Zap, ThermometerSnowflake, User, Search, AlertTriangle,
 } from "lucide-react";
 import {
-  type GLP1Patient, type TreatmentPlan, type MedicationType,
+  type GLP1Patient, type TreatmentPlan, type MedicationType, type FollowupData,
   Gender, ActivityLevel, ACTIVITY_MULTIPLIERS, ACTIVITY_DESCRIPTIONS,
-  createEmptyPatient, createEmptyTreatment, getDoseOptions,
+  createEmptyPatient, createEmptyTreatment, createEmptyFollowup, getDoseOptions,
   calculateBMI, calculateBMR, getBMICategory, getBMIColorClass,
   generateClinicalSuggestion,
 } from "@/data/glp1Config";
@@ -46,6 +46,12 @@ export default function WeightLossIntake() {
   const [isParsing, setIsParsing] = useState(false);
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
 
+  // Follow-up state
+  const [followup, setFollowup] = useState<FollowupData>(createEmptyFollowup());
+  const [previousConsultations, setPreviousConsultations] = useState<any[]>([]);
+  const [followupSearch, setFollowupSearch] = useState("");
+  const [loadingFollowups, setLoadingFollowups] = useState(false);
+  const [selectedPrevConsultation, setSelectedPrevConsultation] = useState<any>(null);
   const totalSteps = 4;
   const progress = ((step + 1) / totalSteps) * 100;
 
@@ -81,6 +87,59 @@ export default function WeightLossIntake() {
       setTreatment(t => ({ ...t, doctorSuggestions: suggestion }));
     }
   }, [treatment.medication, treatment.dose, treatment.otherDetail, treatment.notes, treatment.bloodTestRequired, patient.mobileNumber, patient.name, patient.bmi, patient.previousGlp1Use, patient.previousMedication, patient.previousDose, patient.chronicIllnesses, patient.weight, patient.weightLossCalories, patient.bookingId, patient.gender]);
+
+  // Load previous weight-loss consultations for follow-up
+  useEffect(() => {
+    if (flowType !== "followup" || !user) return;
+    setLoadingFollowups(true);
+    supabase
+      .from("consultations")
+      .select("*")
+      .eq("program", "weight-loss")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .then(({ data }) => {
+        setPreviousConsultations(data || []);
+        setLoadingFollowups(false);
+      });
+  }, [flowType, user]);
+
+  const handleSelectPreviousPatient = (consultation: any) => {
+    setSelectedPrevConsultation(consultation);
+    const prevPatient = consultation.intake_answers?.patient;
+    const prevTreatment = consultation.intake_answers?.treatment;
+    if (prevPatient) {
+      setPatient({
+        ...createEmptyPatient(),
+        name: prevPatient.name || "",
+        mobileNumber: prevPatient.mobileNumber || "",
+        bookingId: prevPatient.bookingId || "",
+        age: prevPatient.age || "",
+        gender: prevPatient.gender || Gender.Male,
+        height: prevPatient.height || "",
+        weight: prevPatient.weight || "",
+        activityLevel: prevPatient.activityLevel || ActivityLevel.Sedentary,
+        chronicIllnesses: prevPatient.chronicIllnesses || "",
+        medications: prevPatient.medications || "",
+        previousGlp1Use: true,
+        previousMedication: prevTreatment?.medication || "",
+        previousDose: prevTreatment?.dose || "",
+      });
+      setFollowup(f => ({
+        ...f,
+        previousDose: prevTreatment?.dose || prevTreatment?.otherDetail || "",
+      }));
+      setTreatment(t => ({
+        ...t,
+        medication: prevTreatment?.medication || "",
+      }));
+    }
+    setStep(0); // go to identity (pre-filled)
+  };
+
+  const filteredPrevConsultations = previousConsultations.filter(c =>
+    !followupSearch || c.patient_name?.toLowerCase().includes(followupSearch.toLowerCase())
+  );
 
   const handleSmartFill = async () => {
     if (!smartInput.trim()) return;
@@ -149,7 +208,7 @@ export default function WeightLossIntake() {
     }
     setSaving(true);
 
-    const intakeAnswers = { patient, treatment, flowType };
+    const intakeAnswers = { patient, treatment, flowType, ...(flowType === "followup" ? { followupData: followup, previousConsultationId: selectedPrevConsultation?.id } : {}) };
 
     const { data, error } = await supabase
       .from("consultations")
@@ -233,6 +292,82 @@ export default function WeightLossIntake() {
                 </div>
               </CardContent>
             </Card>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // ---- FOLLOW-UP PATIENT SEARCH ----
+  if (flowType === "followup" && !selectedPrevConsultation) {
+    return (
+      <div className="min-h-screen gradient-surface">
+        <AppHeader title="Weight Loss / GLP-1" subtitle="Select previous patient" showBack />
+        <main className="container mx-auto max-w-3xl px-4 py-8 animate-fade-in">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold">Follow-up Visit</h2>
+            <p className="text-muted-foreground mt-1">Select a previous weight-loss patient to continue their journey.</p>
+          </div>
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by patient name..."
+              value={followupSearch}
+              onChange={e => setFollowupSearch(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          {loadingFollowups ? (
+            <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+          ) : filteredPrevConsultations.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center text-muted-foreground">
+                <AlertTriangle className="h-8 w-8 mx-auto mb-3 opacity-40" />
+                <p className="font-medium">No previous weight-loss patients found</p>
+                <p className="text-sm mt-1">Start a new patient encounter first.</p>
+                <Button variant="outline" className="mt-4" onClick={() => setFlowType(null)}>
+                  <ArrowLeft className="h-4 w-4 mr-1" /> Back
+                </Button>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-2">
+              {filteredPrevConsultations.map(c => {
+                const prevPatient = c.intake_answers?.patient;
+                const prevTreatment = c.intake_answers?.treatment;
+                return (
+                  <Card
+                    key={c.id}
+                    className="cursor-pointer hover:border-primary/30 hover:shadow-sm transition-all"
+                    onClick={() => handleSelectPreviousPatient(c)}
+                  >
+                    <CardContent className="flex items-center gap-4 py-4">
+                      <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                        <User className="h-5 w-5 text-primary" />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <h3 className="font-semibold truncate">{c.patient_name || "Unnamed"}</h3>
+                        <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+                          <span>{new Date(c.created_at).toLocaleDateString()}</span>
+                          {prevTreatment?.medication && (
+                            <Badge variant="secondary" className="text-[10px]">
+                              {prevTreatment.medication} {prevTreatment.dose || ""}
+                            </Badge>
+                          )}
+                          {prevPatient?.weight && <span>{prevPatient.weight}kg</span>}
+                        </div>
+                      </div>
+                      <ArrowRight className="h-4 w-4 text-muted-foreground" />
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+          <div className="mt-6">
+            <Button variant="outline" onClick={() => setFlowType(null)}>
+              <ArrowLeft className="h-4 w-4 mr-1" /> Back
+            </Button>
           </div>
         </main>
       </div>
@@ -537,6 +672,55 @@ export default function WeightLossIntake() {
                 </div>
               </CardContent>
             </Card>
+
+            {/* Follow-up Tracking (only for follow-up visits) */}
+            {flowType === "followup" && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <History className="h-5 w-5 text-primary" /> Follow-up Tracking
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="space-y-4">
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-xs font-bold text-muted-foreground uppercase">Previous Dose</Label>
+                      <Input value={followup.previousDose} readOnly className="mt-1 bg-muted/50" />
+                    </div>
+                    <div>
+                      <Label className="text-xs font-bold text-muted-foreground uppercase">Weight Lost (kg)</Label>
+                      <Input
+                        type="number"
+                        placeholder="e.g. 3.5"
+                        value={followup.weightLost}
+                        onChange={e => setFollowup(f => ({ ...f, weightLost: e.target.value === "" ? "" : Number(e.target.value) }))}
+                        className="mt-1"
+                      />
+                    </div>
+                  </div>
+                  <div>
+                    <Label className="text-xs font-bold text-muted-foreground uppercase">Side Effects</Label>
+                    <Textarea
+                      rows={2}
+                      placeholder="e.g. Mild nausea, no vomiting..."
+                      value={followup.sideEffects}
+                      onChange={e => setFollowup(f => ({ ...f, sideEffects: e.target.value }))}
+                      className="mt-1"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs font-bold text-muted-foreground uppercase">Follow-up Notes</Label>
+                    <Textarea
+                      rows={2}
+                      placeholder="e.g. Patient tolerating well, ready for dose escalation..."
+                      value={followup.notes}
+                      onChange={e => setFollowup(f => ({ ...f, notes: e.target.value }))}
+                      className="mt-1"
+                    />
+                  </div>
+                </CardContent>
+              </Card>
+            )}
           </div>
         )}
 
