@@ -72,8 +72,13 @@ Based on this patient's intake data and the available peptide protocols, provide
                         duration: { type: "string" },
                         administration: { type: "string" },
                         priority: { type: "string", enum: ["Primary", "Secondary"] },
+                        required_blood_tests: {
+                          type: "array",
+                          items: { type: "string" },
+                          description: "Blood tests specifically required for this peptide",
+                        },
                       },
-                      required: ["name", "rationale", "dosage", "duration", "administration", "priority"],
+                      required: ["name", "rationale", "dosage", "duration", "administration", "priority", "required_blood_tests"],
                     },
                   },
                   safety_flags: {
