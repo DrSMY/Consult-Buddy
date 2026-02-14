@@ -9,6 +9,7 @@ import Auth from "./pages/Auth";
 import Dashboard from "./pages/Dashboard";
 import PatientIntake from "./pages/PatientIntake";
 import Consultation from "./pages/Consultation";
+import KnowledgeBase from "./pages/KnowledgeBase";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -26,6 +27,7 @@ const App = () => (
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/program/:programId" element={<ProtectedRoute><PatientIntake /></ProtectedRoute>} />
             <Route path="/consultation/:id" element={<ProtectedRoute><Consultation /></ProtectedRoute>} />
+            <Route path="/knowledge-base" element={<ProtectedRoute><KnowledgeBase /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
