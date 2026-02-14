@@ -36,6 +36,13 @@
 
     --radius: 0.75rem;
 
+    --panel-teal: 199 89% 48%;
+    --panel-amber: 35 90% 52%;
+    --panel-emerald: 155 60% 42%;
+    --panel-rose: 350 70% 52%;
+    --panel-violet: 270 60% 52%;
+    --panel-sky: 200 75% 48%;
+
     --sidebar-background: 210 20% 98%;
     --sidebar-foreground: 215 25% 25%;
     --sidebar-primary: 199 89% 48%;
@@ -74,6 +81,13 @@
     --border: 215 20% 20%;
     --input: 215 20% 20%;
     --ring: 199 89% 48%;
+
+    --panel-teal: 199 80% 55%;
+    --panel-amber: 35 85% 58%;
+    --panel-emerald: 155 55% 48%;
+    --panel-rose: 350 65% 58%;
+    --panel-violet: 270 55% 58%;
+    --panel-sky: 200 70% 55%;
 
     --sidebar-background: 215 28% 10%;
     --sidebar-foreground: 210 20% 90%;

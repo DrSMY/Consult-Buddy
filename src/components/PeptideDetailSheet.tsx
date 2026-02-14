@@ -165,21 +165,21 @@ export default function PeptideDetailSheet({ peptideName, open, onOpenChange }: 
 }
 
 const variantStyles: Record<string, string> = {
-  teal: "bg-[hsl(var(--primary)/0.08)] border-[hsl(var(--primary)/0.2)]",
-  amber: "bg-[hsl(35_90%_55%/0.08)] border-[hsl(35_90%_55%/0.2)]",
-  emerald: "bg-[hsl(155_60%_45%/0.08)] border-[hsl(155_60%_45%/0.2)]",
-  rose: "bg-[hsl(350_70%_55%/0.08)] border-[hsl(350_70%_55%/0.2)]",
-  violet: "bg-[hsl(270_60%_55%/0.08)] border-[hsl(270_60%_55%/0.2)]",
-  sky: "bg-[hsl(200_75%_50%/0.08)] border-[hsl(200_75%_50%/0.2)]",
+  teal: "bg-[hsl(var(--panel-teal)/0.1)] border-[hsl(var(--panel-teal)/0.25)]",
+  amber: "bg-[hsl(var(--panel-amber)/0.1)] border-[hsl(var(--panel-amber)/0.25)]",
+  emerald: "bg-[hsl(var(--panel-emerald)/0.1)] border-[hsl(var(--panel-emerald)/0.25)]",
+  rose: "bg-[hsl(var(--panel-rose)/0.1)] border-[hsl(var(--panel-rose)/0.25)]",
+  violet: "bg-[hsl(var(--panel-violet)/0.1)] border-[hsl(var(--panel-violet)/0.25)]",
+  sky: "bg-[hsl(var(--panel-sky)/0.1)] border-[hsl(var(--panel-sky)/0.25)]",
 };
 
 const iconVariantColors: Record<string, string> = {
-  teal: "text-primary",
-  amber: "text-[hsl(35_90%_55%)]",
-  emerald: "text-[hsl(155_60%_45%)]",
-  rose: "text-[hsl(350_70%_55%)]",
-  violet: "text-[hsl(270_60%_55%)]",
-  sky: "text-[hsl(200_75%_50%)]",
+  teal: "text-[hsl(var(--panel-teal))]",
+  amber: "text-[hsl(var(--panel-amber))]",
+  emerald: "text-[hsl(var(--panel-emerald))]",
+  rose: "text-[hsl(var(--panel-rose))]",
+  violet: "text-[hsl(var(--panel-violet))]",
+  sky: "text-[hsl(var(--panel-sky))]",
 };
 
 function Section({ icon: Icon, title, content, variant = "teal" }: { icon: any; title: string; content: string; variant?: string }) {
