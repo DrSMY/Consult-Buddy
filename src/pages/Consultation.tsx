@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { AlertTriangle, CheckCircle, FileText, ClipboardList, User, Copy, Loader2, FlaskConical, Info, ShieldCheck, Microscope, StickyNote } from "lucide-react";
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
 import PeptideDetailSheet from "@/components/PeptideDetailSheet";
 import AppHeader from "@/components/AppHeader";
 
@@ -142,6 +143,29 @@ export default function Consultation() {
 
   // The final lab tests based on selected tier
   const finalLabTests = useMemo(() => labTier === "advanced" ? derivedAdvancedTests : derivedBasicTests, [labTier, derivedBasicTests, derivedAdvancedTests]);
+
+  // Map each test to the peptides that require/recommend it
+  const testToPeptideMap = useMemo(() => {
+    if (!recommendations) return new Map<string, { peptide: string; tier: "mandatory" | "recommended" | "legacy" }[]>();
+    const map = new Map<string, { peptide: string; tier: "mandatory" | "recommended" | "legacy" }[]>();
+    recommendations.recommended_peptides.filter((p) => selectedPeptides.has(p.name)).forEach((p) => {
+      getMandatoryTests(p).forEach((t) => {
+        if (!map.has(t)) map.set(t, []);
+        map.get(t)!.push({ peptide: p.name, tier: "mandatory" });
+      });
+      getRecommendedTests(p).forEach((t) => {
+        if (!map.has(t)) map.set(t, []);
+        map.get(t)!.push({ peptide: p.name, tier: "recommended" });
+      });
+      if (getMandatoryTests(p).length === 0 && getRecommendedTests(p).length === 0) {
+        getLegacyTests(p).forEach((t) => {
+          if (!map.has(t)) map.set(t, []);
+          map.get(t)!.push({ peptide: p.name, tier: "legacy" });
+        });
+      }
+    });
+    return map;
+  }, [recommendations, selectedPeptides]);
 
   // Build the action plan text dynamically
   const buildActionPlan = useMemo(() => {
@@ -446,21 +470,42 @@ ${labLines || "As directed by your doctor"}`;
                     )}
 
                     {/* Test list */}
-                    <div className="flex flex-wrap gap-2">
-                      {finalLabTests.map((t, i) => {
-                        const isBasic = derivedBasicTests.includes(t);
-                        return (
-                          <Badge
-                            key={i}
-                            variant={isBasic ? "default" : "outline"}
-                            className={`text-xs ${!isBasic ? "border-accent/40 bg-accent/5 text-accent" : ""}`}
-                          >
-                            {isBasic ? <ShieldCheck className="h-3 w-3 mr-1" /> : <Microscope className="h-3 w-3 mr-1" />}
-                            {t}
-                          </Badge>
-                        );
-                      })}
-                    </div>
+                    <TooltipProvider delayDuration={200}>
+                      <div className="flex flex-wrap gap-2">
+                        {finalLabTests.map((t, i) => {
+                          const isBasic = derivedBasicTests.includes(t);
+                          const relatedPeptides = testToPeptideMap.get(t) || [];
+                          return (
+                            <Tooltip key={i}>
+                              <TooltipTrigger asChild>
+                                <Badge
+                                  variant={isBasic ? "default" : "outline"}
+                                  className={`text-xs cursor-help ${!isBasic ? "border-accent/40 bg-accent/5 text-accent" : ""}`}
+                                >
+                                  {isBasic ? <ShieldCheck className="h-3 w-3 mr-1" /> : <Microscope className="h-3 w-3 mr-1" />}
+                                  {t}
+                                </Badge>
+                              </TooltipTrigger>
+                              <TooltipContent side="top" className="max-w-xs">
+                                {relatedPeptides.length > 0 ? (
+                                  <div className="space-y-1">
+                                    <p className="font-medium text-xs">Required for:</p>
+                                    {relatedPeptides.map((rp, j) => (
+                                      <p key={j} className="text-xs">
+                                        <span className="font-medium">{rp.peptide}</span>
+                                        <span className="text-muted-foreground"> — {rp.tier === "mandatory" ? "Mandatory baseline test" : rp.tier === "recommended" ? "Recommended for comprehensive monitoring" : "Standard protocol test"}</span>
+                                      </p>
+                                    ))}
+                                  </div>
+                                ) : (
+                                  <p className="text-xs">Standard clinical panel test</p>
+                                )}
+                              </TooltipContent>
+                            </Tooltip>
+                          );
+                        })}
+                      </div>
+                    </TooltipProvider>
 
                     {labTier === "basic" && derivedAdvancedTests.length > derivedBasicTests.length && !selectionConfirmed && (
                       <p className="text-xs text-muted-foreground">
