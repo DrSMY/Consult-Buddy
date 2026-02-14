@@ -119,26 +119,27 @@ export default function PatientFiles() {
             <h1 className="text-lg font-semibold">Patient Files</h1>
             <p className="text-xs text-muted-foreground">{consultations.length} total consultations</p>
           </div>
-          <Button variant="outline" size="sm" onClick={exportToExcel} className="gap-2">
-            <Download className="h-4 w-4" /> Export Excel
+          <Button variant="outline" size="sm" onClick={exportToExcel} className="gap-1 sm:gap-2 px-2 sm:px-3">
+            <Download className="h-4 w-4" />
+            <span className="hidden sm:inline">Export Excel</span>
           </Button>
         </div>
       </header>
 
       <main className="container mx-auto max-w-4xl px-4 py-6 space-y-4">
         {/* Search and Filters */}
-        <div className="flex gap-3">
+        <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by patient name or program..."
+              placeholder="Search by patient name..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10"
             />
           </div>
           <Select value={statusFilter} onValueChange={setStatusFilter}>
-            <SelectTrigger className="w-[160px]">
+            <SelectTrigger className="w-full sm:w-[160px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>

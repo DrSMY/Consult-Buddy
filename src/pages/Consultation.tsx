@@ -237,25 +237,27 @@ export default function Consultation() {
   return (
     <div className="min-h-screen bg-background">
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto flex items-center gap-3 px-4 py-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
+        <div className="container mx-auto flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3">
+          <Button variant="ghost" size="icon" className="shrink-0" onClick={() => navigate("/dashboard")}>
             <ArrowLeft className="h-4 w-4" />
           </Button>
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
+          <div className="hidden sm:flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
             <Activity className="h-5 w-5 text-primary" />
           </div>
-          <div className="flex-1">
-            <h1 className="text-lg font-semibold">{consultation?.patient_name}</h1>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-base sm:text-lg font-semibold truncate">{consultation?.patient_name}</h1>
             <p className="text-xs text-muted-foreground">Peptide Consultation</p>
           </div>
-          <Badge variant={consultation?.status === "completed" ? "default" : "secondary"}>
-            {consultation?.status}
-          </Badge>
-          {selectionConfirmed && (
-            <Button variant="outline" size="sm" onClick={handleEditSelection}>
-              Edit Selection
-            </Button>
-          )}
+          <div className="flex items-center gap-1.5 shrink-0">
+            <Badge variant={consultation?.status === "completed" ? "default" : "secondary"} className="text-[10px] sm:text-xs">
+              {consultation?.status}
+            </Badge>
+            {selectionConfirmed && (
+              <Button variant="outline" size="sm" className="text-xs px-2 sm:px-3" onClick={handleEditSelection}>
+                Edit
+              </Button>
+            )}
+          </div>
         </div>
       </header>
 
@@ -276,13 +278,13 @@ export default function Consultation() {
 
         {recommendations && (
           <Tabs defaultValue="recommendations" className="space-y-4">
-            <TabsList className="grid w-full grid-cols-4">
-              <TabsTrigger value="recommendations">
-                {selectionConfirmed ? "Prescriptions" : "Select Medications"}
+            <TabsList className="grid w-full grid-cols-2 sm:grid-cols-4">
+              <TabsTrigger value="recommendations" className="text-xs sm:text-sm">
+                {selectionConfirmed ? "Prescriptions" : "Medications"}
               </TabsTrigger>
-              <TabsTrigger value="doctor-note" disabled={!selectionConfirmed}>Doctor Note</TabsTrigger>
-              <TabsTrigger value="next-steps" disabled={!selectionConfirmed}>Next Steps</TabsTrigger>
-              <TabsTrigger value="guidelines" disabled={!selectionConfirmed}>Patient Guide</TabsTrigger>
+              <TabsTrigger value="doctor-note" disabled={!selectionConfirmed} className="text-xs sm:text-sm">Doctor Note</TabsTrigger>
+              <TabsTrigger value="next-steps" disabled={!selectionConfirmed} className="text-xs sm:text-sm">Next Steps</TabsTrigger>
+              <TabsTrigger value="guidelines" disabled={!selectionConfirmed} className="text-xs sm:text-sm">Patient Guide</TabsTrigger>
             </TabsList>
 
             <TabsContent value="recommendations" className="space-y-4">
@@ -373,7 +375,7 @@ export default function Consultation() {
                         </div>
                       </div>
                       <p className="text-sm text-muted-foreground">{p.rationale}</p>
-                      <div className="grid grid-cols-3 gap-2 text-xs">
+                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
                         <div><span className="font-medium">Dosage:</span> {p.dosage}</div>
                         <div><span className="font-medium">Duration:</span> {p.duration}</div>
                         <div><span className="font-medium">Route:</span> {p.administration}</div>

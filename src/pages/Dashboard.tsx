@@ -31,13 +31,13 @@ export default function Dashboard() {
       {/* Header */}
       <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
         <div className="container mx-auto flex items-center justify-between px-4 py-3">
-          <div className="flex items-center gap-3">
-            <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
+          <div className="flex items-center gap-2 sm:gap-3 min-w-0">
+            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
               <Activity className="h-5 w-5 text-primary" />
             </div>
-            <div>
-              <h1 className="text-lg font-semibold leading-tight">Clinic Assistant</h1>
-              <p className="text-xs text-muted-foreground">
+            <div className="min-w-0">
+              <h1 className="text-base sm:text-lg font-semibold leading-tight truncate">Clinic Assistant</h1>
+              <p className="text-xs text-muted-foreground truncate">
                 {profile?.full_name || "Welcome"}{" "}
                 {roles[0] && (
                   <Badge variant="secondary" className="ml-1 text-[10px] px-1.5 py-0">
@@ -47,12 +47,14 @@ export default function Dashboard() {
               </p>
             </div>
           </div>
-          <div className="flex items-center gap-2">
-            <Button variant="outline" size="sm" onClick={() => navigate("/patient-files")} className="gap-2">
-              <FolderOpen className="h-4 w-4" /> Patient Files
+          <div className="flex items-center gap-1 sm:gap-2 shrink-0">
+            <Button variant="outline" size="sm" onClick={() => navigate("/patient-files")} className="gap-1 sm:gap-2 px-2 sm:px-3">
+              <FolderOpen className="h-4 w-4" />
+              <span className="hidden sm:inline">Patient Files</span>
             </Button>
-            <Button variant="outline" size="sm" onClick={() => navigate("/knowledge-base")} className="gap-2">
-              <BookOpen className="h-4 w-4" /> Knowledge Base
+            <Button variant="outline" size="sm" onClick={() => navigate("/knowledge-base")} className="gap-1 sm:gap-2 px-2 sm:px-3">
+              <BookOpen className="h-4 w-4" />
+              <span className="hidden sm:inline">Knowledge Base</span>
             </Button>
             <Button variant="ghost" size="icon" onClick={signOut}>
               <LogOut className="h-4 w-4" />
