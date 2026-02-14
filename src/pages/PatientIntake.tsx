@@ -15,6 +15,9 @@ import { ArrowLeft, ArrowRight, Mic, MicOff, Check } from "lucide-react";
 import type { IntakeQuestion } from "@/data/intakeQuestions";
 import AppHeader from "@/components/AppHeader";
 
+// Mandatory question IDs that must be answered
+const MANDATORY_QUESTIONS = new Set(["gender", "age", "height", "weight", "health_goals"]);
+
 export default function PatientIntake() {
   const { programId } = useParams();
   const { user } = useAuth();
@@ -29,6 +32,7 @@ export default function PatientIntake() {
   const [saving, setSaving] = useState(false);
   const [isRecording, setIsRecording] = useState(false);
   const [activeField, setActiveField] = useState<string | null>(null);
+  const [showValidation, setShowValidation] = useState(false);
   const recognitionRef = useRef<any>(null);
 
   const visibleQuestions = getVisibleQuestions(answers);
@@ -53,6 +57,40 @@ export default function PatientIntake() {
       setOtherText((prev) => ({ ...prev, [id]: "" }));
       setNotes((prev) => ({ ...prev, [id]: "" }));
     }
+  };
+
+  const isQuestionAnswered = (q: IntakeQuestion): boolean => {
+    const val = answers[q.id];
+    if (q.type === "multiselect") {
+      if (q.hasGate) return gateAnswers[q.id] != null;
+      return Array.isArray(val) && val.length > 0;
+    }
+    return val != null && String(val).trim() !== "";
+  };
+
+  const isMissing = (q: IntakeQuestion): boolean => {
+    return MANDATORY_QUESTIONS.has(q.id) && !isQuestionAnswered(q);
+  };
+
+  const getMissingSectionQuestions = () => {
+    return sectionQuestions.filter(isMissing);
+  };
+
+  const handleNext = () => {
+    const missing = getMissingSectionQuestions();
+    // Also check patient name on step 0
+    if (currentStep === 0 && !patientName.trim()) {
+      setShowValidation(true);
+      toast({ title: "Required fields missing", description: "Please fill in all highlighted fields.", variant: "destructive" });
+      return;
+    }
+    if (missing.length > 0) {
+      setShowValidation(true);
+      toast({ title: "Required fields missing", description: `Please answer: ${missing.map(q => q.question).join(", ")}`, variant: "destructive" });
+      return;
+    }
+    setShowValidation(false);
+    setCurrentStep((s) => s + 1);
   };
 
   const startSpeechToText = (fieldId: string) => {
@@ -139,10 +177,17 @@ export default function PatientIntake() {
     const value = answers[q.id];
     const gate = gateAnswers[q.id];
     const showOptions = !q.hasGate || gate === "yes";
+    const missing = showValidation && isMissing(q);
 
     return (
-      <div key={q.id} className="space-y-3">
-        <Label className="text-sm font-medium">{q.question}</Label>
+      <div key={q.id} className={`space-y-3 ${missing ? "rounded-lg border-2 border-destructive/50 bg-destructive/5 p-3 -mx-1" : ""}`}>
+        <div className="flex items-center gap-2">
+          <Label className="text-sm font-medium">{q.question}</Label>
+          {MANDATORY_QUESTIONS.has(q.id) && <span className="text-destructive text-xs font-bold">*</span>}
+          {missing && (
+            <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Required</Badge>
+          )}
+        </div>
 
         {/* Yes/No gate for applicable questions */}
         {q.hasGate && (
@@ -286,8 +331,13 @@ export default function PatientIntake() {
               <CardTitle className="text-lg">Patient Information</CardTitle>
             </CardHeader>
             <CardContent>
-              <Label>Patient Name</Label>
-              <div className="relative mt-1">
+              <div className="flex items-center gap-2 mb-1">
+                <Label>Patient Name <span className="text-destructive font-bold">*</span></Label>
+                {showValidation && !patientName.trim() && (
+                  <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Required</Badge>
+                )}
+              </div>
+              <div className={`relative mt-1 ${showValidation && !patientName.trim() ? "rounded-md ring-2 ring-destructive/50" : ""}`}>
                 <Input
                   value={patientName}
                   onChange={(e) => setPatientName(e.target.value)}
@@ -322,7 +372,7 @@ export default function PatientIntake() {
             <ArrowLeft className="h-4 w-4 mr-1" /> Back
           </Button>
           {currentStep < sections.length - 1 ? (
-            <Button onClick={() => setCurrentStep((s) => s + 1)}>
+            <Button onClick={handleNext}>
               Next <ArrowRight className="h-4 w-4 ml-1" />
             </Button>
           ) : (
