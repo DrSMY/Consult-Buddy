@@ -7,8 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { ArrowLeft, Search, Download, FileText, Loader2, Calendar, User } from "lucide-react";
+import { Search, Download, FileText, Loader2, Calendar, User } from "lucide-react";
 import * as XLSX from "xlsx";
+import AppHeader from "@/components/AppHeader";
 
 interface ConsultationRow {
   id: string;
@@ -106,25 +107,13 @@ export default function PatientFiles() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto flex items-center gap-3 px-4 py-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/dashboard")}>
-            <ArrowLeft className="h-4 w-4" />
-          </Button>
-          <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-primary/10">
-            <FileText className="h-5 w-5 text-primary" />
-          </div>
-          <div className="flex-1">
-            <h1 className="text-lg font-semibold">Patient Files</h1>
-            <p className="text-xs text-muted-foreground">{consultations.length} total consultations</p>
-          </div>
-          <Button variant="outline" size="sm" onClick={exportToExcel} className="gap-1 sm:gap-2 px-2 sm:px-3">
-            <Download className="h-4 w-4" />
-            <span className="hidden sm:inline">Export Excel</span>
-          </Button>
-        </div>
-      </header>
+    <div className="min-h-screen gradient-surface">
+      <AppHeader title="Patient Files" subtitle={`${consultations.length} consultations`} showBack>
+        <Button variant="outline" size="sm" onClick={exportToExcel} className="gap-1.5 px-2 sm:px-3 text-xs">
+          <Download className="h-3.5 w-3.5" />
+          <span className="hidden sm:inline">Export</span>
+        </Button>
+      </AppHeader>
 
       <main className="container mx-auto max-w-4xl px-4 py-6 space-y-4">
         {/* Search and Filters */}

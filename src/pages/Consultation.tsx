@@ -7,8 +7,9 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Activity, ArrowLeft, AlertTriangle, CheckCircle, FileText, ClipboardList, User, Copy, Loader2, FlaskConical, Info, ShieldCheck, Microscope } from "lucide-react";
+import { AlertTriangle, CheckCircle, FileText, ClipboardList, User, Copy, Loader2, FlaskConical, Info, ShieldCheck, Microscope } from "lucide-react";
 import PeptideDetailSheet from "@/components/PeptideDetailSheet";
+import AppHeader from "@/components/AppHeader";
 
 interface PeptideRec {
   name: string;
@@ -263,31 +264,21 @@ export default function Consultation() {
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="border-b border-border bg-card/50 backdrop-blur-sm sticky top-0 z-10">
-        <div className="container mx-auto flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3">
-          <Button variant="ghost" size="icon" className="shrink-0" onClick={() => navigate("/dashboard")}>
-            <ArrowLeft className="h-4 w-4" />
+    <div className="min-h-screen gradient-surface">
+      <AppHeader
+        title={consultation?.patient_name}
+        subtitle="Peptide Consultation"
+        showBack
+      >
+        <Badge variant={consultation?.status === "completed" ? "default" : "secondary"} className="text-[10px] sm:text-xs">
+          {consultation?.status}
+        </Badge>
+        {selectionConfirmed && (
+          <Button variant="outline" size="sm" className="text-xs px-2 sm:px-3" onClick={handleEditSelection}>
+            Edit
           </Button>
-          <div className="hidden sm:flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-primary/10">
-            <Activity className="h-5 w-5 text-primary" />
-          </div>
-          <div className="flex-1 min-w-0">
-            <h1 className="text-base sm:text-lg font-semibold truncate">{consultation?.patient_name}</h1>
-            <p className="text-xs text-muted-foreground">Peptide Consultation</p>
-          </div>
-          <div className="flex items-center gap-1.5 shrink-0">
-            <Badge variant={consultation?.status === "completed" ? "default" : "secondary"} className="text-[10px] sm:text-xs">
-              {consultation?.status}
-            </Badge>
-            {selectionConfirmed && (
-              <Button variant="outline" size="sm" className="text-xs px-2 sm:px-3" onClick={handleEditSelection}>
-                Edit
-              </Button>
-            )}
-          </div>
-        </div>
-      </header>
+        )}
+      </AppHeader>
 
       <main className="container mx-auto max-w-4xl px-4 py-6">
         {analyzing && (
