@@ -6,8 +6,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { AlertTriangle, CheckCircle, FileText, ClipboardList, User, Copy, Loader2, FlaskConical, Info, ShieldCheck, Microscope } from "lucide-react";
+import { AlertTriangle, CheckCircle, FileText, ClipboardList, User, Copy, Loader2, FlaskConical, Info, ShieldCheck, Microscope, StickyNote } from "lucide-react";
 import PeptideDetailSheet from "@/components/PeptideDetailSheet";
 import AppHeader from "@/components/AppHeader";
 
@@ -18,32 +20,24 @@ interface PeptideRec {
   duration: string;
   administration: string;
   priority: string;
-  // Legacy field (backward compat)
   required_blood_tests?: string[];
-  // New split fields
   mandatory_blood_tests?: string[];
   recommended_blood_tests?: string[];
 }
 
 interface Recommendation {
   recommended_peptides: PeptideRec[];
-  safety_flags: Array<{
-    concern: string;
-    severity: string;
-    recommendation: string;
-  }>;
+  safety_flags: Array<{ concern: string; severity: string; recommendation: string }>;
   required_blood_tests: string[];
   recommended_blood_tests?: string[];
-  recommended_supplements: Array<{
-    name: string;
-    dosage: string;
-    reason: string;
-  }>;
+  recommended_supplements: Array<{ name: string; dosage: string; reason: string }>;
   doctor_note: string;
   next_steps: string;
   patient_guidelines: string;
   clinical_summary: string;
 }
+
+type LabTier = "basic" | "advanced";
 
 export default function Consultation() {
   const { id } = useParams();
@@ -57,18 +51,15 @@ export default function Consultation() {
   const [selectedSupplements, setSelectedSupplements] = useState<Set<string>>(new Set());
   const [selectionConfirmed, setSelectionConfirmed] = useState(false);
   const [detailPeptide, setDetailPeptide] = useState<string | null>(null);
+  const [labTier, setLabTier] = useState<LabTier>("basic");
+  const [labNotes, setLabNotes] = useState("");
 
   useEffect(() => {
     loadConsultation();
   }, [id]);
 
   const loadConsultation = async () => {
-    const { data, error } = await supabase
-      .from("consultations")
-      .select("*")
-      .eq("id", id)
-      .single();
-
+    const { data, error } = await supabase.from("consultations").select("*").eq("id", id).single();
     if (error || !data) {
       toast({ title: "Consultation not found", variant: "destructive" });
       navigate("/dashboard");
@@ -78,12 +69,14 @@ export default function Consultation() {
     if (data.ai_recommendations) {
       const rec = data.ai_recommendations as unknown as Recommendation;
       setRecommendations(rec);
+      // Restore saved lab tier & notes
+      const saved = data.ai_recommendations as any;
+      if (saved.selected_lab_tier) setLabTier(saved.selected_lab_tier);
+      if (saved.lab_notes) setLabNotes(saved.lab_notes);
       if (data.status === "completed") {
         setSelectionConfirmed(true);
-        const selected = new Set<string>(rec.recommended_peptides.map((p) => p.name));
-        setSelectedPeptides(selected);
-        const selectedSupps = new Set<string>(rec.recommended_supplements.map((s) => s.name));
-        setSelectedSupplements(selectedSupps);
+        setSelectedPeptides(new Set(rec.recommended_peptides.map((p) => p.name)));
+        setSelectedSupplements(new Set(rec.recommended_supplements.map((s) => s.name)));
       }
     } else {
       runAIAnalysis(data);
@@ -95,32 +88,16 @@ export default function Consultation() {
     setAnalyzing(true);
     try {
       const { data: protocols } = await supabase.from("peptide_protocols").select("*");
-
       const response = await supabase.functions.invoke("consultation", {
-        body: {
-          intake_answers: consultData.intake_answers,
-          peptide_protocols: protocols,
-        },
+        body: { intake_answers: consultData.intake_answers, peptide_protocols: protocols },
       });
-
       if (response.error) throw new Error(response.error.message);
-
       const rec = response.data as Recommendation;
       setRecommendations(rec);
-
-      const primary = new Set<string>(
-        rec.recommended_peptides.filter((p) => p.priority === "Primary").map((p) => p.name)
-      );
+      const primary = new Set<string>(rec.recommended_peptides.filter((p) => p.priority === "Primary").map((p) => p.name));
       setSelectedPeptides(primary);
       setSelectedSupplements(new Set(rec.recommended_supplements.map((s) => s.name)));
-
-      await supabase
-        .from("consultations")
-        .update({
-          ai_recommendations: rec as any,
-          status: "review",
-        })
-        .eq("id", consultData.id);
+      await supabase.from("consultations").update({ ai_recommendations: rec as any, status: "review" }).eq("id", consultData.id);
     } catch (e: any) {
       toast({ title: "AI Analysis Failed", description: e.message, variant: "destructive" });
     }
@@ -128,67 +105,95 @@ export default function Consultation() {
   };
 
   const togglePeptide = (name: string) => {
-    setSelectedPeptides((prev) => {
-      const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
-      return next;
-    });
+    setSelectedPeptides((prev) => { const next = new Set(prev); next.has(name) ? next.delete(name) : next.add(name); return next; });
   };
-
   const toggleSupplement = (name: string) => {
-    setSelectedSupplements((prev) => {
-      const next = new Set(prev);
-      if (next.has(name)) next.delete(name);
-      else next.add(name);
-      return next;
-    });
+    setSelectedSupplements((prev) => { const next = new Set(prev); next.has(name) ? next.delete(name) : next.add(name); return next; });
   };
 
-  // Helper: get mandatory tests for a peptide (backward compat)
   const getMandatoryTests = (p: PeptideRec) => p.mandatory_blood_tests || [];
   const getRecommendedTests = (p: PeptideRec) => p.recommended_blood_tests || [];
-  // Legacy fallback: if only required_blood_tests exists, treat as mandatory
   const getLegacyTests = (p: PeptideRec) => p.required_blood_tests || [];
 
-  // Derive basic (mandatory) tests from selected peptides
   const derivedBasicTests = useMemo(() => {
     if (!recommendations) return [];
     const tests = new Set<string>();
-    recommendations.recommended_peptides
-      .filter((p) => selectedPeptides.has(p.name))
-      .forEach((p) => {
-        getMandatoryTests(p).forEach((t) => tests.add(t));
-        // Legacy fallback
-        if (getMandatoryTests(p).length === 0 && getRecommendedTests(p).length === 0) {
-          getLegacyTests(p).forEach((t) => tests.add(t));
-        }
-      });
-    // Global fallback
-    if (tests.size === 0 && selectedPeptides.size > 0) {
-      recommendations.required_blood_tests.forEach((t) => tests.add(t));
-    }
+    recommendations.recommended_peptides.filter((p) => selectedPeptides.has(p.name)).forEach((p) => {
+      getMandatoryTests(p).forEach((t) => tests.add(t));
+      if (getMandatoryTests(p).length === 0 && getRecommendedTests(p).length === 0) getLegacyTests(p).forEach((t) => tests.add(t));
+    });
+    if (tests.size === 0 && selectedPeptides.size > 0) recommendations.required_blood_tests.forEach((t) => tests.add(t));
     return Array.from(tests).sort();
   }, [recommendations, selectedPeptides]);
 
-  // Derive advanced (recommended) tests from selected peptides
   const derivedAdvancedTests = useMemo(() => {
     if (!recommendations) return [];
     const tests = new Set<string>();
-    recommendations.recommended_peptides
-      .filter((p) => selectedPeptides.has(p.name))
-      .forEach((p) => {
-        getRecommendedTests(p).forEach((t) => tests.add(t));
-      });
-    // Global fallback
-    if (tests.size === 0 && selectedPeptides.size > 0 && recommendations.recommended_blood_tests) {
+    // Advanced = basic + recommended
+    derivedBasicTests.forEach((t) => tests.add(t));
+    recommendations.recommended_peptides.filter((p) => selectedPeptides.has(p.name)).forEach((p) => {
+      getRecommendedTests(p).forEach((t) => tests.add(t));
+    });
+    if (tests.size === derivedBasicTests.length && selectedPeptides.size > 0 && recommendations.recommended_blood_tests) {
       recommendations.recommended_blood_tests.forEach((t) => tests.add(t));
     }
     return Array.from(tests).sort();
-  }, [recommendations, selectedPeptides]);
+  }, [recommendations, selectedPeptides, derivedBasicTests]);
 
-  // Combined for saving
-  const allLabTests = useMemo(() => [...derivedBasicTests, ...derivedAdvancedTests], [derivedBasicTests, derivedAdvancedTests]);
+  // The final lab tests based on selected tier
+  const finalLabTests = useMemo(() => labTier === "advanced" ? derivedAdvancedTests : derivedBasicTests, [labTier, derivedBasicTests, derivedAdvancedTests]);
+
+  // Build the action plan text dynamically
+  const buildActionPlan = useMemo(() => {
+    if (!recommendations) return { doctorNote: "", nextSteps: "", patientGuide: "" };
+
+    const selectedRecs = recommendations.recommended_peptides.filter((p) => selectedPeptides.has(p.name));
+    const selectedSupps = recommendations.recommended_supplements.filter((s) => selectedSupplements.has(s.name));
+
+    // Medications section
+    const medsLines = selectedRecs.map((p) =>
+      `• ${p.name} — ${p.dosage}, ${p.administration}, ${p.duration}`
+    ).join("\n");
+
+    // Supplements
+    const suppLines = selectedSupps.map((s) => `• ${s.name} — ${s.dosage} (${s.reason})`).join("\n");
+
+    // Lab tests
+    const labLabel = labTier === "advanced" ? "Advanced/Comprehensive Panel" : "Basic Panel";
+    const labLines = finalLabTests.map((t) => `• ${t}`).join("\n");
+
+    // Doctor Note
+    const doctorNote = `${recommendations.doctor_note}
+
+--- PRESCRIBED MEDICATIONS ---
+${medsLines || "None selected"}
+
+--- SUPPLEMENTS ---
+${suppLines || "None selected"}
+
+--- BLOOD WORK (${labLabel}) ---
+${labLines || "None required"}${labNotes ? `\n\nLab Notes: ${labNotes}` : ""}`;
+
+    // Next Steps
+    const nextSteps = `${recommendations.next_steps}
+
+--- REQUIRED BLOOD WORK (${labLabel}) ---
+${labLines || "None required"}${labNotes ? `\nNotes: ${labNotes}` : ""}`;
+
+    // Patient Guidelines
+    const patientGuide = `${recommendations.patient_guidelines}
+
+--- YOUR PRESCRIBED MEDICATIONS ---
+${selectedRecs.map((p) => `• ${p.name}: ${p.dosage} (${p.administration})`).join("\n") || "As discussed with your doctor"}
+
+--- RECOMMENDED SUPPLEMENTS ---
+${suppLines || "None"}
+
+--- REQUIRED LAB TESTS (${labLabel}) ---
+${labLines || "As directed by your doctor"}`;
+
+    return { doctorNote, nextSteps, patientGuide };
+  }, [recommendations, selectedPeptides, selectedSupplements, finalLabTests, labTier, labNotes]);
 
   const confirmSelection = async () => {
     if (selectedPeptides.size === 0) {
@@ -196,31 +201,26 @@ export default function Consultation() {
       return;
     }
 
-    const selectedRecs = recommendations!.recommended_peptides.filter((p) =>
-      selectedPeptides.has(p.name)
-    );
-    const selectedSupps = recommendations!.recommended_supplements.filter((s) =>
-      selectedSupplements.has(s.name)
-    );
+    const selectedRecs = recommendations!.recommended_peptides.filter((p) => selectedPeptides.has(p.name));
+    const selectedSupps = recommendations!.recommended_supplements.filter((s) => selectedSupplements.has(s.name));
 
-    const updatedRec: Recommendation = {
+    const updatedRec: any = {
       ...recommendations!,
       recommended_peptides: selectedRecs,
       recommended_supplements: selectedSupps,
       required_blood_tests: derivedBasicTests,
       recommended_blood_tests: derivedAdvancedTests,
+      selected_lab_tier: labTier,
+      lab_notes: labNotes,
     };
 
-    await supabase
-      .from("consultations")
-      .update({
-        ai_recommendations: updatedRec as any,
-        doctor_notes: recommendations!.doctor_note,
-        next_steps: recommendations!.next_steps,
-        patient_guidelines: recommendations!.patient_guidelines,
-        status: "completed",
-      })
-      .eq("id", id);
+    await supabase.from("consultations").update({
+      ai_recommendations: updatedRec,
+      doctor_notes: buildActionPlan.doctorNote,
+      next_steps: buildActionPlan.nextSteps,
+      patient_guidelines: buildActionPlan.patientGuide,
+      status: "completed",
+    }).eq("id", id);
 
     setRecommendations(updatedRec);
     setSelectionConfirmed(true);
@@ -228,23 +228,17 @@ export default function Consultation() {
   };
 
   const handleEditSelection = async () => {
-    await supabase
-      .from("consultations")
-      .update({ status: "review" })
-      .eq("id", id);
-
-    const { data } = await supabase
-      .from("consultations")
-      .select("*")
-      .eq("id", id)
-      .maybeSingle();
-
+    await supabase.from("consultations").update({ status: "review" }).eq("id", id);
+    const { data } = await supabase.from("consultations").select("*").eq("id", id).maybeSingle();
     if (data?.ai_recommendations) {
       const rec = data.ai_recommendations as unknown as Recommendation;
       setRecommendations(rec);
       setConsultation(data);
       setSelectedPeptides(new Set(rec.recommended_peptides.map((p) => p.name)));
       setSelectedSupplements(new Set(rec.recommended_supplements.map((s) => s.name)));
+      const saved = data.ai_recommendations as any;
+      if (saved.selected_lab_tier) setLabTier(saved.selected_lab_tier);
+      if (saved.lab_notes) setLabNotes(saved.lab_notes);
     }
     setSelectionConfirmed(false);
     toast({ title: "Selection unlocked for editing" });
@@ -265,18 +259,12 @@ export default function Consultation() {
 
   return (
     <div className="min-h-screen gradient-surface">
-      <AppHeader
-        title={consultation?.patient_name}
-        subtitle="Peptide Consultation"
-        showBack
-      >
+      <AppHeader title={consultation?.patient_name} subtitle="Peptide Consultation" showBack>
         <Badge variant={consultation?.status === "completed" ? "default" : "secondary"} className="text-[10px] sm:text-xs">
           {consultation?.status}
         </Badge>
         {selectionConfirmed && (
-          <Button variant="outline" size="sm" className="text-xs px-2 sm:px-3" onClick={handleEditSelection}>
-            Edit
-          </Button>
+          <Button variant="outline" size="sm" className="text-xs px-2 sm:px-3" onClick={handleEditSelection}>Edit</Button>
         )}
       </AppHeader>
 
@@ -287,9 +275,7 @@ export default function Consultation() {
               <Loader2 className="h-5 w-5 animate-spin text-primary" />
               <div>
                 <p className="font-medium">Analyzing patient data...</p>
-                <p className="text-sm text-muted-foreground">
-                  AI is reviewing intake answers against peptide protocols
-                </p>
+                <p className="text-sm text-muted-foreground">AI is reviewing intake answers against peptide protocols</p>
               </div>
             </CardContent>
           </Card>
@@ -330,10 +316,7 @@ export default function Consultation() {
                   <CardContent className="space-y-3">
                     {recommendations.safety_flags.map((flag, i) => (
                       <div key={i} className="flex items-start gap-2">
-                        <Badge
-                          variant={flag.severity === "high" ? "destructive" : "secondary"}
-                          className="mt-0.5 text-[10px]"
-                        >
+                        <Badge variant={flag.severity === "high" ? "destructive" : "secondary"} className="mt-0.5 text-[10px]">
                           {flag.severity}
                         </Badge>
                         <div>
@@ -346,7 +329,7 @@ export default function Consultation() {
                 </Card>
               )}
 
-              {/* Peptide Selection / Confirmed List */}
+              {/* Peptide Selection */}
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg flex items-center gap-2">
@@ -354,9 +337,7 @@ export default function Consultation() {
                     {selectionConfirmed ? "Prescribed Peptides" : "Select Peptides to Prescribe"}
                   </CardTitle>
                   {!selectionConfirmed && (
-                    <CardDescription>
-                      Check the peptides you want to prescribe. Lab tests will update based on your selection.
-                    </CardDescription>
+                    <CardDescription>Check the peptides you want to prescribe. Lab tests will update based on your selection.</CardDescription>
                   )}
                 </CardHeader>
                 <CardContent className="space-y-4">
@@ -364,17 +345,12 @@ export default function Consultation() {
                     <div
                       key={i}
                       className={`border rounded-lg p-4 space-y-2 transition-colors ${
-                        !selectionConfirmed && selectedPeptides.has(p.name)
-                          ? "border-primary bg-primary/5"
-                          : ""
+                        !selectionConfirmed && selectedPeptides.has(p.name) ? "border-primary bg-primary/5" : ""
                       }`}
                     >
                       <div className="flex items-center gap-3">
                         {!selectionConfirmed && (
-                          <Checkbox
-                            checked={selectedPeptides.has(p.name)}
-                            onCheckedChange={() => togglePeptide(p.name)}
-                          />
+                          <Checkbox checked={selectedPeptides.has(p.name)} onCheckedChange={() => togglePeptide(p.name)} />
                         )}
                         <div className="flex-1 flex items-center justify-between">
                           <div className="flex items-center gap-2">
@@ -382,15 +358,11 @@ export default function Consultation() {
                             <button
                               onClick={(e) => { e.stopPropagation(); setDetailPeptide(p.name); }}
                               className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary hover:bg-primary/20 hover:border-primary/50 transition-colors"
-                              title="View clinical details"
                             >
-                              <Info className="h-3 w-3" />
-                              Details
+                              <Info className="h-3 w-3" />Details
                             </button>
                           </div>
-                          <Badge variant={p.priority === "Primary" ? "default" : "secondary"}>
-                            {p.priority}
-                          </Badge>
+                          <Badge variant={p.priority === "Primary" ? "default" : "secondary"}>{p.priority}</Badge>
                         </div>
                       </div>
                       <p className="text-sm text-muted-foreground">{p.rationale}</p>
@@ -399,7 +371,6 @@ export default function Consultation() {
                         <div><span className="font-medium">Duration:</span> {p.duration}</div>
                         <div><span className="font-medium">Route:</span> {p.administration}</div>
                       </div>
-                      {/* Per-peptide test badges (edit mode) */}
                       {!selectionConfirmed && (getMandatoryTests(p).length > 0 || getRecommendedTests(p).length > 0 || getLegacyTests(p).length > 0) && (
                         <div className="flex flex-wrap gap-1 pt-1">
                           {getMandatoryTests(p).map((t, j) => (
@@ -412,11 +383,8 @@ export default function Consultation() {
                               <Microscope className="h-2.5 w-2.5 mr-0.5" />{t}
                             </Badge>
                           ))}
-                          {/* Legacy fallback */}
                           {getMandatoryTests(p).length === 0 && getRecommendedTests(p).length === 0 && getLegacyTests(p).map((t, j) => (
-                            <Badge key={`l-${j}`} variant="outline" className="text-[10px]">
-                              {t}
-                            </Badge>
+                            <Badge key={`l-${j}`} variant="outline" className="text-[10px]">{t}</Badge>
                           ))}
                         </div>
                       )}
@@ -432,75 +400,115 @@ export default function Consultation() {
                 </CardContent>
               </Card>
 
-              {/* Basic Tests (Mandatory) */}
-              {derivedBasicTests.length > 0 && (
-                <Card className="border-primary/20">
+              {/* Lab Test Tier Selection */}
+              {(derivedBasicTests.length > 0 || derivedAdvancedTests.length > 0) && (
+                <Card className={labTier === "advanced" ? "border-accent/30" : "border-primary/20"}>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-lg flex items-center gap-2">
-                      <ShieldCheck className="h-4 w-4 text-primary" />
-                      {selectionConfirmed ? "Basic Tests Required" : "Basic Tests (based on selection)"}
+                      <FlaskConical className="h-4 w-4 text-primary" />
+                      Blood Work Panel
                     </CardTitle>
-                    <CardDescription>Mandatory baseline diagnostics</CardDescription>
+                    <CardDescription>Select the lab test tier for this patient</CardDescription>
                   </CardHeader>
-                  <CardContent>
+                  <CardContent className="space-y-4">
+                    {/* Tier Toggle */}
+                    {!selectionConfirmed && (
+                      <div className="flex rounded-lg border border-border overflow-hidden">
+                        <button
+                          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors ${
+                            labTier === "basic"
+                              ? "bg-primary text-primary-foreground"
+                              : "bg-card hover:bg-muted/50 text-muted-foreground"
+                          }`}
+                          onClick={() => setLabTier("basic")}
+                        >
+                          <ShieldCheck className="h-4 w-4" />
+                          Basic ({derivedBasicTests.length})
+                        </button>
+                        <button
+                          className={`flex-1 flex items-center justify-center gap-2 px-4 py-2.5 text-sm font-medium transition-colors ${
+                            labTier === "advanced"
+                              ? "bg-accent text-accent-foreground"
+                              : "bg-card hover:bg-muted/50 text-muted-foreground"
+                          }`}
+                          onClick={() => setLabTier("advanced")}
+                        >
+                          <Microscope className="h-4 w-4" />
+                          Advanced ({derivedAdvancedTests.length})
+                        </button>
+                      </div>
+                    )}
+
+                    {selectionConfirmed && (
+                      <Badge variant={labTier === "advanced" ? "default" : "secondary"} className="text-xs">
+                        {labTier === "advanced" ? "Advanced/Comprehensive Panel" : "Basic Panel"} Selected
+                      </Badge>
+                    )}
+
+                    {/* Test list */}
                     <div className="flex flex-wrap gap-2">
-                      {derivedBasicTests.map((t, i) => (
-                        <Badge key={i} variant="default" className="text-xs">{t}</Badge>
-                      ))}
+                      {finalLabTests.map((t, i) => {
+                        const isBasic = derivedBasicTests.includes(t);
+                        return (
+                          <Badge
+                            key={i}
+                            variant={isBasic ? "default" : "outline"}
+                            className={`text-xs ${!isBasic ? "border-accent/40 bg-accent/5 text-accent" : ""}`}
+                          >
+                            {isBasic ? <ShieldCheck className="h-3 w-3 mr-1" /> : <Microscope className="h-3 w-3 mr-1" />}
+                            {t}
+                          </Badge>
+                        );
+                      })}
+                    </div>
+
+                    {labTier === "basic" && derivedAdvancedTests.length > derivedBasicTests.length && !selectionConfirmed && (
+                      <p className="text-xs text-muted-foreground">
+                        Switch to Advanced to add {derivedAdvancedTests.length - derivedBasicTests.length} more comprehensive tests.
+                      </p>
+                    )}
+
+                    {/* Lab Notes */}
+                    <div className="space-y-2 pt-2 border-t border-border">
+                      <Label className="text-xs font-medium flex items-center gap-1.5">
+                        <StickyNote className="h-3.5 w-3.5 text-muted-foreground" />
+                        Lab Notes
+                      </Label>
+                      {!selectionConfirmed ? (
+                        <Textarea
+                          value={labNotes}
+                          onChange={(e) => setLabNotes(e.target.value)}
+                          placeholder="Add any specific instructions for lab work (e.g., fasting requirements, timing notes)..."
+                          className="min-h-[60px] text-sm"
+                        />
+                      ) : (
+                        labNotes && <p className="text-sm text-muted-foreground bg-muted/50 rounded-lg p-3">{labNotes}</p>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
               )}
 
-              {/* Advanced Tests (Recommended) */}
-              {derivedAdvancedTests.length > 0 && (
+              {/* Legacy fallback */}
+              {derivedBasicTests.length === 0 && derivedAdvancedTests.length === 0 && recommendations.required_blood_tests.length > 0 && selectedPeptides.size > 0 && (
                 <Card>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <Microscope className="h-4 w-4" />
-                      {selectionConfirmed ? "Advanced Complete Tests" : "Advanced Tests (based on selection)"}
-                    </CardTitle>
-                    <CardDescription>Recommended for comprehensive monitoring</CardDescription>
+                    <CardTitle className="text-lg flex items-center gap-2"><FlaskConical className="h-4 w-4" /> Required Lab Tests</CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="flex flex-wrap gap-2">
-                      {derivedAdvancedTests.map((t, i) => (
-                        <Badge key={i} variant="outline">{t}</Badge>
-                      ))}
+                      {recommendations.required_blood_tests.map((t, i) => <Badge key={i} variant="outline">{t}</Badge>)}
                     </div>
                   </CardContent>
                 </Card>
               )}
 
-              {/* Fallback: show combined if only legacy data exists and no split */}
-              {derivedBasicTests.length === 0 && derivedAdvancedTests.length === 0 && allLabTests.length === 0 && recommendations.required_blood_tests.length > 0 && selectedPeptides.size > 0 && (
-                <Card>
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <FlaskConical className="h-4 w-4" />
-                      Required Lab Tests
-                    </CardTitle>
-                  </CardHeader>
-                  <CardContent>
-                    <div className="flex flex-wrap gap-2">
-                      {recommendations.required_blood_tests.map((t, i) => (
-                        <Badge key={i} variant="outline">{t}</Badge>
-                      ))}
-                    </div>
-                  </CardContent>
-                </Card>
-              )}
-
-              {/* Supplements Selection */}
+              {/* Supplements */}
               {recommendations.recommended_supplements.length > 0 && (
                 <Card>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-lg">
-                      {selectionConfirmed ? "Selected Supplements" : "Select Supplements"}
-                    </CardTitle>
-                    {!selectionConfirmed && (
-                      <CardDescription>Choose which supplements to include in the plan.</CardDescription>
-                    )}
+                    <CardTitle className="text-lg">{selectionConfirmed ? "Selected Supplements" : "Select Supplements"}</CardTitle>
+                    {!selectionConfirmed && <CardDescription>Choose which supplements to include in the plan.</CardDescription>}
                   </CardHeader>
                   <CardContent>
                     <div className="space-y-3">
@@ -508,17 +516,11 @@ export default function Consultation() {
                         <div
                           key={i}
                           className={`flex items-start gap-3 text-sm rounded-lg border p-3 transition-colors ${
-                            !selectionConfirmed && selectedSupplements.has(s.name)
-                              ? "border-primary bg-primary/5"
-                              : ""
+                            !selectionConfirmed && selectedSupplements.has(s.name) ? "border-primary bg-primary/5" : ""
                           }`}
                         >
                           {!selectionConfirmed && (
-                            <Checkbox
-                              checked={selectedSupplements.has(s.name)}
-                              onCheckedChange={() => toggleSupplement(s.name)}
-                              className="mt-0.5"
-                            />
+                            <Checkbox checked={selectedSupplements.has(s.name)} onCheckedChange={() => toggleSupplement(s.name)} className="mt-0.5" />
                           )}
                           <div>
                             <span className="font-medium">{s.name}</span>
@@ -533,64 +535,61 @@ export default function Consultation() {
               )}
             </TabsContent>
 
+            {/* Doctor Note - uses dynamic action plan */}
             <TabsContent value="doctor-note">
               <Card>
                 <CardHeader className="pb-3 flex flex-row items-center justify-between">
                   <div>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <FileText className="h-4 w-4" /> Doctor Note
-                    </CardTitle>
-                    <CardDescription>Clinical consultation summary</CardDescription>
+                    <CardTitle className="text-lg flex items-center gap-2"><FileText className="h-4 w-4" /> Doctor Note</CardTitle>
+                    <CardDescription>Clinical consultation summary with prescribed medications & labs</CardDescription>
                   </div>
-                  <Button variant="outline" size="sm" onClick={() => copyToClipboard(recommendations.doctor_note, "Doctor note")}>
+                  <Button variant="outline" size="sm" onClick={() => copyToClipboard(buildActionPlan.doctorNote, "Doctor note")}>
                     <Copy className="h-3 w-3 mr-1" /> Copy
                   </Button>
                 </CardHeader>
                 <CardContent>
                   <div className="prose prose-sm max-w-none text-sm whitespace-pre-wrap bg-muted/50 rounded-lg p-4">
-                    {recommendations.doctor_note}
+                    {buildActionPlan.doctorNote}
                   </div>
                 </CardContent>
               </Card>
             </TabsContent>
 
+            {/* Next Steps */}
             <TabsContent value="next-steps">
               <Card>
                 <CardHeader className="pb-3 flex flex-row items-center justify-between">
                   <div>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <ClipboardList className="h-4 w-4" /> Next Steps
-                    </CardTitle>
+                    <CardTitle className="text-lg flex items-center gap-2"><ClipboardList className="h-4 w-4" /> Next Steps</CardTitle>
                     <CardDescription>Follow-up schedule and monitoring plan</CardDescription>
                   </div>
-                  <Button variant="outline" size="sm" onClick={() => copyToClipboard(recommendations.next_steps, "Next steps")}>
+                  <Button variant="outline" size="sm" onClick={() => copyToClipboard(buildActionPlan.nextSteps, "Next steps")}>
                     <Copy className="h-3 w-3 mr-1" /> Copy
                   </Button>
                 </CardHeader>
                 <CardContent>
                   <div className="prose prose-sm max-w-none text-sm whitespace-pre-wrap bg-muted/50 rounded-lg p-4">
-                    {recommendations.next_steps}
+                    {buildActionPlan.nextSteps}
                   </div>
                 </CardContent>
               </Card>
             </TabsContent>
 
+            {/* Patient Guidelines */}
             <TabsContent value="guidelines">
               <Card>
                 <CardHeader className="pb-3 flex flex-row items-center justify-between">
                   <div>
-                    <CardTitle className="text-lg flex items-center gap-2">
-                      <User className="h-4 w-4" /> Patient Guidelines
-                    </CardTitle>
-                    <CardDescription>Patient-friendly instructions</CardDescription>
+                    <CardTitle className="text-lg flex items-center gap-2"><User className="h-4 w-4" /> Patient Guidelines</CardTitle>
+                    <CardDescription>Patient-friendly instructions with prescribed plan</CardDescription>
                   </div>
-                  <Button variant="outline" size="sm" onClick={() => copyToClipboard(recommendations.patient_guidelines, "Patient guidelines")}>
+                  <Button variant="outline" size="sm" onClick={() => copyToClipboard(buildActionPlan.patientGuide, "Patient guidelines")}>
                     <Copy className="h-3 w-3 mr-1" /> Copy
                   </Button>
                 </CardHeader>
                 <CardContent>
                   <div className="prose prose-sm max-w-none text-sm whitespace-pre-wrap bg-muted/50 rounded-lg p-4">
-                    {recommendations.patient_guidelines}
+                    {buildActionPlan.patientGuide}
                   </div>
                 </CardContent>
               </Card>
@@ -598,11 +597,7 @@ export default function Consultation() {
           </Tabs>
         )}
 
-        <PeptideDetailSheet
-          peptideName={detailPeptide}
-          open={!!detailPeptide}
-          onOpenChange={(open) => !open && setDetailPeptide(null)}
-        />
+        <PeptideDetailSheet peptideName={detailPeptide} open={!!detailPeptide} onOpenChange={(open) => !open && setDetailPeptide(null)} />
       </main>
     </div>
   );
