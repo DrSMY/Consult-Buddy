@@ -9,9 +9,136 @@ serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    const { intake_answers, peptide_protocols } = await req.json();
+    const body = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
+
+    const action = body.action;
+
+    // ---- SMART FILL: extract patient fields from raw text ----
+    if (action === "smart-fill") {
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            { role: "system", content: "Extract patient data from raw text. Return ONLY valid JSON with fields: name, mobileNumber, bookingTime, age, gender (Male/Female/Other), height (in cm), weight (in kg), chronicIllnesses, medications. Only include fields you can extract. Do not invent data." },
+            { role: "user", content: body.raw_text },
+          ],
+          tools: [{
+            type: "function",
+            function: {
+              name: "extract_patient",
+              description: "Extract patient fields from text",
+              parameters: {
+                type: "object",
+                properties: {
+                  name: { type: "string" },
+                  mobileNumber: { type: "string" },
+                  bookingTime: { type: "string" },
+                  age: { type: "number" },
+                  gender: { type: "string", enum: ["Male", "Female", "Other"] },
+                  height: { type: "number", description: "Height in cm" },
+                  weight: { type: "number", description: "Weight in kg" },
+                  chronicIllnesses: { type: "string" },
+                  medications: { type: "string" },
+                },
+              },
+            },
+          }],
+          tool_choice: { type: "function", function: { name: "extract_patient" } },
+        }),
+      });
+
+      if (!response.ok) {
+        const t = await response.text();
+        console.error("AI gateway error:", response.status, t);
+        throw new Error("AI gateway error");
+      }
+
+      const data = await response.json();
+      const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
+      if (!toolCall) throw new Error("No tool call in response");
+
+      return new Response(JSON.stringify(JSON.parse(toolCall.function.arguments)), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ---- GENERATE GLP-1 PATIENT GUIDE ----
+    if (action === "generate-glp1-guide") {
+      const { patient_data, treatment_data } = body;
+
+      const prompt = `Generate a comprehensive patient care guide for a weight loss / GLP-1 patient with the following data:
+
+Patient: ${patient_data.name}, Age ${patient_data.age}, ${patient_data.gender}
+BMI: ${patient_data.bmi?.toFixed(1) || 'N/A'}
+Medication: ${treatment_data.medication} ${treatment_data.dose || treatment_data.otherDetail || ''}
+Weight: ${patient_data.weight} kg
+Activity Level: ${patient_data.activityLevel}
+Chronic Illnesses: ${patient_data.chronicIllnesses || 'None'}
+Current Medications: ${patient_data.medications || 'None'}
+Previous GLP-1 Use: ${patient_data.previousGlp1Use ? 'Yes' : 'No'}
+Weight Loss Target: ${patient_data.weightLossCalories ? Math.round(patient_data.weightLossCalories) + ' kcal/day' : 'N/A'}
+Blood Test Required: ${treatment_data.bloodTestRequired ? 'Yes' : 'No'}
+
+Generate a patient-friendly guide covering:
+1. Medication overview and how it works
+2. Injection/administration instructions
+3. Expected side effects and management
+4. Dietary recommendations (protein targets: ${patient_data.weight ? Math.round(Number(patient_data.weight) * 1.2) : '?'}g - ${patient_data.weight ? Math.round(Number(patient_data.weight) * 1.5) : '?'}g/day)
+5. Lifestyle recommendations
+6. When to contact the doctor
+7. Storage instructions
+${treatment_data.bloodTestRequired ? '8. Blood test information with Dardoc link: https://www.dardoc.com/dubai/lab-test/weight-loss-blood-test' : ''}
+
+Use clear, warm, supportive language. Format with clear sections.`;
+
+      const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            { role: "system", content: "You are a clinical care guide writer for a weight loss clinic. Write clear, patient-friendly guides." },
+            { role: "user", content: prompt },
+          ],
+        }),
+      });
+
+      if (!response.ok) {
+        if (response.status === 429) {
+          return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again shortly." }), {
+            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        if (response.status === 402) {
+          return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits." }), {
+            status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const t = await response.text();
+        console.error("AI gateway error:", response.status, t);
+        throw new Error("AI gateway error");
+      }
+
+      const data = await response.json();
+      const guide = data.choices?.[0]?.message?.content || "";
+
+      return new Response(JSON.stringify({ guide }), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // ---- ORIGINAL PEPTIDE CONSULTATION ----
+    const { intake_answers, peptide_protocols } = body;
 
     const systemPrompt = `You are a clinical peptide therapy consultation assistant for a medical clinic. You have deep knowledge of peptide protocols.
 
