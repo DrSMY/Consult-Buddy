@@ -14,6 +14,140 @@ export type Database = {
   }
   public: {
     Tables: {
+      consultations: {
+        Row: {
+          ai_recommendations: Json | null
+          created_at: string
+          doctor_notes: string | null
+          id: string
+          intake_answers: Json
+          next_steps: string | null
+          patient_guidelines: string | null
+          patient_name: string
+          program: string
+          status: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          ai_recommendations?: Json | null
+          created_at?: string
+          doctor_notes?: string | null
+          id?: string
+          intake_answers?: Json
+          next_steps?: string | null
+          patient_guidelines?: string | null
+          patient_name?: string
+          program?: string
+          status?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          ai_recommendations?: Json | null
+          created_at?: string
+          doctor_notes?: string | null
+          id?: string
+          intake_answers?: Json
+          next_steps?: string | null
+          patient_guidelines?: string | null
+          patient_name?: string
+          program?: string
+          status?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      peptide_program_matrix: {
+        Row: {
+          health_goal: string
+          id: string
+          peptide_protocol_id: string
+          priority: string
+        }
+        Insert: {
+          health_goal: string
+          id?: string
+          peptide_protocol_id: string
+          priority: string
+        }
+        Update: {
+          health_goal?: string
+          id?: string
+          peptide_protocol_id?: string
+          priority?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "peptide_program_matrix_peptide_protocol_id_fkey"
+            columns: ["peptide_protocol_id"]
+            isOneToOne: false
+            referencedRelation: "peptide_protocols"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      peptide_protocols: {
+        Row: {
+          administration_route: string | null
+          best_use_for: string | null
+          categories: string[] | null
+          common_side_effects: string | null
+          contraindications: string | null
+          created_at: string
+          dosage_instructions: string | null
+          how_it_works: string | null
+          id: string
+          key_blood_tests: string | null
+          name: string
+          possible_combinations: string | null
+          prescription_details: string | null
+          recommended_supplements: string | null
+          strength_volume: string | null
+          target_benefits: string | null
+          treatment_duration: string | null
+        }
+        Insert: {
+          administration_route?: string | null
+          best_use_for?: string | null
+          categories?: string[] | null
+          common_side_effects?: string | null
+          contraindications?: string | null
+          created_at?: string
+          dosage_instructions?: string | null
+          how_it_works?: string | null
+          id?: string
+          key_blood_tests?: string | null
+          name: string
+          possible_combinations?: string | null
+          prescription_details?: string | null
+          recommended_supplements?: string | null
+          strength_volume?: string | null
+          target_benefits?: string | null
+          treatment_duration?: string | null
+        }
+        Update: {
+          administration_route?: string | null
+          best_use_for?: string | null
+          categories?: string[] | null
+          common_side_effects?: string | null
+          contraindications?: string | null
+          created_at?: string
+          dosage_instructions?: string | null
+          how_it_works?: string | null
+          id?: string
+          key_blood_tests?: string | null
+          name?: string
+          possible_combinations?: string | null
+          prescription_details?: string | null
+          recommended_supplements?: string | null
+          strength_volume?: string | null
+          target_benefits?: string | null
+          treatment_duration?: string | null
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           created_at: string
