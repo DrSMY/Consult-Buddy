@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/hooks/use-toast";
-import { Activity, ArrowLeft, AlertTriangle, CheckCircle, FileText, ClipboardList, User, Copy, Loader2, FlaskConical, Info } from "lucide-react";
+import { Activity, ArrowLeft, AlertTriangle, CheckCircle, FileText, ClipboardList, User, Copy, Loader2, FlaskConical, Info, ShieldCheck, Microscope } from "lucide-react";
 import PeptideDetailSheet from "@/components/PeptideDetailSheet";
 
 interface PeptideRec {
@@ -17,7 +17,11 @@ interface PeptideRec {
   duration: string;
   administration: string;
   priority: string;
+  // Legacy field (backward compat)
   required_blood_tests?: string[];
+  // New split fields
+  mandatory_blood_tests?: string[];
+  recommended_blood_tests?: string[];
 }
 
 interface Recommendation {
@@ -28,6 +32,7 @@ interface Recommendation {
     recommendation: string;
   }>;
   required_blood_tests: string[];
+  recommended_blood_tests?: string[];
   recommended_supplements: Array<{
     name: string;
     dosage: string;
@@ -72,7 +77,6 @@ export default function Consultation() {
     if (data.ai_recommendations) {
       const rec = data.ai_recommendations as unknown as Recommendation;
       setRecommendations(rec);
-      // If already completed with a selection, mark confirmed
       if (data.status === "completed") {
         setSelectionConfirmed(true);
         const selected = new Set<string>(rec.recommended_peptides.map((p) => p.name));
@@ -103,14 +107,12 @@ export default function Consultation() {
       const rec = response.data as Recommendation;
       setRecommendations(rec);
 
-      // Pre-select primary peptides and all supplements
       const primary = new Set<string>(
         rec.recommended_peptides.filter((p) => p.priority === "Primary").map((p) => p.name)
       );
       setSelectedPeptides(primary);
       setSelectedSupplements(new Set(rec.recommended_supplements.map((s) => s.name)));
 
-      // Save raw AI recommendations (not yet completed - doctor needs to confirm)
       await supabase
         .from("consultations")
         .update({
@@ -142,21 +144,50 @@ export default function Consultation() {
     });
   };
 
-  // Derive lab tests from selected peptides
-  const derivedLabTests = useMemo(() => {
+  // Helper: get mandatory tests for a peptide (backward compat)
+  const getMandatoryTests = (p: PeptideRec) => p.mandatory_blood_tests || [];
+  const getRecommendedTests = (p: PeptideRec) => p.recommended_blood_tests || [];
+  // Legacy fallback: if only required_blood_tests exists, treat as mandatory
+  const getLegacyTests = (p: PeptideRec) => p.required_blood_tests || [];
+
+  // Derive basic (mandatory) tests from selected peptides
+  const derivedBasicTests = useMemo(() => {
     if (!recommendations) return [];
     const tests = new Set<string>();
     recommendations.recommended_peptides
       .filter((p) => selectedPeptides.has(p.name))
       .forEach((p) => {
-        (p.required_blood_tests || []).forEach((t) => tests.add(t));
+        getMandatoryTests(p).forEach((t) => tests.add(t));
+        // Legacy fallback
+        if (getMandatoryTests(p).length === 0 && getRecommendedTests(p).length === 0) {
+          getLegacyTests(p).forEach((t) => tests.add(t));
+        }
       });
-    // Fallback: if no per-peptide tests, use the global list
+    // Global fallback
     if (tests.size === 0 && selectedPeptides.size > 0) {
       recommendations.required_blood_tests.forEach((t) => tests.add(t));
     }
     return Array.from(tests).sort();
   }, [recommendations, selectedPeptides]);
+
+  // Derive advanced (recommended) tests from selected peptides
+  const derivedAdvancedTests = useMemo(() => {
+    if (!recommendations) return [];
+    const tests = new Set<string>();
+    recommendations.recommended_peptides
+      .filter((p) => selectedPeptides.has(p.name))
+      .forEach((p) => {
+        getRecommendedTests(p).forEach((t) => tests.add(t));
+      });
+    // Global fallback
+    if (tests.size === 0 && selectedPeptides.size > 0 && recommendations.recommended_blood_tests) {
+      recommendations.recommended_blood_tests.forEach((t) => tests.add(t));
+    }
+    return Array.from(tests).sort();
+  }, [recommendations, selectedPeptides]);
+
+  // Combined for saving
+  const allLabTests = useMemo(() => [...derivedBasicTests, ...derivedAdvancedTests], [derivedBasicTests, derivedAdvancedTests]);
 
   const confirmSelection = async () => {
     if (selectedPeptides.size === 0) {
@@ -171,12 +202,12 @@ export default function Consultation() {
       selectedSupplements.has(s.name)
     );
 
-    // Save confirmed selection
     const updatedRec: Recommendation = {
       ...recommendations!,
       recommended_peptides: selectedRecs,
       recommended_supplements: selectedSupps,
-      required_blood_tests: derivedLabTests,
+      required_blood_tests: derivedBasicTests,
+      recommended_blood_tests: derivedAdvancedTests,
     };
 
     await supabase
@@ -196,13 +227,11 @@ export default function Consultation() {
   };
 
   const handleEditSelection = async () => {
-    // Revert status to review so doctor can re-select
     await supabase
       .from("consultations")
       .update({ status: "review" })
       .eq("id", id);
 
-    // Re-fetch to get original AI recs and unlock UI
     const { data } = await supabase
       .from("consultations")
       .select("*")
@@ -213,7 +242,6 @@ export default function Consultation() {
       const rec = data.ai_recommendations as unknown as Recommendation;
       setRecommendations(rec);
       setConsultation(data);
-      // Pre-select all current peptides/supplements for editing
       setSelectedPeptides(new Set(rec.recommended_peptides.map((p) => p.name)));
       setSelectedSupplements(new Set(rec.recommended_supplements.map((s) => s.name)));
     }
@@ -380,10 +408,22 @@ export default function Consultation() {
                         <div><span className="font-medium">Duration:</span> {p.duration}</div>
                         <div><span className="font-medium">Route:</span> {p.administration}</div>
                       </div>
-                      {!selectionConfirmed && p.required_blood_tests && p.required_blood_tests.length > 0 && (
+                      {/* Per-peptide test badges (edit mode) */}
+                      {!selectionConfirmed && (getMandatoryTests(p).length > 0 || getRecommendedTests(p).length > 0 || getLegacyTests(p).length > 0) && (
                         <div className="flex flex-wrap gap-1 pt-1">
-                          {p.required_blood_tests.map((t, j) => (
-                            <Badge key={j} variant="outline" className="text-[10px]">
+                          {getMandatoryTests(p).map((t, j) => (
+                            <Badge key={`m-${j}`} variant="outline" className="text-[10px] border-primary/40 bg-primary/5">
+                              <ShieldCheck className="h-2.5 w-2.5 mr-0.5" />{t}
+                            </Badge>
+                          ))}
+                          {getRecommendedTests(p).map((t, j) => (
+                            <Badge key={`r-${j}`} variant="outline" className="text-[10px]">
+                              <Microscope className="h-2.5 w-2.5 mr-0.5" />{t}
+                            </Badge>
+                          ))}
+                          {/* Legacy fallback */}
+                          {getMandatoryTests(p).length === 0 && getRecommendedTests(p).length === 0 && getLegacyTests(p).map((t, j) => (
+                            <Badge key={`l-${j}`} variant="outline" className="text-[10px]">
                               {t}
                             </Badge>
                           ))}
@@ -401,18 +441,58 @@ export default function Consultation() {
                 </CardContent>
               </Card>
 
-              {/* Dynamic Lab Tests */}
-              {derivedLabTests.length > 0 && (
+              {/* Basic Tests (Mandatory) */}
+              {derivedBasicTests.length > 0 && (
+                <Card className="border-primary/20">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <ShieldCheck className="h-4 w-4 text-primary" />
+                      {selectionConfirmed ? "Basic Tests Required" : "Basic Tests (based on selection)"}
+                    </CardTitle>
+                    <CardDescription>Mandatory baseline diagnostics</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {derivedBasicTests.map((t, i) => (
+                        <Badge key={i} variant="default" className="text-xs">{t}</Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Advanced Tests (Recommended) */}
+              {derivedAdvancedTests.length > 0 && (
+                <Card>
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <Microscope className="h-4 w-4" />
+                      {selectionConfirmed ? "Advanced Complete Tests" : "Advanced Tests (based on selection)"}
+                    </CardTitle>
+                    <CardDescription>Recommended for comprehensive monitoring</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {derivedAdvancedTests.map((t, i) => (
+                        <Badge key={i} variant="outline">{t}</Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
+              {/* Fallback: show combined if only legacy data exists and no split */}
+              {derivedBasicTests.length === 0 && derivedAdvancedTests.length === 0 && allLabTests.length === 0 && recommendations.required_blood_tests.length > 0 && selectedPeptides.size > 0 && (
                 <Card>
                   <CardHeader className="pb-3">
                     <CardTitle className="text-lg flex items-center gap-2">
                       <FlaskConical className="h-4 w-4" />
-                      {selectionConfirmed ? "Required Lab Tests" : "Lab Tests (based on selection)"}
+                      Required Lab Tests
                     </CardTitle>
                   </CardHeader>
                   <CardContent>
                     <div className="flex flex-wrap gap-2">
-                      {derivedLabTests.map((t, i) => (
+                      {recommendations.required_blood_tests.map((t, i) => (
                         <Badge key={i} variant="outline">{t}</Badge>
                       ))}
                     </div>

@@ -20,7 +20,7 @@ Given patient intake data and the clinic's peptide protocol database, you must:
 1. Analyze the patient's health goals, medical history, and current conditions
 2. Recommend specific peptides with dosages, frequencies, and administration routes from the provided protocol database
 3. Flag any contraindications or safety concerns based on patient history
-4. Suggest required blood tests before starting
+4. Suggest required blood tests before starting, split into MANDATORY (basic) and RECOMMENDED (advanced) categories
 5. Recommend complementary supplements
 
 IMPORTANT RULES:
@@ -29,6 +29,9 @@ IMPORTANT RULES:
 - Be conservative with dosing recommendations for first-time patients
 - Consider drug interactions with current medications
 - Prioritize "Primary" use peptides over "Secondary" ones for the patient's goals
+- Each peptide's key_blood_tests field contains MANDATORY and RECOMMENDED tests separated by "|". Use this to populate mandatory_blood_tests and recommended_blood_tests per peptide.
+- mandatory_blood_tests are the basic tests always needed
+- recommended_blood_tests are additional advanced tests for comprehensive monitoring
 
 You MUST respond using the provided tool function.`;
 
@@ -72,13 +75,18 @@ Based on this patient's intake data and the available peptide protocols, provide
                         duration: { type: "string" },
                         administration: { type: "string" },
                         priority: { type: "string", enum: ["Primary", "Secondary"] },
-                        required_blood_tests: {
+                        mandatory_blood_tests: {
                           type: "array",
                           items: { type: "string" },
-                          description: "Blood tests specifically required for this peptide",
+                          description: "Basic/mandatory blood tests required for this peptide",
+                        },
+                        recommended_blood_tests: {
+                          type: "array",
+                          items: { type: "string" },
+                          description: "Advanced/recommended blood tests for comprehensive monitoring",
                         },
                       },
-                      required: ["name", "rationale", "dosage", "duration", "administration", "priority", "required_blood_tests"],
+                      required: ["name", "rationale", "dosage", "duration", "administration", "priority", "mandatory_blood_tests", "recommended_blood_tests"],
                     },
                   },
                   safety_flags: {
@@ -96,6 +104,12 @@ Based on this patient's intake data and the available peptide protocols, provide
                   required_blood_tests: {
                     type: "array",
                     items: { type: "string" },
+                    description: "Combined list of all mandatory blood tests across all recommended peptides",
+                  },
+                  recommended_blood_tests: {
+                    type: "array",
+                    items: { type: "string" },
+                    description: "Combined list of all recommended/advanced blood tests across all recommended peptides",
                   },
                   recommended_supplements: {
                     type: "array",
@@ -118,6 +132,7 @@ Based on this patient's intake data and the available peptide protocols, provide
                   "recommended_peptides",
                   "safety_flags",
                   "required_blood_tests",
+                  "recommended_blood_tests",
                   "recommended_supplements",
                   "doctor_note",
                   "next_steps",
