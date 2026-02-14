@@ -47,6 +47,7 @@ export default function Consultation() {
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
   const [selectedPeptides, setSelectedPeptides] = useState<Set<string>>(new Set());
+  const [selectedSupplements, setSelectedSupplements] = useState<Set<string>>(new Set());
   const [selectionConfirmed, setSelectionConfirmed] = useState(false);
 
   useEffect(() => {
@@ -72,9 +73,10 @@ export default function Consultation() {
       // If already completed with a selection, mark confirmed
       if (data.status === "completed") {
         setSelectionConfirmed(true);
-        // Restore selected peptides from saved data
         const selected = new Set<string>(rec.recommended_peptides.map((p) => p.name));
         setSelectedPeptides(selected);
+        const selectedSupps = new Set<string>(rec.recommended_supplements.map((s) => s.name));
+        setSelectedSupplements(selectedSupps);
       }
     } else {
       runAIAnalysis(data);
@@ -99,11 +101,12 @@ export default function Consultation() {
       const rec = response.data as Recommendation;
       setRecommendations(rec);
 
-      // Pre-select primary peptides
+      // Pre-select primary peptides and all supplements
       const primary = new Set<string>(
         rec.recommended_peptides.filter((p) => p.priority === "Primary").map((p) => p.name)
       );
       setSelectedPeptides(primary);
+      setSelectedSupplements(new Set(rec.recommended_supplements.map((s) => s.name)));
 
       // Save raw AI recommendations (not yet completed - doctor needs to confirm)
       await supabase
@@ -121,6 +124,15 @@ export default function Consultation() {
 
   const togglePeptide = (name: string) => {
     setSelectedPeptides((prev) => {
+      const next = new Set(prev);
+      if (next.has(name)) next.delete(name);
+      else next.add(name);
+      return next;
+    });
+  };
+
+  const toggleSupplement = (name: string) => {
+    setSelectedSupplements((prev) => {
       const next = new Set(prev);
       if (next.has(name)) next.delete(name);
       else next.add(name);
@@ -153,11 +165,15 @@ export default function Consultation() {
     const selectedRecs = recommendations!.recommended_peptides.filter((p) =>
       selectedPeptides.has(p.name)
     );
+    const selectedSupps = recommendations!.recommended_supplements.filter((s) =>
+      selectedSupplements.has(s.name)
+    );
 
     // Save confirmed selection
     const updatedRec: Recommendation = {
       ...recommendations!,
       recommended_peptides: selectedRecs,
+      recommended_supplements: selectedSupps,
       required_blood_tests: derivedLabTests,
     };
 
@@ -359,18 +375,40 @@ export default function Consultation() {
                 </Card>
               )}
 
-              {/* Supplements */}
+              {/* Supplements Selection */}
               {recommendations.recommended_supplements.length > 0 && (
                 <Card>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-lg">Recommended Supplements</CardTitle>
+                    <CardTitle className="text-lg">
+                      {selectionConfirmed ? "Selected Supplements" : "Select Supplements"}
+                    </CardTitle>
+                    {!selectionConfirmed && (
+                      <CardDescription>Choose which supplements to include in the plan.</CardDescription>
+                    )}
                   </CardHeader>
                   <CardContent>
-                    <div className="space-y-2">
+                    <div className="space-y-3">
                       {recommendations.recommended_supplements.map((s, i) => (
-                        <div key={i} className="flex items-start gap-2 text-sm">
-                          <span className="font-medium min-w-[120px]">{s.name}</span>
-                          <span className="text-muted-foreground">{s.dosage} — {s.reason}</span>
+                        <div
+                          key={i}
+                          className={`flex items-start gap-3 text-sm rounded-lg border p-3 transition-colors ${
+                            !selectionConfirmed && selectedSupplements.has(s.name)
+                              ? "border-primary bg-primary/5"
+                              : ""
+                          }`}
+                        >
+                          {!selectionConfirmed && (
+                            <Checkbox
+                              checked={selectedSupplements.has(s.name)}
+                              onCheckedChange={() => toggleSupplement(s.name)}
+                              className="mt-0.5"
+                            />
+                          )}
+                          <div>
+                            <span className="font-medium">{s.name}</span>
+                            <span className="text-muted-foreground"> — {s.dosage}</span>
+                            <p className="text-xs text-muted-foreground mt-0.5">{s.reason}</p>
+                          </div>
                         </div>
                       ))}
                     </div>
