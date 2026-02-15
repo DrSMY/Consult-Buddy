@@ -10,7 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
 import { AlertTriangle, CheckCircle, FileText, ClipboardList, User, Copy, Loader2, FlaskConical, Info, ShieldCheck, Microscope, StickyNote } from "lucide-react";
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import PeptideDetailSheet from "@/components/PeptideDetailSheet";
 import AppHeader from "@/components/AppHeader";
 
@@ -54,6 +54,7 @@ export default function Consultation() {
   const [detailPeptide, setDetailPeptide] = useState<string | null>(null);
   const [labTier, setLabTier] = useState<LabTier>("basic");
   const [labNotes, setLabNotes] = useState("");
+  const [selectedLabTest, setSelectedLabTest] = useState<string | null>(null);
 
   useEffect(() => {
     loadConsultation();
@@ -568,44 +569,23 @@ ${labLines || "As directed by your doctor"}`;
                       </Badge>
                     )}
 
-                    {/* Test list */}
-                    <TooltipProvider delayDuration={200}>
-                      <div className="flex flex-wrap gap-2">
-                        {finalLabTests.map((t, i) => {
-                          const isBasic = derivedBasicTests.includes(t);
-                          const relatedPeptides = testToPeptideMap.get(t) || [];
-                          return (
-                            <Tooltip key={i}>
-                              <TooltipTrigger asChild>
-                                <Badge
-                                  variant={isBasic ? "default" : "outline"}
-                                  className={`text-xs cursor-help ${!isBasic ? "border-accent/40 bg-accent/5 text-accent" : ""}`}
-                                >
-                                  {isBasic ? <ShieldCheck className="h-3 w-3 mr-1" /> : <Microscope className="h-3 w-3 mr-1" />}
-                                  {t}
-                                </Badge>
-                              </TooltipTrigger>
-                              <TooltipContent side="top" className="max-w-sm p-3">
-                                {(() => {
-                                  const { rationale, peptideInfo } = getTestRationale(t, relatedPeptides);
-                                  return (
-                                    <div className="space-y-2">
-                                      <p className="font-semibold text-xs">{t}</p>
-                                      <p className="text-xs leading-relaxed text-muted-foreground">{rationale}</p>
-                                      {peptideInfo && (
-                                        <div className="pt-1 border-t border-border">
-                                          <p className="text-[10px] font-medium text-primary">Related peptides: <span className="font-normal text-muted-foreground">{peptideInfo}</span></p>
-                                        </div>
-                                      )}
-                                    </div>
-                                  );
-                                })()}
-                              </TooltipContent>
-                            </Tooltip>
-                          );
-                        })}
-                      </div>
-                    </TooltipProvider>
+                    {/* Test list - clickable badges */}
+                    <div className="flex flex-wrap gap-2">
+                      {finalLabTests.map((t, i) => {
+                        const isBasic = derivedBasicTests.includes(t);
+                        return (
+                          <Badge
+                            key={i}
+                            variant={isBasic ? "default" : "outline"}
+                            className={`text-xs cursor-pointer hover:ring-2 hover:ring-primary/30 transition-all ${!isBasic ? "border-accent/40 bg-accent/5 text-accent" : ""}`}
+                            onClick={() => setSelectedLabTest(t)}
+                          >
+                            {isBasic ? <ShieldCheck className="h-3 w-3 mr-1" /> : <Microscope className="h-3 w-3 mr-1" />}
+                            {t}
+                          </Badge>
+                        );
+                      })}
+                    </div>
 
                     {labTier === "basic" && derivedAdvancedTests.length > derivedBasicTests.length && !selectionConfirmed && (
                       <p className="text-xs text-muted-foreground">
@@ -741,6 +721,38 @@ ${labLines || "As directed by your doctor"}`;
             </TabsContent>
           </Tabs>
         )}
+
+        {/* Lab Test Detail Dialog */}
+        <Dialog open={!!selectedLabTest} onOpenChange={(open) => !open && setSelectedLabTest(null)}>
+          <DialogContent className="max-w-sm">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <FlaskConical className="h-4 w-4 text-primary" />
+                {selectedLabTest}
+              </DialogTitle>
+              <DialogDescription>Clinical rationale for this test</DialogDescription>
+            </DialogHeader>
+            {selectedLabTest && (() => {
+              const relatedPeptides = testToPeptideMap.get(selectedLabTest) || [];
+              const { rationale, peptideInfo } = getTestRationale(selectedLabTest, relatedPeptides);
+              const isBasic = derivedBasicTests.includes(selectedLabTest);
+              return (
+                <div className="space-y-4">
+                  <Badge variant={isBasic ? "default" : "outline"} className="text-xs">
+                    {isBasic ? "Basic Panel" : "Advanced Panel"}
+                  </Badge>
+                  <p className="text-sm leading-relaxed text-muted-foreground">{rationale}</p>
+                  {peptideInfo && (
+                    <div className="pt-3 border-t border-border">
+                      <p className="text-xs font-medium text-primary">Related peptides:</p>
+                      <p className="text-xs text-muted-foreground mt-1">{peptideInfo}</p>
+                    </div>
+                  )}
+                </div>
+              );
+            })()}
+          </DialogContent>
+        </Dialog>
 
         <PeptideDetailSheet peptideName={detailPeptide} open={!!detailPeptide} onOpenChange={(open) => !open && setDetailPeptide(null)} />
       </main>
