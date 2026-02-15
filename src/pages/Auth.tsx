@@ -41,6 +41,11 @@ export default function Auth() {
       if (error) {
         toast({ title: "Sign up failed", description: error.message, variant: "destructive" });
       } else {
+        // Send branded confirmation email to user (fire-and-forget)
+        supabase.functions.invoke('send-confirmation-email', {
+          body: { name: fullName, email },
+        }).catch(console.error);
+
         // Notify admin about new signup (fire-and-forget)
         supabase.functions.invoke('notify-admin-signup', {
           body: { name: fullName, email, phone },
