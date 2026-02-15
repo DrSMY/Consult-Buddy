@@ -7,8 +7,10 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import {
   FileText, User, Copy, ClipboardCheck, ArrowLeft, Activity, Utensils, Zap, ThermometerSnowflake,
+  Weight, Ruler, Heart, Flame, TrendingDown, Pill, AlertTriangle, MessageSquare, Scale,
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
+import { getBMICategory, getBMIColorClass } from "@/data/glp1Config";
 
 export default function WeightLossConsultation() {
   const { id } = useParams();
@@ -60,61 +62,289 @@ export default function WeightLossConsultation() {
   const recs = consultation.ai_recommendations as any;
   const doctorSuggestions = recs?.doctorSuggestions || "";
   const patientGuide = recs?.patientGuide || "";
+  const medication = recs?.medication || "";
+  const dose = recs?.dose || "";
+
+  const intake = consultation.intake_answers as any;
+  const patient = intake?.patient;
+  const treatment = intake?.treatment;
+  const followupData = intake?.followupData;
+  const flowType = intake?.flowType;
+
+  const bmi = patient?.bmi ? Number(patient.bmi) : null;
+  const weight = patient?.weight ? Number(patient.weight) : null;
+  const height = patient?.height ? Number(patient.height) : null;
+  const age = patient?.age ? Number(patient.age) : null;
+  const gender = patient?.gender || "";
+  const activityLevel = patient?.activityLevel || "";
+  const bmr = patient?.bmr ? Math.round(Number(patient.bmr)) : null;
+  const dailyCalories = patient?.dailyCalories ? Math.round(Number(patient.dailyCalories)) : null;
+  const weightLossCalories = patient?.weightLossCalories ? Math.round(Number(patient.weightLossCalories)) : null;
+  const chronicIllnesses = patient?.chronicIllnesses || "";
+  const medications = patient?.medications || "";
+  const previousGlp1 = patient?.previousGlp1Use;
+  const previousMed = patient?.previousMedication || "";
+  const previousDose = patient?.previousDose || "";
+  const isPregnant = patient?.isPregnant;
+  const isBreastfeeding = patient?.isBreastfeeding;
+
+  // Build talking points
+  const talkingPoints: { color: string; icon: React.ReactNode; title: string; points: string[] }[] = [];
+
+  // Medication talking points
+  const medName = medication === "Other" ? treatment?.otherDetail || "Medication" : medication;
+  if (medName) {
+    const medPoints = [];
+    if (["Mounjaro", "Wegovy", "Ozempic"].includes(medication)) {
+      medPoints.push(`${medName} is a weekly subcutaneous injection`);
+      medPoints.push("Inject in thigh, abdomen, or upper arm — rotate sites each week");
+      medPoints.push("Store in refrigerator (2-8°C). Do not freeze.");
+      if (medication === "Mounjaro") medPoints.push("Mounjaro targets both GIP and GLP-1 receptors for enhanced weight loss");
+      if (medication === "Wegovy") medPoints.push("Wegovy is specifically FDA-approved for chronic weight management");
+    } else if (medication === "Rybelsus") {
+      medPoints.push(`${medName} is a daily oral GLP-1 tablet`);
+      medPoints.push("Take on empty stomach with ≤ 4oz plain water, 30 min before food");
+      medPoints.push("Store at room temperature. No refrigeration needed.");
+    }
+    if (dose) medPoints.push(`Current prescribed dose: ${dose}`);
+    talkingPoints.push({
+      color: "bg-blue-50 dark:bg-blue-900/10 border-blue-100 dark:border-blue-900/20",
+      icon: <Pill className="h-4 w-4 text-blue-600 dark:text-blue-400" />,
+      title: "Medication & Administration",
+      points: medPoints,
+    });
+  }
+
+  // Nutrition talking points
+  if (weight) {
+    const proteinMin = Math.round(weight * 1.2);
+    const proteinMax = Math.round(weight * 1.5);
+    talkingPoints.push({
+      color: "bg-green-50 dark:bg-green-900/10 border-green-100 dark:border-green-900/20",
+      icon: <Utensils className="h-4 w-4 text-green-600 dark:text-green-400" />,
+      title: "Nutrition Guidance",
+      points: [
+        `Protein target: ${proteinMin}–${proteinMax}g/day (1.2–1.5g/kg)`,
+        "Aim for 40-50% protein, 40-50% fiber-rich carbs, <20% fats",
+        weightLossCalories ? `Calorie target: ~${weightLossCalories} kcal/day for weight loss` : "",
+        "Eat slowly, stop when full — GLP-1 enhances satiety",
+        "Stay well-hydrated: minimum 2L water/day",
+      ].filter(Boolean),
+    });
+  }
+
+  // Side effects talking points
+  talkingPoints.push({
+    color: "bg-amber-50 dark:bg-amber-900/10 border-amber-100 dark:border-amber-900/20",
+    icon: <AlertTriangle className="h-4 w-4 text-amber-600 dark:text-amber-400" />,
+    title: "Common Side Effects",
+    points: [
+      "Nausea — usually improves within 2-4 weeks; eat smaller, more frequent meals",
+      "Constipation — increase fiber and water intake",
+      "Decreased appetite — expected; ensure adequate protein intake",
+      "Injection site reactions — mild redness/swelling is normal",
+      "Contact clinic if severe vomiting, abdominal pain, or pancreatitis symptoms",
+    ],
+  });
+
+  // Safety & Contraindications
+  const safetyPoints: string[] = [];
+  if (isPregnant) safetyPoints.push("⚠️ Patient is pregnant — GLP-1 medications are contraindicated");
+  if (isBreastfeeding) safetyPoints.push("⚠️ Patient is breastfeeding — discuss risks vs. benefits");
+  if (chronicIllnesses) safetyPoints.push(`Medical history: ${chronicIllnesses}`);
+  if (medications) safetyPoints.push(`Current medications: ${medications}`);
+  safetyPoints.push("Contraindicated in personal/family history of medullary thyroid carcinoma or MEN2");
+  safetyPoints.push("Monitor for signs of pancreatitis, gallbladder disease");
+
+  talkingPoints.push({
+    color: "bg-rose-50 dark:bg-rose-900/10 border-rose-100 dark:border-rose-900/20",
+    icon: <Heart className="h-4 w-4 text-rose-600 dark:text-rose-400" />,
+    title: "Safety & Contraindications",
+    points: safetyPoints,
+  });
+
+  // Follow-up guidance
+  const followupPoints = [
+    "Schedule monthly follow-up to assess weight, side effects, and dose titration",
+    previousGlp1 ? `Previous GLP-1 history: ${previousMed} ${previousDose}` : "First-time GLP-1 user — start at lowest dose",
+  ];
+  if (flowType === "followup" && followupData) {
+    if (followupData.weightLost) followupPoints.unshift(`Weight lost since last visit: ${followupData.weightLost} kg`);
+    if (followupData.sideEffects) followupPoints.unshift(`Reported side effects: ${followupData.sideEffects}`);
+  }
+  talkingPoints.push({
+    color: "bg-violet-50 dark:bg-violet-900/10 border-violet-100 dark:border-violet-900/20",
+    icon: <MessageSquare className="h-4 w-4 text-violet-600 dark:text-violet-400" />,
+    title: "Follow-up & Monitoring",
+    points: followupPoints,
+  });
 
   return (
     <div className="min-h-screen gradient-surface">
       <AppHeader title="Weight Loss Consultation" subtitle={consultation.patient_name} showBack />
 
-      <main className="container mx-auto max-w-3xl px-4 py-6 animate-fade-in space-y-6">
-        {/* Clinical Record */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex justify-between items-center">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <FileText className="h-4 w-4 text-primary" /> Clinical Record & Suggestions
-              </CardTitle>
-              <Button variant="outline" size="sm" onClick={() => handleCopy(doctorSuggestions, "clinical")}>
-                {copiedSection === "clinical" ? <ClipboardCheck className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
-                {copiedSection === "clinical" ? "Copied" : "Copy Record"}
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="bg-muted/50 p-4 rounded-lg border text-sm font-mono whitespace-pre-wrap leading-relaxed">
-              {doctorSuggestions || "No clinical suggestions recorded."}
-            </div>
-          </CardContent>
-        </Card>
+      <main className="container mx-auto px-4 py-6 animate-fade-in">
+        <div className="flex flex-col lg:flex-row gap-6 max-w-6xl mx-auto">
+          {/* Main Content */}
+          <div className="flex-1 space-y-6 min-w-0">
+            {/* Clinical Record */}
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex justify-between items-center">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-primary" /> Clinical Record & Suggestions
+                  </CardTitle>
+                  <Button variant="outline" size="sm" onClick={() => handleCopy(doctorSuggestions, "clinical")}>
+                    {copiedSection === "clinical" ? <ClipboardCheck className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
+                    {copiedSection === "clinical" ? "Copied" : "Copy Record"}
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-muted/50 p-4 rounded-lg border text-sm font-mono whitespace-pre-wrap leading-relaxed">
+                  {doctorSuggestions || "No clinical suggestions recorded."}
+                </div>
+              </CardContent>
+            </Card>
 
-        {/* Patient Guide */}
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex justify-between items-center">
-              <CardTitle className="text-sm flex items-center gap-2">
-                <User className="h-4 w-4 text-accent" /> Patient Care Guide
-              </CardTitle>
-              <Button variant="outline" size="sm" onClick={() => handleCopy(patientGuide, "guide")}>
-                {copiedSection === "guide" ? <ClipboardCheck className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
-                {copiedSection === "guide" ? "Copied" : "Copy Guide"}
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent>
-            <div className="flex flex-wrap gap-2 mb-4">
-              <Badge variant="secondary" className="text-[10px]"><Activity className="h-3 w-3 mr-1" /> Weekly Injection</Badge>
-              <Badge variant="secondary" className="text-[10px]"><Utensils className="h-3 w-3 mr-1" /> High Protein Plan</Badge>
-              <Badge variant="secondary" className="text-[10px]"><Zap className="h-3 w-3 mr-1" /> TDEE Focused</Badge>
-              <Badge variant="secondary" className="text-[10px]"><ThermometerSnowflake className="h-3 w-3 mr-1" /> Refrigerated Storage</Badge>
-            </div>
-            <div className="bg-muted/50 p-4 rounded-lg border text-sm whitespace-pre-wrap leading-relaxed">
-              {patientGuide || "Patient guide not yet generated."}
-            </div>
-          </CardContent>
-        </Card>
+            {/* Patient Guide */}
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex justify-between items-center">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <User className="h-4 w-4 text-accent" /> Patient Care Guide
+                  </CardTitle>
+                  <Button variant="outline" size="sm" onClick={() => handleCopy(patientGuide, "guide")}>
+                    {copiedSection === "guide" ? <ClipboardCheck className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
+                    {copiedSection === "guide" ? "Copied" : "Copy Guide"}
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <Badge variant="secondary" className="text-[10px]"><Activity className="h-3 w-3 mr-1" /> Weekly Injection</Badge>
+                  <Badge variant="secondary" className="text-[10px]"><Utensils className="h-3 w-3 mr-1" /> High Protein Plan</Badge>
+                  <Badge variant="secondary" className="text-[10px]"><Zap className="h-3 w-3 mr-1" /> TDEE Focused</Badge>
+                  <Badge variant="secondary" className="text-[10px]"><ThermometerSnowflake className="h-3 w-3 mr-1" /> Refrigerated Storage</Badge>
+                </div>
+                <div className="bg-muted/50 p-4 rounded-lg border text-sm whitespace-pre-wrap leading-relaxed">
+                  {patientGuide || "Patient guide not yet generated."}
+                </div>
+              </CardContent>
+            </Card>
 
-        <Button variant="outline" onClick={() => navigate("/dashboard")}>
-          <ArrowLeft className="h-4 w-4 mr-1" /> Back to Dashboard
-        </Button>
+            <Button variant="outline" onClick={() => navigate("/dashboard")}>
+              <ArrowLeft className="h-4 w-4 mr-1" /> Back to Dashboard
+            </Button>
+          </div>
+
+          {/* Side Panel */}
+          <aside className="w-full lg:w-80 shrink-0 space-y-4 lg:sticky lg:top-6 lg:self-start">
+            {/* Patient Summary */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs font-bold uppercase tracking-wider flex items-center gap-2 text-muted-foreground">
+                  <Scale className="h-3.5 w-3.5" /> Patient Summary
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                <div className="grid grid-cols-2 gap-2">
+                  {age && (
+                    <div className="bg-muted/50 rounded-lg p-2.5 text-center">
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold">Age</p>
+                      <p className="text-sm font-bold">{age}y</p>
+                    </div>
+                  )}
+                  {gender && (
+                    <div className="bg-muted/50 rounded-lg p-2.5 text-center">
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold">Gender</p>
+                      <p className="text-sm font-bold">{gender}</p>
+                    </div>
+                  )}
+                  {height && (
+                    <div className="bg-muted/50 rounded-lg p-2.5 text-center">
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold flex items-center justify-center gap-1"><Ruler className="h-3 w-3" /> Height</p>
+                      <p className="text-sm font-bold">{Math.round(height)} cm</p>
+                    </div>
+                  )}
+                  {weight && (
+                    <div className="bg-muted/50 rounded-lg p-2.5 text-center">
+                      <p className="text-[10px] text-muted-foreground uppercase font-bold flex items-center justify-center gap-1"><Weight className="h-3 w-3" /> Weight</p>
+                      <p className="text-sm font-bold">{Math.round(weight)} kg</p>
+                    </div>
+                  )}
+                </div>
+
+                {/* BMI */}
+                {bmi && (
+                  <div className={`p-2.5 rounded-lg flex justify-between items-center ${getBMIColorClass(bmi)}`}>
+                    <span className="text-xs font-bold">BMI: {bmi.toFixed(1)}</span>
+                    <span className="text-[10px] font-bold uppercase">{getBMICategory(bmi)}</span>
+                  </div>
+                )}
+
+                {/* Metabolic */}
+                <div className="border-t pt-3 space-y-2">
+                  {bmr && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-[11px] text-muted-foreground flex items-center gap-1"><Flame className="h-3 w-3" /> BMR</span>
+                      <span className="text-xs font-bold">{bmr} kcal</span>
+                    </div>
+                  )}
+                  {dailyCalories && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-[11px] text-muted-foreground flex items-center gap-1"><Utensils className="h-3 w-3" /> TDEE</span>
+                      <span className="text-xs font-bold">{dailyCalories} kcal</span>
+                    </div>
+                  )}
+                  {weightLossCalories && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-[11px] text-muted-foreground flex items-center gap-1"><TrendingDown className="h-3 w-3" /> Target</span>
+                      <span className="text-xs font-bold text-primary">{weightLossCalories} kcal</span>
+                    </div>
+                  )}
+                  {activityLevel && (
+                    <div className="flex justify-between items-center">
+                      <span className="text-[11px] text-muted-foreground flex items-center gap-1"><Activity className="h-3 w-3" /> Activity</span>
+                      <Badge variant="outline" className="text-[10px]">{activityLevel}</Badge>
+                    </div>
+                  )}
+                </div>
+
+                {/* Medication */}
+                {medName && (
+                  <div className="border-t pt-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-[11px] text-muted-foreground flex items-center gap-1"><Pill className="h-3 w-3" /> Rx</span>
+                      <Badge className="text-[10px]">{medName} {dose}</Badge>
+                    </div>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+
+            {/* Talking Points */}
+            {talkingPoints.map((section, idx) => (
+              <Card key={idx} className={`border ${section.color}`}>
+                <CardHeader className="pb-2 pt-3 px-4">
+                  <CardTitle className="text-xs font-bold uppercase tracking-wider flex items-center gap-2">
+                    {section.icon} {section.title}
+                  </CardTitle>
+                </CardHeader>
+                <CardContent className="px-4 pb-3">
+                  <ul className="space-y-1.5">
+                    {section.points.map((point, pidx) => (
+                      <li key={pidx} className="text-[11px] leading-relaxed text-foreground/80 flex items-start gap-1.5">
+                        <span className="text-muted-foreground mt-1 shrink-0">•</span>
+                        <span>{point}</span>
+                      </li>
+                    ))}
+                  </ul>
+                </CardContent>
+              </Card>
+            ))}
+          </aside>
+        </div>
       </main>
     </div>
   );
