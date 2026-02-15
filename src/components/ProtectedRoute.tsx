@@ -2,7 +2,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Navigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { ShieldAlert } from "lucide-react";
+import { ShieldAlert, XCircle } from "lucide-react";
 
 export default function ProtectedRoute({ children }: { children: React.ReactNode }) {
   const { session, profile, loading, signOut } = useAuth();
@@ -17,6 +17,28 @@ export default function ProtectedRoute({ children }: { children: React.ReactNode
 
   if (!session) {
     return <Navigate to="/auth" replace />;
+  }
+
+  if (profile && profile.rejected) {
+    return (
+      <div className="flex min-h-screen items-center justify-center gradient-surface px-4">
+        <Card className="w-full max-w-md glass-card shadow-xl text-center">
+          <CardHeader>
+            <XCircle className="h-12 w-12 mx-auto text-destructive mb-2" />
+            <CardTitle className="text-lg">Access Denied</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              Your account has been rejected by an administrator. Please contact
+              your clinic admin for further assistance.
+            </p>
+            <Button variant="outline" onClick={signOut} className="w-full">
+              Sign Out
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   if (profile && !profile.approved) {
