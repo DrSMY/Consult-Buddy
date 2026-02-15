@@ -5,11 +5,15 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import {
   Search, ChevronDown, FlaskConical, Syringe, Pill,
-  Activity, ShieldAlert, TestTubes, Combine, BookOpen, Loader2,
+  Activity, ShieldAlert, TestTubes, Combine, BookOpen, Loader2, Pencil, Plus, Save, X,
 } from "lucide-react";
+import { useToast } from "@/hooks/use-toast";
 import AppHeader from "@/components/AppHeader";
 
 interface Protocol {
@@ -38,14 +42,37 @@ const CATEGORY_ICONS: Record<string, any> = {
   "Healthy Aging & Longevity": BookOpen,
 };
 
+const EDITABLE_FIELDS: { key: keyof Protocol; label: string; multiline?: boolean }[] = [
+  { key: "name", label: "Name" },
+  { key: "how_it_works", label: "How It Works", multiline: true },
+  { key: "target_benefits", label: "Target Benefits", multiline: true },
+  { key: "best_use_for", label: "Best Use For", multiline: true },
+  { key: "dosage_instructions", label: "Dosage Instructions" },
+  { key: "administration_route", label: "Administration Route" },
+  { key: "strength_volume", label: "Strength/Volume" },
+  { key: "treatment_duration", label: "Treatment Duration" },
+  { key: "contraindications", label: "Contraindications", multiline: true },
+  { key: "common_side_effects", label: "Common Side Effects", multiline: true },
+  { key: "key_blood_tests", label: "Key Blood Tests", multiline: true },
+  { key: "recommended_supplements", label: "Recommended Supplements", multiline: true },
+  { key: "possible_combinations", label: "Possible Combinations", multiline: true },
+  { key: "prescription_details", label: "Prescription Details", multiline: true },
+];
+
 export default function KnowledgeBase() {
   const navigate = useNavigate();
+  const { toast } = useToast();
   const [protocols, setProtocols] = useState<Protocol[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [openIds, setOpenIds] = useState<Set<string>>(new Set());
+  const [editProtocol, setEditProtocol] = useState<Protocol | null>(null);
+  const [editForm, setEditForm] = useState<Record<string, string>>({});
+  const [editCategories, setEditCategories] = useState("");
+  const [saving, setSaving] = useState(false);
+  const [isNew, setIsNew] = useState(false);
 
-  useEffect(() => {
+  const loadProtocols = () => {
     supabase
       .from("peptide_protocols")
       .select("*")
@@ -54,7 +81,9 @@ export default function KnowledgeBase() {
         setProtocols((data as Protocol[]) || []);
         setLoading(false);
       });
-  }, []);
+  };
+
+  useEffect(() => { loadProtocols(); }, []);
 
   const filtered = useMemo(() => {
     if (!search.trim()) return protocols;
@@ -88,6 +117,59 @@ export default function KnowledgeBase() {
     });
   };
 
+  const openEdit = (protocol: Protocol) => {
+    setIsNew(false);
+    setEditProtocol(protocol);
+    const form: Record<string, string> = {};
+    EDITABLE_FIELDS.forEach(({ key }) => {
+      form[key] = (protocol[key] as string) || "";
+    });
+    setEditCategories(protocol.categories?.join(", ") || "");
+    setEditForm(form);
+  };
+
+  const openNew = () => {
+    setIsNew(true);
+    const form: Record<string, string> = {};
+    EDITABLE_FIELDS.forEach(({ key }) => { form[key] = ""; });
+    setEditCategories("");
+    setEditForm(form);
+    setEditProtocol({} as Protocol);
+  };
+
+  const handleSave = async () => {
+    if (!editForm.name?.trim()) {
+      toast({ title: "Name is required", variant: "destructive" });
+      return;
+    }
+    setSaving(true);
+    const categories = editCategories.split(",").map((c) => c.trim()).filter(Boolean);
+    const payload: any = { categories };
+    EDITABLE_FIELDS.forEach(({ key }) => {
+      payload[key] = editForm[key]?.trim() || null;
+    });
+    payload.name = editForm.name.trim();
+
+    if (isNew) {
+      const { error } = await supabase.from("peptide_protocols").insert(payload);
+      if (error) {
+        toast({ title: "Failed to add protocol", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Protocol added successfully" });
+      }
+    } else {
+      const { error } = await supabase.from("peptide_protocols").update(payload).eq("id", editProtocol!.id);
+      if (error) {
+        toast({ title: "Failed to update protocol", description: error.message, variant: "destructive" });
+      } else {
+        toast({ title: "Protocol updated successfully" });
+      }
+    }
+    setSaving(false);
+    setEditProtocol(null);
+    loadProtocols();
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -98,7 +180,11 @@ export default function KnowledgeBase() {
 
   return (
     <div className="min-h-screen gradient-surface">
-      <AppHeader title="Knowledge Base" subtitle={`${protocols.length} protocols`} showBack />
+      <AppHeader title="Knowledge Base" subtitle={`${protocols.length} protocols`} showBack>
+        <Button size="sm" variant="outline" className="text-xs" onClick={openNew}>
+          <Plus className="h-3.5 w-3.5 mr-1" /> Add Protocol
+        </Button>
+      </AppHeader>
 
       <main className="container mx-auto max-w-4xl px-4 py-6 space-y-6">
         <div className="relative">
@@ -134,11 +220,21 @@ export default function KnowledgeBase() {
                                 <p className="text-xs text-muted-foreground mt-1">{p.target_benefits}</p>
                               )}
                             </div>
-                            <ChevronDown
-                              className={`h-4 w-4 text-muted-foreground transition-transform ${
-                                openIds.has(p.id) ? "rotate-180" : ""
-                              }`}
-                            />
+                            <div className="flex items-center gap-2">
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                className="h-7 w-7"
+                                onClick={(e) => { e.stopPropagation(); openEdit(p); }}
+                              >
+                                <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                              </Button>
+                              <ChevronDown
+                                className={`h-4 w-4 text-muted-foreground transition-transform ${
+                                  openIds.has(p.id) ? "rotate-180" : ""
+                                }`}
+                              />
+                            </div>
                           </div>
                         </CardHeader>
                       </CollapsibleTrigger>
@@ -200,6 +296,54 @@ export default function KnowledgeBase() {
           </div>
         )}
       </main>
+
+      {/* Edit / Add Dialog */}
+      <Dialog open={!!editProtocol} onOpenChange={(open) => !open && setEditProtocol(null)}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{isNew ? "Add New Protocol" : `Edit: ${editForm.name}`}</DialogTitle>
+            <DialogDescription>
+              {isNew ? "Fill in the details for the new protocol." : "Update any field and save."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Categories (comma-separated)</Label>
+              <Input
+                value={editCategories}
+                onChange={(e) => setEditCategories(e.target.value)}
+                placeholder="e.g. Gut Health, Longevity"
+              />
+            </div>
+            {EDITABLE_FIELDS.map(({ key, label, multiline }) => (
+              <div key={key} className="space-y-1.5">
+                <Label className="text-xs font-medium">{label}</Label>
+                {multiline ? (
+                  <Textarea
+                    value={editForm[key] || ""}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, [key]: e.target.value }))}
+                    className="min-h-[80px] text-sm"
+                  />
+                ) : (
+                  <Input
+                    value={editForm[key] || ""}
+                    onChange={(e) => setEditForm((prev) => ({ ...prev, [key]: e.target.value }))}
+                  />
+                )}
+              </div>
+            ))}
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setEditProtocol(null)} disabled={saving}>
+              <X className="h-3.5 w-3.5 mr-1" /> Cancel
+            </Button>
+            <Button onClick={handleSave} disabled={saving}>
+              {saving ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1" />}
+              {isNew ? "Add Protocol" : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
