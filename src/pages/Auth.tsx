@@ -23,11 +23,33 @@ export default function Auth() {
     setLoading(true);
 
     if (isLogin) {
-      const { error } = await supabase.auth.signInWithPassword({ email, password });
+      const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         toast({ title: "Login failed", description: error.message, variant: "destructive" });
-      } else {
-        navigate("/dashboard");
+      } else if (data.user) {
+        // Check if the user is approved
+        const { data: profile } = await supabase
+          .from("profiles")
+          .select("approved, rejected")
+          .eq("user_id", data.user.id)
+          .single();
+
+        if (profile?.rejected) {
+          await supabase.auth.signOut();
+          toast({
+            title: "Account Rejected",
+            description: "Your account has been reviewed and was not approved. Please contact the admin for more information.",
+            variant: "destructive",
+          });
+        } else if (!profile?.approved) {
+          await supabase.auth.signOut();
+          toast({
+            title: "Pending Approval",
+            description: "Your account is awaiting admin approval. You'll be notified once you're approved — hang tight!",
+          });
+        } else {
+          navigate("/dashboard");
+        }
       }
     } else {
       const { error } = await supabase.auth.signUp({
