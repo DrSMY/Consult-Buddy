@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f4f4f7; margin: 0; padding: 0; }
+    .container { max-width: 480px; margin: 40px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
+    .header { background: linear-gradient(135deg, #6366f1, #8b5cf6); padding: 32px 24px; text-align: center; }
+    .header h1 { color: #ffffff; margin: 0; font-size: 24px; font-weight: 700; }
+    .body { padding: 32px 24px; }
+    .body h2 { color: #1e293b; font-size: 20px; margin-top: 0; }
+    .body p { color: #475569; font-size: 15px; line-height: 1.6; }
+    .btn { display: inline-block; background: linear-gradient(135deg, #6366f1, #8b5cf6); color: #ffffff !important; text-decoration: none; padding: 14px 32px; border-radius: 8px; font-weight: 600; font-size: 15px; margin: 16px 0; }
+    .footer { padding: 20px 24px; text-align: center; border-top: 1px solid #e2e8f0; }
+    .footer p { color: #94a3b8; font-size: 13px; margin: 0; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>DOCassist</h1>
+    </div>
+    <div class="body">
+      <h2>Welcome aboard! 🎉</h2>
+      <p>Thanks for signing up for <strong>DOCassist</strong>. We're excited to have you!</p>
+      <p>First things first — please confirm your email by clicking the button below:</p>
+      <p style="text-align: center;">
+        <a class="btn" href="{{ .ConfirmationURL }}">Confirm My Email</a>
+      </p>
+      <p>Once confirmed, our admin will review your account and approve access. Hang tight — good things are on the way! ✨</p>
+      <p>We'll notify you as soon as you're all set to dive in.</p>
+    </div>
+    <div class="footer">
+      <p>© DOCassist — Smart Clinical Consultation Platform</p>
+    </div>
+  </div>
+</body>
+</html>

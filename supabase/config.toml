@@ -1,1 +1,6 @@
 project_id = "kokottennducgqcearxu"
+
+[auth.email]
+[auth.email.template.confirmation]
+subject = "Welcome to DOCassist — You're Almost In!"
+content_path = "./supabase/templates/confirmation.html"
