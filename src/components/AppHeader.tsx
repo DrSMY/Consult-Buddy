@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Logo from "@/components/Logo";
-import { LogOut, FolderOpen, BookOpen, ArrowLeft } from "lucide-react";
+import { LogOut, FolderOpen, BookOpen, ArrowLeft, Users } from "lucide-react";
 
 interface Props {
   title?: string;
@@ -64,6 +64,17 @@ export default function AppHeader({ title, subtitle, showBack = false, showNav =
                 <BookOpen className="h-3.5 w-3.5" />
                 <span className="hidden sm:inline">Knowledge</span>
               </Button>
+              {roles.includes("admin") && (
+                <Button
+                  variant={isActive("/user-management") ? "secondary" : "ghost"}
+                  size="sm"
+                  onClick={() => navigate("/user-management")}
+                  className="gap-1.5 px-2 sm:px-3 text-xs"
+                >
+                  <Users className="h-3.5 w-3.5" />
+                  <span className="hidden sm:inline">Users</span>
+                </Button>
+              )}
             </>
           )}
           {children}

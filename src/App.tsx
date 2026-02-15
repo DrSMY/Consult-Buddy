@@ -13,6 +13,7 @@ import Consultation from "./pages/Consultation";
 import WeightLossConsultation from "./pages/WeightLossConsultation";
 import KnowledgeBase from "./pages/KnowledgeBase";
 import PatientFiles from "./pages/PatientFiles";
+import UserManagement from "./pages/UserManagement";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -34,6 +35,7 @@ const App = () => (
             <Route path="/weight-loss/:id" element={<ProtectedRoute><WeightLossConsultation /></ProtectedRoute>} />
             <Route path="/knowledge-base" element={<ProtectedRoute><KnowledgeBase /></ProtectedRoute>} />
             <Route path="/patient-files" element={<ProtectedRoute><PatientFiles /></ProtectedRoute>} />
+            <Route path="/user-management" element={<ProtectedRoute><UserManagement /></ProtectedRoute>} />
             <Route path="*" element={<NotFound />} />
           </Routes>
         </AuthProvider>
