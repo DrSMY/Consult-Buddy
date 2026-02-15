@@ -47,8 +47,8 @@ export default function Auth() {
         }).catch(console.error);
 
         toast({
-          title: "Check your email",
-          description: "We sent you a confirmation link to verify your account.",
+          title: "You're almost in! 🎉",
+          description: "Our admin will review and approve your account shortly — hang tight, good things are coming!",
         });
       }
     }
