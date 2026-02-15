@@ -12,7 +12,9 @@ interface UserProfile {
   id: string;
   user_id: string;
   full_name: string;
+  phone: string;
   approved: boolean;
+  rejected: boolean;
   created_at: string;
 }
 
@@ -27,7 +29,7 @@ export default function UserManagement() {
   const fetchUsers = async () => {
     const { data, error } = await supabase
       .from("profiles")
-      .select("id, user_id, full_name, approved, created_at")
+      .select("id, user_id, full_name, phone, approved, rejected, created_at")
       .order("created_at", { ascending: false });
 
     if (error) {
@@ -43,16 +45,30 @@ export default function UserManagement() {
     else setLoading(false);
   }, [isAdmin]);
 
-  const toggleApproval = async (userId: string, currentlyApproved: boolean) => {
+  const approveUser = async (userId: string) => {
     const { error } = await supabase
       .from("profiles")
-      .update({ approved: !currentlyApproved })
+      .update({ approved: true, rejected: false })
       .eq("user_id", userId);
 
     if (error) {
       toast({ title: "Update failed", description: error.message, variant: "destructive" });
     } else {
-      toast({ title: currentlyApproved ? "Access revoked" : "User approved" });
+      toast({ title: "User approved" });
+      fetchUsers();
+    }
+  };
+
+  const rejectUser = async (userId: string) => {
+    const { error } = await supabase
+      .from("profiles")
+      .update({ approved: false, rejected: true })
+      .eq("user_id", userId);
+
+    if (error) {
+      toast({ title: "Update failed", description: error.message, variant: "destructive" });
+    } else {
+      toast({ title: "User rejected" });
       fetchUsers();
     }
   };
@@ -93,26 +109,38 @@ export default function UserManagement() {
                   <div key={u.id} className="flex items-center justify-between py-3 gap-3">
                     <div className="min-w-0">
                       <p className="text-sm font-medium truncate">{u.full_name || "Unnamed"}</p>
+                      {u.phone && <p className="text-xs text-muted-foreground">{u.phone}</p>}
                       <p className="text-xs text-muted-foreground">
                         Joined {new Date(u.created_at).toLocaleDateString()}
                       </p>
                     </div>
                     <div className="flex items-center gap-2 shrink-0">
-                      <Badge variant={u.approved ? "default" : "destructive"} className="text-[10px]">
-                        {u.approved ? "Approved" : "Pending"}
-                      </Badge>
-                      <Button
-                        size="sm"
-                        variant={u.approved ? "outline" : "default"}
-                        onClick={() => toggleApproval(u.user_id, u.approved)}
-                        className="gap-1 text-xs"
+                      <Badge
+                        variant={u.approved ? "default" : u.rejected ? "destructive" : "secondary"}
+                        className="text-[10px]"
                       >
-                        {u.approved ? (
-                          <><XCircle className="h-3 w-3" /> Revoke</>
-                        ) : (
-                          <><CheckCircle className="h-3 w-3" /> Approve</>
-                        )}
-                      </Button>
+                        {u.approved ? "Approved" : u.rejected ? "Rejected" : "Pending"}
+                      </Badge>
+                      {!u.approved && (
+                        <Button
+                          size="sm"
+                          variant="default"
+                          onClick={() => approveUser(u.user_id)}
+                          className="gap-1 text-xs"
+                        >
+                          <CheckCircle className="h-3 w-3" /> Approve
+                        </Button>
+                      )}
+                      {!u.rejected && (
+                        <Button
+                          size="sm"
+                          variant="destructive"
+                          onClick={() => rejectUser(u.user_id)}
+                          className="gap-1 text-xs"
+                        >
+                          <XCircle className="h-3 w-3" /> Reject
+                        </Button>
+                      )}
                     </div>
                   </div>
                 ))}
