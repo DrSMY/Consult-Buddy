@@ -121,6 +121,8 @@ export default function WeightLossIntake() {
         activityLevel: prevPatient.activityLevel || ActivityLevel.Sedentary,
         chronicIllnesses: prevPatient.chronicIllnesses || "",
         medications: prevPatient.medications || "",
+        allergies: prevPatient.allergies || "",
+        allergyNotes: prevPatient.allergyNotes || "",
         previousGlp1Use: true,
         previousMedication: prevTreatment?.medication || "",
         previousDose: prevTreatment?.dose || "",
@@ -157,6 +159,7 @@ export default function WeightLossIntake() {
           ...p,
           ...(data.name && { name: data.name }),
           ...(data.mobileNumber && { mobileNumber: data.mobileNumber }),
+          ...(data.bookingId && { bookingId: data.bookingId }),
           ...(data.bookingTime && { bookingTime: data.bookingTime }),
           ...(data.age && { age: Number(data.age) }),
           ...(data.gender && { gender: data.gender as Gender }),
@@ -164,6 +167,7 @@ export default function WeightLossIntake() {
           ...(data.weight && { weight: Number(data.weight) }),
           ...(data.chronicIllnesses && { chronicIllnesses: data.chronicIllnesses }),
           ...(data.medications && { medications: data.medications }),
+          ...(data.allergies && { allergies: data.allergies }),
         }));
         setSmartInput("");
       }
@@ -377,12 +381,111 @@ export default function WeightLossIntake() {
     );
   }
 
+  // Patient summary component for the sidebar
+  const PatientSummary = () => {
+    const bmi = patient.bmi;
+    const weight = typeof patient.weight === "number" ? patient.weight : null;
+    const height = typeof patient.height === "number" ? patient.height : null;
+    const age = typeof patient.age === "number" ? patient.age : null;
+    const bmr = patient.bmr ? Math.round(patient.bmr) : null;
+    const dailyCal = patient.dailyCalories ? Math.round(patient.dailyCalories) : null;
+    const wlCal = patient.weightLossCalories ? Math.round(patient.weightLossCalories) : null;
+
+    if (!patient.name && !age && !weight) return null;
+
+    return (
+      <Card className="lg:sticky lg:top-6 lg:self-start">
+        <CardHeader className="pb-2">
+          <CardTitle className="text-xs font-bold uppercase tracking-wider flex items-center gap-2 text-muted-foreground">
+            <CircleUser className="h-3.5 w-3.5" /> Patient Summary
+          </CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {patient.name && (
+            <div className="text-sm font-semibold">{patient.name}</div>
+          )}
+          {patient.bookingId && (
+            <div className="flex justify-between items-center">
+              <span className="text-[11px] text-muted-foreground flex items-center gap-1"><CalendarDays className="h-3 w-3" /> Booking</span>
+              <span className="text-xs font-bold">{patient.bookingId}</span>
+            </div>
+          )}
+          <div className="grid grid-cols-2 gap-2">
+            {age && (
+              <div className="bg-muted/50 rounded-lg p-2 text-center">
+                <p className="text-[10px] text-muted-foreground uppercase font-bold">Age</p>
+                <p className="text-sm font-bold">{age}y</p>
+              </div>
+            )}
+            {patient.gender && (
+              <div className="bg-muted/50 rounded-lg p-2 text-center">
+                <p className="text-[10px] text-muted-foreground uppercase font-bold">Gender</p>
+                <p className="text-sm font-bold">{patient.gender}</p>
+              </div>
+            )}
+            {height && (
+              <div className="bg-muted/50 rounded-lg p-2 text-center">
+                <p className="text-[10px] text-muted-foreground uppercase font-bold">Height</p>
+                <p className="text-sm font-bold">{Math.round(height)} cm</p>
+              </div>
+            )}
+            {weight && (
+              <div className="bg-muted/50 rounded-lg p-2 text-center">
+                <p className="text-[10px] text-muted-foreground uppercase font-bold">Weight</p>
+                <p className="text-sm font-bold">{Math.round(weight)} kg</p>
+              </div>
+            )}
+          </div>
+          {bmi && (
+            <div className={`p-2 rounded-lg flex justify-between items-center ${getBMIColorClass(bmi)}`}>
+              <span className="text-xs font-bold">BMI: {bmi.toFixed(1)}</span>
+              <span className="text-[10px] font-bold uppercase">{getBMICategory(bmi)}</span>
+            </div>
+          )}
+          {(bmr || dailyCal || wlCal) && (
+            <div className="border-t pt-2 space-y-1.5">
+              {bmr && (
+                <div className="flex justify-between items-center">
+                  <span className="text-[11px] text-muted-foreground flex items-center gap-1"><Flame className="h-3 w-3" /> BMR</span>
+                  <span className="text-xs font-bold">{bmr} kcal</span>
+                </div>
+              )}
+              {dailyCal && (
+                <div className="flex justify-between items-center">
+                  <span className="text-[11px] text-muted-foreground flex items-center gap-1"><Utensils className="h-3 w-3" /> TDEE</span>
+                  <span className="text-xs font-bold">{dailyCal} kcal</span>
+                </div>
+              )}
+              {wlCal && (
+                <div className="flex justify-between items-center">
+                  <span className="text-[11px] text-muted-foreground flex items-center gap-1"><TrendingDown className="h-3 w-3" /> Target</span>
+                  <span className="text-xs font-bold text-primary">{wlCal} kcal</span>
+                </div>
+              )}
+            </div>
+          )}
+          {patient.allergies && (
+            <div className="border-t pt-2">
+              <span className="text-[10px] text-amber-600 dark:text-amber-400 font-bold uppercase flex items-center gap-1">
+                <AlertTriangle className="h-3 w-3" /> Allergies
+              </span>
+              <p className="text-xs mt-0.5">{patient.allergies}</p>
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    );
+  };
+
   // ---- MAIN MULTI-STEP FORM ----
   return (
     <div className="min-h-screen gradient-surface">
       <AppHeader title="Weight Loss / GLP-1" subtitle={`Step ${step + 1} of ${totalSteps}`} showBack />
 
-      <main className="container mx-auto max-w-3xl px-4 py-6 animate-fade-in">
+      <main className="container mx-auto max-w-5xl px-4 py-6 animate-fade-in">
+        <div className="flex flex-col lg:flex-row gap-6">
+          {/* Main Content */}
+          <div className="flex-1 min-w-0">
         {/* Progress */}
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
@@ -626,6 +729,23 @@ export default function WeightLossIntake() {
                 <div>
                   <Label>Current Medications</Label>
                   <Textarea rows={2} placeholder="e.g. Metformin 500mg..." value={patient.medications} onChange={e => updatePatient("medications", e.target.value)} className="mt-1" />
+                </div>
+
+                {/* Allergy History */}
+                <div className="bg-amber-50 dark:bg-amber-900/10 p-4 rounded-lg border border-amber-100 dark:border-amber-900/20 space-y-3">
+                  <h3 className="text-xs font-bold text-amber-600 dark:text-amber-400 uppercase tracking-wider flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" /> Allergy History
+                  </h3>
+                  <div>
+                    <Label className="text-sm">Known Allergies</Label>
+                    <Textarea rows={2} placeholder="e.g. Penicillin, Shellfish, Latex..." value={patient.allergies} onChange={e => updatePatient("allergies", e.target.value)} className="mt-1" />
+                  </div>
+                  {patient.allergies.trim() && (
+                    <div className="animate-fade-in">
+                      <Label className="text-xs text-muted-foreground">Allergy Notes (severity, reactions, etc.)</Label>
+                      <Textarea rows={2} placeholder="e.g. Severe anaphylaxis to penicillin, mild rash with shellfish..." value={patient.allergyNotes} onChange={e => updatePatient("allergyNotes", e.target.value)} className="mt-1 text-sm" />
+                    </div>
+                  )}
                 </div>
 
                 {/* GLP-1 History */}
@@ -953,6 +1073,13 @@ export default function WeightLossIntake() {
               <Check className="h-4 w-4 ml-1" />
             </Button>
           )}
+        </div>
+          </div>
+
+          {/* Patient Summary Sidebar - visible throughout */}
+          <aside className="w-full lg:w-72 shrink-0 space-y-4">
+            <PatientSummary />
+          </aside>
         </div>
       </main>
     </div>

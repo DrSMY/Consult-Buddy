@@ -51,6 +51,8 @@ export interface GLP1Patient {
   activityLevel: ActivityLevel;
   chronicIllnesses: string;
   medications: string;
+  allergies: string;
+  allergyNotes: string;
   isPregnant: boolean;
   isBreastfeeding: boolean;
   previousGlp1Use: boolean;
@@ -84,6 +86,8 @@ export const createEmptyPatient = (): GLP1Patient => ({
   activityLevel: ActivityLevel.Sedentary,
   chronicIllnesses: "",
   medications: "",
+  allergies: "",
+  allergyNotes: "",
   isPregnant: false,
   isBreastfeeding: false,
   previousGlp1Use: false,

@@ -325,6 +325,7 @@ export default function PatientIntake() {
           <Progress value={progress} className="h-2" />
         </div>
 
+        {/* Show Primary Health Objectives at the beginning (step 0) */}
         {currentStep === 0 && (
           <Card className="mb-4">
             <CardHeader className="pb-3">

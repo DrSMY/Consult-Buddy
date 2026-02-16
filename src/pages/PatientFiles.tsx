@@ -159,7 +159,18 @@ export default function PatientFiles() {
                 <Card
                   key={c.id}
                   className="hover:border-primary/30 hover:shadow-sm transition-all cursor-pointer"
-                  onClick={() => navigate(`/consultation/${c.id}`)}
+                  onClick={() => {
+                    if (c.program === "weight-loss") {
+                      // For completed weight-loss, go to consultation view; for others navigate to intake for editing
+                      if (c.status === "completed") {
+                        navigate(`/weight-loss/${c.id}`);
+                      } else {
+                        navigate(`/consultation/${c.id}`);
+                      }
+                    } else {
+                      navigate(`/consultation/${c.id}`);
+                    }
+                  }}
                 >
                   <CardContent className="flex items-center gap-4 py-4">
                     <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-full bg-primary/10">
