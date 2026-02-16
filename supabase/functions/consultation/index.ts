@@ -26,7 +26,7 @@ serve(async (req) => {
         body: JSON.stringify({
           model: "google/gemini-3-flash-preview",
           messages: [
-            { role: "system", content: "Extract patient data from raw text. Return ONLY valid JSON with fields: name, mobileNumber, bookingTime, age, gender (Male/Female/Other), height (in cm), weight (in kg), chronicIllnesses, medications. Only include fields you can extract. Do not invent data." },
+            { role: "system", content: "Extract patient data from raw text. Return ONLY valid JSON with fields: name, mobileNumber, bookingId (booking reference number), bookingTime, age, gender (Male/Female/Other), height (in cm), weight (in kg), chronicIllnesses, medications, allergies. Only include fields you can extract. Do not invent data." },
             { role: "user", content: body.raw_text },
           ],
           tools: [{
@@ -38,6 +38,7 @@ serve(async (req) => {
                 type: "object",
                 properties: {
                   name: { type: "string" },
+                  bookingId: { type: "string", description: "Booking reference number" },
                   mobileNumber: { type: "string" },
                   bookingTime: { type: "string" },
                   age: { type: "number" },
@@ -229,10 +230,11 @@ Given patient intake data and the clinic's peptide protocol database, you must:
 
 IMPORTANT RULES:
 - Only recommend peptides from the provided protocol database
+- CRITICAL: List ALL applicable peptides across ALL of the patient's selected health goals. If a patient has 3 goals and each goal maps to 3 peptides, you MUST list all 9 peptides (or more). Do NOT limit to a small number — include every relevant peptide from the database for each goal.
 - Always flag if the patient has conditions that contraindicate any peptide
 - Be conservative with dosing recommendations for first-time patients
 - Consider drug interactions with current medications
-- Prioritize "Primary" use peptides over "Secondary" ones for the patient's goals
+- Prioritize "Primary" use peptides over "Secondary" ones for the patient's goals, but still include Secondary peptides in the list
 - Each peptide's key_blood_tests field contains MANDATORY and RECOMMENDED tests separated by "|". Use this to populate mandatory_blood_tests and recommended_blood_tests per peptide.
 - mandatory_blood_tests are the basic tests always needed
 - recommended_blood_tests are additional advanced tests for comprehensive monitoring

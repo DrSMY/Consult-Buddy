@@ -417,6 +417,27 @@ ${labLines || "As directed by your doctor"}`;
             </TabsList>
 
             <TabsContent value="recommendations" className="space-y-4">
+              {/* Primary Health Objectives */}
+              {consultation?.intake_answers?.health_goals && (
+                <Card className="border-primary/20">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-lg flex items-center gap-2">
+                      <ClipboardList className="h-4 w-4 text-primary" /> Primary Health Objectives
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="flex flex-wrap gap-2">
+                      {(Array.isArray(consultation.intake_answers.health_goals)
+                        ? consultation.intake_answers.health_goals
+                        : [consultation.intake_answers.health_goals]
+                      ).map((goal: string, i: number) => (
+                        <Badge key={i} variant="secondary" className="text-xs py-1 px-3">{goal}</Badge>
+                      ))}
+                    </div>
+                  </CardContent>
+                </Card>
+              )}
+
               {/* Clinical Summary */}
               <Card>
                 <CardHeader className="pb-3">
