@@ -235,9 +235,15 @@ IMPORTANT RULES:
 - Be conservative with dosing recommendations for first-time patients
 - Consider drug interactions with current medications
 - Prioritize "Primary" use peptides over "Secondary" ones for the patient's goals, but still include Secondary peptides in the list
-- Each peptide's key_blood_tests field contains MANDATORY and RECOMMENDED tests separated by "|". Use this to populate mandatory_blood_tests and recommended_blood_tests per peptide.
-- mandatory_blood_tests are the basic tests always needed
-- recommended_blood_tests are additional advanced tests for comprehensive monitoring
+
+CRITICAL LAB TEST RULES:
+- Each peptide's key_blood_tests field uses "MANDATORY:" and "RECOMMENDED:" labels separated by "|".
+- For each peptide, mandatory_blood_tests MUST contain ONLY the tests listed under "MANDATORY:" in that peptide's key_blood_tests field. These are the basic panel tests.
+- For each peptide, recommended_blood_tests MUST contain ONLY the tests listed under "RECOMMENDED:" in that peptide's key_blood_tests field. These are the advanced/comprehensive panel tests.
+- Do NOT put recommended tests into mandatory_blood_tests. Do NOT put mandatory tests into recommended_blood_tests.
+- If a peptide only has "RECOMMENDED:" tests (no MANDATORY), then mandatory_blood_tests should be an empty array for that peptide.
+- The top-level required_blood_tests should be the union of all mandatory_blood_tests across selected peptides.
+- The top-level recommended_blood_tests should be the union of all recommended_blood_tests across selected peptides.
 
 You MUST respond using the provided tool function.`;
 
