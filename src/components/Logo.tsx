@@ -1,4 +1,4 @@
-export default function Logo({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
+export default function Logo({ size = "md", iconOnly = false }: { size?: "sm" | "md" | "lg"; iconOnly?: boolean }) {
   const dims = { sm: 28, md: 36, lg: 48 }[size];
   const textSize = { sm: "text-sm", md: "text-lg", lg: "text-2xl" }[size];
 
@@ -44,12 +44,14 @@ export default function Logo({ size = "md" }: { size?: "sm" | "md" | "lg" }) {
         <path d="M18 14l-4-2-2 1" className="stroke-primary" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
         <path d="M30 14l4-2 2 1" className="stroke-primary" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round" fill="none" />
       </svg>
-      <div className="flex flex-col leading-none">
-        <span className={`${textSize} font-bold tracking-tight`} style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
-          <span className="text-primary">DOC</span>
-          <span className="text-foreground">assist</span>
-        </span>
-      </div>
+      {!iconOnly && (
+        <div className="flex flex-col leading-none">
+          <span className={`${textSize} font-bold tracking-tight`} style={{ fontFamily: "'Space Grotesk', sans-serif" }}>
+            <span className="text-primary">DOC</span>
+            <span className="text-foreground">assist</span>
+          </span>
+        </div>
+      )}
     </div>
   );
 }
