@@ -3,7 +3,7 @@ import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import Logo from "@/components/Logo";
-import { LogOut, FolderOpen, BookOpen, ArrowLeft, Users } from "lucide-react";
+import { LogOut, FolderOpen, BookOpen, ArrowLeft, Users, Download } from "lucide-react";
 
 interface Props {
   title?: string;
@@ -75,6 +75,15 @@ export default function AppHeader({ title, subtitle, showBack = false, showNav =
                   <span className="hidden sm:inline">Users</span>
                 </Button>
               )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => navigate("/install")}
+                className="gap-1.5 px-2 sm:px-3 text-xs"
+              >
+                <Download className="h-3.5 w-3.5" />
+                <span className="hidden sm:inline">Install</span>
+              </Button>
             </>
           )}
           {children}
