@@ -30,7 +30,7 @@ export default function AppHeader({ title, subtitle, showBack = false, showNav =
             </Button>
           )}
           <button onClick={() => navigate("/dashboard")} className="flex items-center gap-2 hover:opacity-80 transition-opacity">
-            <Logo size="sm" />
+            <Logo size="sm" iconOnly />
           </button>
           {title && (
             <>
