@@ -15,6 +15,7 @@ import KnowledgeBase from "./pages/KnowledgeBase";
 import PatientFiles from "./pages/PatientFiles";
 import UserManagement from "./pages/UserManagement";
 import NotFound from "./pages/NotFound";
+import Install from "./pages/Install";
 
 const queryClient = new QueryClient();
 
@@ -28,6 +29,7 @@ const App = () => (
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/auth" element={<Auth />} />
+            <Route path="/install" element={<Install />} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/program/peptides" element={<ProtectedRoute><PatientIntake /></ProtectedRoute>} />
             <Route path="/program/weight-loss" element={<ProtectedRoute><WeightLossIntake /></ProtectedRoute>} />
