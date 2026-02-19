@@ -45,6 +45,7 @@ export default function WeightLossIntake() {
   const [smartInput, setSmartInput] = useState("");
   const [isParsing, setIsParsing] = useState(false);
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
+  const [doctorNotes, setDoctorNotes] = useState("");
 
   // Follow-up state
   const [followup, setFollowup] = useState<FollowupData>(createEmptyFollowup());
@@ -86,7 +87,7 @@ export default function WeightLossIntake() {
       const suggestion = generateClinicalSuggestion(patient, treatment);
       setTreatment(t => ({ ...t, doctorSuggestions: suggestion }));
     }
-  }, [treatment.medication, treatment.dose, treatment.otherDetail, treatment.notes, treatment.bloodTestRequired, patient.mobileNumber, patient.name, patient.bmi, patient.previousGlp1Use, patient.previousMedication, patient.previousDose, patient.chronicIllnesses, patient.weight, patient.weightLossCalories, patient.bookingId, patient.gender]);
+  }, [treatment.medication, treatment.dose, treatment.otherDetail, treatment.notes, treatment.bloodTestLevel, patient.mobileNumber, patient.name, patient.bmi, patient.previousGlp1Use, patient.previousMedication, patient.previousDose, patient.chronicIllnesses, patient.weight, patient.weightLossCalories, patient.bookingId, patient.gender]);
 
   // Load previous weight-loss consultations for follow-up
   useEffect(() => {
@@ -135,6 +136,10 @@ export default function WeightLossIntake() {
         ...t,
         medication: prevTreatment?.medication || "",
       }));
+    }
+    // Pre-fill doctor notes from previous consultation
+    if (consultation.doctor_notes) {
+      setDoctorNotes(consultation.doctor_notes);
     }
     setStep(0); // go to identity (pre-filled)
   };
@@ -221,12 +226,13 @@ export default function WeightLossIntake() {
         patient_name: patient.name,
         program: "weight-loss",
         intake_answers: intakeAnswers as any,
+        doctor_notes: doctorNotes || null,
         ai_recommendations: {
           doctorSuggestions: treatment.doctorSuggestions,
           patientGuide: treatment.patientGuide,
           medication: treatment.medication,
           dose: treatment.dose,
-          bloodTestRequired: treatment.bloodTestRequired,
+          bloodTestLevel: treatment.bloodTestLevel,
         } as any,
         status: "completed",
       })
@@ -748,6 +754,23 @@ export default function WeightLossIntake() {
                   )}
                 </div>
 
+                {/* Doctor Notes */}
+                <Card className="border-primary/20">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-sm flex items-center gap-2">
+                      <StickyNote className="h-4 w-4 text-primary" /> Doctor Notes
+                    </CardTitle>
+                  </CardHeader>
+                  <CardContent>
+                    <Textarea
+                      rows={3}
+                      placeholder="Add any clinical notes for this encounter..."
+                      value={doctorNotes}
+                      onChange={e => setDoctorNotes(e.target.value)}
+                    />
+                  </CardContent>
+                </Card>
+
                 {/* GLP-1 History */}
                 <div className="bg-muted/50 p-4 rounded-lg border space-y-3">
                   <label className="flex items-center space-x-2">
@@ -901,29 +924,40 @@ export default function WeightLossIntake() {
               </CardContent>
             </Card>
 
-            {/* Blood Test */}
+            {/* Blood Test Level */}
             <Card>
               <CardContent className="p-4">
-                <button
-                  type="button"
-                  onClick={() => updateTreatment("bloodTestRequired", !treatment.bloodTestRequired)}
-                  className={`w-full flex items-center justify-between p-4 rounded-xl border-2 transition-all ${
-                    treatment.bloodTestRequired ? "bg-primary/5 border-primary/30 text-primary" : "bg-background border-border text-muted-foreground hover:border-muted-foreground/30"
-                  }`}
-                >
-                  <div className="flex items-center gap-3 text-left">
-                    <div className={`p-2 rounded-lg ${treatment.bloodTestRequired ? "bg-primary/10" : "bg-muted"}`}>
-                      <FlaskConical className="h-5 w-5" />
+                <Label className="text-sm font-bold flex items-center gap-2 mb-3">
+                  <FlaskConical className="h-4 w-4 text-primary" /> Weight Loss Blood Test
+                </Label>
+                <div className="grid grid-cols-3 gap-2">
+                  {([
+                    { value: "none", label: "None", desc: "No blood test" },
+                    { value: "recommended", label: "Recommended", desc: "Suggested but optional" },
+                    { value: "required", label: "Required", desc: "Mandatory before starting" },
+                  ] as const).map(opt => (
+                    <div
+                      key={opt.value}
+                      onClick={() => updateTreatment("bloodTestLevel", opt.value)}
+                      className={`cursor-pointer rounded-lg border-2 p-3 flex flex-col items-center justify-center gap-1.5 transition-all text-center ${
+                        treatment.bloodTestLevel === opt.value
+                          ? "border-primary bg-primary/5 text-primary shadow-sm"
+                          : "border-border hover:border-muted-foreground/30"
+                      }`}
+                    >
+                      <div className={`w-3 h-3 rounded-full border flex items-center justify-center ${treatment.bloodTestLevel === opt.value ? "border-primary bg-primary" : "border-muted-foreground/40"}`}>
+                        {treatment.bloodTestLevel === opt.value && <Check className="h-2 w-2 text-primary-foreground" />}
+                      </div>
+                      <span className="text-xs font-bold">{opt.label}</span>
+                      <span className="text-[10px] text-muted-foreground">{opt.desc}</span>
                     </div>
-                    <div>
-                      <p className="text-sm font-bold">Weight Loss Blood Test Required</p>
-                      <p className="text-[10px] opacity-70">Include Dardoc reference link in patient guide</p>
-                    </div>
-                  </div>
-                  <div className={`w-6 h-6 rounded-full border-2 flex items-center justify-center transition-all ${treatment.bloodTestRequired ? "border-primary bg-primary" : "border-muted-foreground/30"}`}>
-                    {treatment.bloodTestRequired && <Check className="h-4 w-4 text-primary-foreground" />}
-                  </div>
-                </button>
+                  ))}
+                </div>
+                {treatment.bloodTestLevel !== "none" && (
+                  <p className="text-[10px] text-muted-foreground mt-2">
+                    Dardoc link will be included in patient guide as {treatment.bloodTestLevel}.
+                  </p>
+                )}
               </CardContent>
             </Card>
 

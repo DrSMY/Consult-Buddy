@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   FileText, User, Copy, ClipboardCheck, ArrowLeft, Activity, Utensils, Zap, ThermometerSnowflake,
   Weight, Ruler, Heart, Flame, TrendingDown, Pill, AlertTriangle, MessageSquare, Scale, Loader2, Sparkles,
+  StickyNote, FlaskConical,
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { getBMICategory, getBMIColorClass } from "@/data/glp1Config";
@@ -247,6 +248,41 @@ export default function WeightLossConsultation() {
               </CardContent>
             </Card>
 
+            {/* Doctor Notes */}
+            {consultation.doctor_notes && (
+              <Card>
+                <CardHeader className="pb-3">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <StickyNote className="h-4 w-4 text-primary" /> Doctor Notes
+                  </CardTitle>
+                </CardHeader>
+                <CardContent>
+                  <div className="bg-muted/50 p-4 rounded-lg border text-sm whitespace-pre-wrap leading-relaxed">
+                    {consultation.doctor_notes}
+                  </div>
+                </CardContent>
+              </Card>
+            )}
+
+            {/* Blood Test Status */}
+            {recs?.bloodTestLevel && recs.bloodTestLevel !== "none" && (
+              <Card className={recs.bloodTestLevel === "required" ? "border-primary/30" : "border-amber-200 dark:border-amber-900/30"}>
+                <CardContent className="p-4 flex items-center gap-3">
+                  <FlaskConical className={`h-5 w-5 ${recs.bloodTestLevel === "required" ? "text-primary" : "text-amber-500"}`} />
+                  <div>
+                    <p className="text-sm font-bold">
+                      Blood Test {recs.bloodTestLevel === "required" ? "Required" : "Recommended"}
+                    </p>
+                    <a href="https://www.dardoc.com/dubai/lab-test/weight-loss-blood-test" target="_blank" rel="noopener noreferrer" className="text-xs text-primary underline">
+                      Dardoc Weight Loss Blood Test
+                    </a>
+                  </div>
+                  <Badge variant={recs.bloodTestLevel === "required" ? "default" : "secondary"} className="ml-auto text-[10px]">
+                    {recs.bloodTestLevel === "required" ? "REQUIRED" : "RECOMMENDED"}
+                  </Badge>
+                </CardContent>
+              </Card>
+            )}
             {/* Patient Guide */}
             <Card>
               <CardHeader className="pb-3">
