@@ -5,9 +5,12 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Download, FileText, Loader2, Calendar, User } from "lucide-react";
+import { Search, Download, FileText, Loader2, Calendar, User, Pencil } from "lucide-react";
 import * as XLSX from "xlsx";
 import AppHeader from "@/components/AppHeader";
 
@@ -32,6 +35,9 @@ export default function PatientFiles() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [statusFilter, setStatusFilter] = useState("all");
+  const [editingRow, setEditingRow] = useState<ConsultationRow | null>(null);
+  const [editForm, setEditForm] = useState({ patient_name: "", doctor_notes: "", next_steps: "", patient_guidelines: "", status: "" });
+  const [saving, setSaving] = useState(false);
 
   useEffect(() => {
     loadConsultations();
@@ -97,6 +103,41 @@ export default function PatientFiles() {
     });
     return counts;
   }, [consultations]);
+
+  const openEdit = (c: ConsultationRow, e: React.MouseEvent) => {
+    e.stopPropagation();
+    setEditForm({
+      patient_name: c.patient_name || "",
+      doctor_notes: c.doctor_notes || "",
+      next_steps: c.next_steps || "",
+      patient_guidelines: c.patient_guidelines || "",
+      status: c.status,
+    });
+    setEditingRow(c);
+  };
+
+  const saveEdit = async () => {
+    if (!editingRow) return;
+    setSaving(true);
+    const { error } = await supabase
+      .from("consultations")
+      .update({
+        patient_name: editForm.patient_name,
+        doctor_notes: editForm.doctor_notes,
+        next_steps: editForm.next_steps,
+        patient_guidelines: editForm.patient_guidelines,
+        status: editForm.status,
+      })
+      .eq("id", editingRow.id);
+    setSaving(false);
+    if (error) {
+      toast({ title: "Failed to save changes", variant: "destructive" });
+    } else {
+      toast({ title: "Updated successfully" });
+      setEditingRow(null);
+      loadConsultations();
+    }
+  };
 
   if (loading) {
     return (
@@ -195,6 +236,9 @@ export default function PatientFiles() {
                         {peptideCount > 0 && <span>{peptideCount} peptide{peptideCount !== 1 ? "s" : ""}</span>}
                       </div>
                     </div>
+                    <Button variant="ghost" size="icon" className="shrink-0" onClick={(e) => openEdit(c, e)}>
+                      <Pencil className="h-4 w-4" />
+                    </Button>
                   </CardContent>
                 </Card>
               );
@@ -202,6 +246,50 @@ export default function PatientFiles() {
           </div>
         )}
       </main>
+
+      {/* Edit Dialog */}
+      <Dialog open={!!editingRow} onOpenChange={(open) => !open && setEditingRow(null)}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>Edit Consultation</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Patient Name</Label>
+              <Input value={editForm.patient_name} onChange={(e) => setEditForm((f) => ({ ...f, patient_name: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label>Status</Label>
+              <Select value={editForm.status} onValueChange={(v) => setEditForm((f) => ({ ...f, status: v }))}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="intake">Intake</SelectItem>
+                  <SelectItem value="review">Review</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Doctor Notes</Label>
+              <Textarea rows={3} value={editForm.doctor_notes} onChange={(e) => setEditForm((f) => ({ ...f, doctor_notes: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label>Next Steps</Label>
+              <Textarea rows={3} value={editForm.next_steps} onChange={(e) => setEditForm((f) => ({ ...f, next_steps: e.target.value }))} />
+            </div>
+            <div className="space-y-2">
+              <Label>Patient Guidelines</Label>
+              <Textarea rows={3} value={editForm.patient_guidelines} onChange={(e) => setEditForm((f) => ({ ...f, patient_guidelines: e.target.value }))} />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditingRow(null)}>Cancel</Button>
+            <Button onClick={saveEdit} disabled={saving}>
+              {saving ? <Loader2 className="h-4 w-4 animate-spin" /> : "Save"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
