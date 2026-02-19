@@ -1,14 +1,18 @@
 import { useAuth } from "@/contexts/AuthContext";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { FlaskConical, Scale, Sparkles } from "lucide-react";
+import { FlaskConical, Scale, Sparkles, ShieldAlert } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AppHeader from "@/components/AppHeader";
+import { useToast } from "@/hooks/use-toast";
+
+const isClinician = (roles: string[]) => roles.includes("doctor") || roles.includes("nurse");
 
 export default function Dashboard() {
-  const { profile } = useAuth();
+  const { profile, roles } = useAuth();
   const navigate = useNavigate();
-
+  const { toast } = useToast();
+  const clinician = isClinician(roles);
   const programs = [
     {
       id: "peptides",
@@ -42,19 +46,33 @@ export default function Dashboard() {
         </div>
 
         <div className="grid gap-4 sm:grid-cols-2 max-w-2xl">
-          {programs.map((program) => (
+          {programs.map((program) => {
+            const blocked = !clinician && program.active;
+            return (
             <Card
               key={program.id}
               className={`relative group transition-all duration-200 ${
-                program.active
+                program.active && clinician
                   ? "hover:shadow-lg hover:shadow-primary/10 hover:border-primary/40 cursor-pointer hover:-translate-y-0.5"
-                  : "opacity-50 cursor-not-allowed"
+                  : "opacity-60 cursor-not-allowed"
               }`}
-              onClick={() => program.active && navigate(`/program/${program.id}`)}
+              onClick={() => {
+                if (!program.active) return;
+                if (!clinician) {
+                  toast({ title: "Access Restricted", description: "As a non-clinician, you do not have access to this function.", variant: "destructive" });
+                  return;
+                }
+                navigate(`/program/${program.id}`);
+              }}
             >
               {!program.active && (
                 <Badge className="absolute top-3 right-3 bg-muted text-muted-foreground text-[10px]">
                   Coming Soon
+                </Badge>
+              )}
+              {blocked && (
+                <Badge className="absolute top-3 right-3 bg-destructive/10 text-destructive text-[10px] gap-1">
+                  <ShieldAlert className="h-3 w-3" /> Clinician Only
                 </Badge>
               )}
               <CardHeader className="pb-3">
@@ -67,7 +85,8 @@ export default function Dashboard() {
                 <CardDescription>{program.description}</CardDescription>
               </CardContent>
             </Card>
-          ))}
+            );
+          })}
         </div>
       </main>
     </div>

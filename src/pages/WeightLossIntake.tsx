@@ -29,10 +29,20 @@ import AppHeader from "@/components/AppHeader";
 
 type FlowType = "new" | "followup" | null;
 
+const isClinician = (roles: string[]) => roles.includes("doctor") || roles.includes("nurse");
+
 export default function WeightLossIntake() {
-  const { user } = useAuth();
+  const { user, roles } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (!isClinician(roles)) {
+      toast({ title: "Access Restricted", description: "As a non-clinician, you do not have access to this function.", variant: "destructive" });
+      navigate("/dashboard", { replace: true });
+    }
+  }, [roles]);
+
 
   const [flowType, setFlowType] = useState<FlowType>(null);
   const [step, setStep] = useState(0); // 0=identity, 1=clinical, 2=treatment, 3=summary

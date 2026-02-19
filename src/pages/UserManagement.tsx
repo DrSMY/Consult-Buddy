@@ -5,8 +5,12 @@ import AppHeader from "@/components/AppHeader";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { CheckCircle, XCircle, Shield, Users } from "lucide-react";
+import type { Database } from "@/integrations/supabase/types";
+
+type AppRole = Database["public"]["Enums"]["app_role"];
 
 interface UserProfile {
   id: string;
@@ -16,6 +20,7 @@ interface UserProfile {
   approved: boolean;
   rejected: boolean;
   created_at: string;
+  roles: AppRole[];
 }
 
 export default function UserManagement() {
@@ -27,16 +32,25 @@ export default function UserManagement() {
   const isAdmin = roles.includes("admin");
 
   const fetchUsers = async () => {
-    const { data, error } = await supabase
+    const { data: profiles, error } = await supabase
       .from("profiles")
       .select("id, user_id, full_name, phone, approved, rejected, created_at")
       .order("created_at", { ascending: false });
 
     if (error) {
       toast({ title: "Error loading users", description: error.message, variant: "destructive" });
-    } else {
-      setUsers(data || []);
+      setLoading(false);
+      return;
     }
+
+    const { data: allRoles } = await supabase.from("user_roles").select("user_id, role");
+
+    const usersWithRoles = (profiles || []).map((p) => ({
+      ...p,
+      roles: (allRoles || []).filter((r) => r.user_id === p.user_id).map((r) => r.role),
+    }));
+
+    setUsers(usersWithRoles);
     setLoading(false);
   };
 
@@ -73,6 +87,21 @@ export default function UserManagement() {
     }
   };
 
+  const changeRole = async (userId: string, newRole: AppRole) => {
+    const { error: delError } = await supabase.from("user_roles").delete().eq("user_id", userId);
+    if (delError) {
+      toast({ title: "Update failed", description: delError.message, variant: "destructive" });
+      return;
+    }
+    const { error: insError } = await supabase.from("user_roles").insert({ user_id: userId, role: newRole });
+    if (insError) {
+      toast({ title: "Update failed", description: insError.message, variant: "destructive" });
+      return;
+    }
+    toast({ title: `Role updated to ${newRole}` });
+    fetchUsers();
+  };
+
   if (!isAdmin) {
     return (
       <div className="min-h-screen gradient-surface">
@@ -106,7 +135,7 @@ export default function UserManagement() {
             ) : (
               <div className="divide-y divide-border">
                 {users.map((u) => (
-                  <div key={u.id} className="flex items-center justify-between py-3 gap-3">
+                  <div key={u.id} className="flex flex-col sm:flex-row sm:items-center justify-between py-3 gap-3">
                     <div className="min-w-0">
                       <p className="text-sm font-medium truncate">{u.full_name || "Unnamed"}</p>
                       {u.phone && <p className="text-xs text-muted-foreground">{u.phone}</p>}
@@ -114,13 +143,26 @@ export default function UserManagement() {
                         Joined {new Date(u.created_at).toLocaleDateString()}
                       </p>
                     </div>
-                    <div className="flex items-center gap-2 shrink-0">
+                    <div className="flex items-center gap-2 shrink-0 flex-wrap">
                       <Badge
                         variant={u.approved ? "default" : u.rejected ? "destructive" : "secondary"}
                         className="text-[10px]"
                       >
                         {u.approved ? "Approved" : u.rejected ? "Rejected" : "Pending"}
                       </Badge>
+                      <Select
+                        value={u.roles[0] || "doctor"}
+                        onValueChange={(val) => changeRole(u.user_id, val as AppRole)}
+                      >
+                        <SelectTrigger className="h-7 w-[100px] text-xs">
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="doctor">Doctor</SelectItem>
+                          <SelectItem value="nurse">Nurse</SelectItem>
+                          <SelectItem value="admin">Admin</SelectItem>
+                        </SelectContent>
+                      </Select>
                       {!u.approved && (
                         <Button
                           size="sm"

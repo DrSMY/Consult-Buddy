@@ -1,4 +1,4 @@
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
@@ -18,11 +18,21 @@ import AppHeader from "@/components/AppHeader";
 // Mandatory question IDs that must be answered
 const MANDATORY_QUESTIONS = new Set(["gender", "age", "height", "weight", "health_goals"]);
 
+const isClinician = (roles: string[]) => roles.includes("doctor") || roles.includes("nurse");
+
 export default function PatientIntake() {
   const { programId } = useParams();
-  const { user } = useAuth();
+  const { user, roles } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  useEffect(() => {
+    if (!isClinician(roles)) {
+      toast({ title: "Access Restricted", description: "As a non-clinician, you do not have access to this function.", variant: "destructive" });
+      navigate("/dashboard", { replace: true });
+    }
+  }, [roles]);
+
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
   const [gateAnswers, setGateAnswers] = useState<Record<string, "yes" | "no" | null>>({});
   const [otherText, setOtherText] = useState<Record<string, string>>({});
