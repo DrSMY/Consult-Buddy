@@ -1,13 +1,14 @@
 import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { useToast } from "@/hooks/use-toast";
 import {
   FileText, User, Copy, ClipboardCheck, ArrowLeft, Activity, Utensils, Zap, ThermometerSnowflake,
-  Weight, Ruler, Heart, Flame, TrendingDown, Pill, AlertTriangle, MessageSquare, Scale,
+  Weight, Ruler, Heart, Flame, TrendingDown, Pill, AlertTriangle, MessageSquare, Scale, Loader2, Sparkles,
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { getBMICategory, getBMIColorClass } from "@/data/glp1Config";
@@ -15,7 +16,10 @@ import { getBMICategory, getBMIColorClass } from "@/data/glp1Config";
 export default function WeightLossConsultation() {
   const { id } = useParams();
   const navigate = useNavigate();
+  const { toast } = useToast();
+  const queryClient = useQueryClient();
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
+  const [generating, setGenerating] = useState(false);
 
   const { data: consultation, isLoading } = useQuery({
     queryKey: ["weight-loss-consultation", id],
@@ -36,6 +40,42 @@ export default function WeightLossConsultation() {
     navigator.clipboard.writeText(text);
     setCopiedSection(section);
     setTimeout(() => setCopiedSection(null), 2000);
+  };
+
+  const generatePatientGuide = async () => {
+    if (!consultation) return;
+    setGenerating(true);
+    try {
+      const intake = consultation.intake_answers as any;
+      const recs = consultation.ai_recommendations as any;
+      const treatment = intake?.treatment || {};
+      const patient = intake?.patient || {};
+
+      const { data, error } = await supabase.functions.invoke("consultation", {
+        body: {
+          action: "generate-glp1-guide",
+          patient_data: patient,
+          treatment_data: treatment,
+        },
+      });
+
+      if (error) throw new Error(error.message);
+      if (data?.error) throw new Error(data.error);
+
+      const guide = data?.guide || "";
+      // Save to consultation
+      const updatedRecs = { ...recs, patientGuide: guide };
+      await supabase.from("consultations").update({
+        ai_recommendations: updatedRecs,
+        patient_guidelines: guide,
+      }).eq("id", id);
+
+      queryClient.invalidateQueries({ queryKey: ["weight-loss-consultation", id] });
+      toast({ title: "Patient guide generated successfully" });
+    } catch (e: any) {
+      toast({ title: "Failed to generate guide", description: e.message, variant: "destructive" });
+    }
+    setGenerating(false);
   };
 
   if (isLoading) {
@@ -214,10 +254,18 @@ export default function WeightLossConsultation() {
                   <CardTitle className="text-sm flex items-center gap-2">
                     <User className="h-4 w-4 text-accent" /> Patient Care Guide
                   </CardTitle>
-                  <Button variant="outline" size="sm" onClick={() => handleCopy(patientGuide, "guide")}>
-                    {copiedSection === "guide" ? <ClipboardCheck className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
-                    {copiedSection === "guide" ? "Copied" : "Copy Guide"}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={generatePatientGuide} disabled={generating}>
+                      {generating ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}
+                      {generating ? "Generating..." : patientGuide ? "Regenerate" : "Generate"}
+                    </Button>
+                    {patientGuide && (
+                      <Button variant="outline" size="sm" onClick={() => handleCopy(patientGuide, "guide")}>
+                        {copiedSection === "guide" ? <ClipboardCheck className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
+                        {copiedSection === "guide" ? "Copied" : "Copy"}
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
