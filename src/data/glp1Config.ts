@@ -60,11 +60,13 @@ export interface GLP1Patient {
   previousDose: string;
 }
 
+export type BloodTestLevel = "none" | "recommended" | "required";
+
 export interface TreatmentPlan {
   medication: MedicationType | "";
   dose: string;
   otherDetail: string;
-  bloodTestRequired: boolean;
+  bloodTestLevel: BloodTestLevel;
   notes: string;
   doctorSuggestions: string;
   patientGuide: string;
@@ -115,7 +117,7 @@ export const createEmptyTreatment = (): TreatmentPlan => ({
   medication: "",
   dose: "",
   otherDetail: "",
-  bloodTestRequired: false,
+  bloodTestLevel: "none",
   notes: "He needs monthly followup and weight loss program blood test.",
   doctorSuggestions: "",
   patientGuide: "",
@@ -208,8 +210,10 @@ export function generateClinicalSuggestion(
   const proteinMax = Math.round(weight * 1.5);
   const weightLossCals = patient.weightLossCalories ? Math.round(patient.weightLossCalories) : "---";
 
-  const bloodTestSuffix = treatment.bloodTestRequired
-    ? "\n- Weight Loss Blood Test required: https://www.dardoc.com/dubai/lab-test/weight-loss-blood-test"
+  const bloodTestSuffix = treatment.bloodTestLevel === "required"
+    ? "\n- Weight Loss Blood Test REQUIRED: https://www.dardoc.com/dubai/lab-test/weight-loss-blood-test"
+    : treatment.bloodTestLevel === "recommended"
+    ? "\n- Weight Loss Blood Test RECOMMENDED: https://www.dardoc.com/dubai/lab-test/weight-loss-blood-test"
     : "";
 
   return `booking ID ${patient.bookingId || "N/A"} , ${salutation} ${patient.name} (${patient.mobileNumber || "No phone"}) \nprescribed ${medName}${doseText} \n${pronoun} is ${bmiCat} ${historyText}${conditions}, ${pronoun.toLowerCase()} has no contraindications to GLP 1, ${pronoun.toLowerCase()} is advised to take ${proteinMin} grams to ${proteinMax} grams of protein, with Weight Loss Target ${weightLossCals} kcal/day. ${treatment.notes || ""}${bloodTestSuffix}`.trim();

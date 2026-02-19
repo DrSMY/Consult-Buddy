@@ -137,7 +137,7 @@ Severe abdominal pain, persistent vomiting, dehydration. Advise when to seek urg
 
 ::: FOLLOW-UP PLAN :::
 Mandatory review after 4th dose. Assess tolerance and response.
-${treatment_data.bloodTestRequired ? "REQUIRED: Complete Weight Loss Blood Test (https://www.dardoc.com/dubai/lab-test/weight-loss-blood-test)" : ""}
+${treatment_data.bloodTestLevel === "required" ? "REQUIRED: Complete Weight Loss Blood Test (https://www.dardoc.com/dubai/lab-test/weight-loss-blood-test)" : treatment_data.bloodTestLevel === "recommended" ? "RECOMMENDED: Weight Loss Blood Test (https://www.dardoc.com/dubai/lab-test/weight-loss-blood-test)" : ""}
 
 Sign as:
 Dr Sami M. Yesuf
@@ -169,7 +169,7 @@ Guidelines for water intake and the importance of sleep in metabolism.
 
 ::: FOLLOW-UP PLAN :::
 Regular check-ins (monthly) to monitor progress.
-${treatment_data.bloodTestRequired ? "Note: Please complete the required lab test: https://www.dardoc.com/dubai/lab-test/weight-loss-blood-test" : ""}
+${treatment_data.bloodTestLevel === "required" ? "Note: Please complete the required lab test: https://www.dardoc.com/dubai/lab-test/weight-loss-blood-test" : treatment_data.bloodTestLevel === "recommended" ? "Note: We recommend completing the lab test: https://www.dardoc.com/dubai/lab-test/weight-loss-blood-test" : ""}
 
 Sign as:
 Dr Sami M. Yesuf
