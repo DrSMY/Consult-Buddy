@@ -1,48 +1,54 @@
 
 
-## 1. Add Doctor Notes Card Below Allergy History (Step 1 - Clinical)
+## 1. Teal + Gold Color Highlights
 
-Add a new "Doctor Notes" card in Step 1 (clinical step), positioned right after the Allergy History section (after line 749) and before the GLP-1 History section. This will use a new `doctorNotes` state variable and save to the `doctor_notes` column on submit.
+Update `src/index.css` to add a gold/amber accent into the gradient and key highlight areas:
 
-- Add `doctorNotes` state: `useState("")`
-- Add a card with a stethoscope icon, a Textarea labeled "Doctor Notes", placeholder "Add any clinical notes for this encounter..."
-- When loading follow-up data, pre-fill `doctorNotes` if the previous consultation had `doctor_notes`
-- Update `handleSubmit` to include `doctor_notes: doctorNotes` in the insert call
+- Change `--accent` from green-teal (168) to warm gold (42-45 hue range, e.g. `42 78% 50%`) in both light and dark modes
+- This affects the `gradient-primary` utility (teal-to-gold gradient), accent badges, and DNA helix strokes in the logo
+- The primary color stays teal -- gold becomes the accent/highlight complement
+- Update `gradient-primary` to blend teal primary into gold accent for a teal-with-gold-hint effect
 
-## 2. Change Blood Test Toggle to Required vs Recommended
+**Light mode accent**: `42 78% 50%` (warm gold)
+**Dark mode accent**: `42 70% 55%` (slightly lighter gold for dark backgrounds)
 
-Replace the single `bloodTestRequired` boolean toggle in Step 2 with a 3-option selector:
+## 2. Admin Team Role -- Read-Only Access
 
-- **None** (default) -- no blood test
-- **Recommended** -- blood test is recommended but not mandatory
-- **Required** -- blood test is required/mandatory
-
-This changes `bloodTestRequired` from a boolean to a string field (`"none" | "recommended" | "required"`).
+The existing `app_role` enum already has `"admin"`. Currently admins have full access. The plan restricts admin users to read-only operations (Patient Files, Knowledge Base, export/download) and blocks them from starting consultations.
 
 ### Changes needed:
 
-**`src/data/glp1Config.ts`:**
-- Update `TreatmentPlan` interface: change `bloodTestRequired: boolean` to `bloodTestLevel: "none" | "recommended" | "required"`
-- Update `createEmptyTreatment`: set `bloodTestLevel: "none"`
-- Update `generateClinicalSuggestion`: use appropriate wording based on level ("Blood test required" vs "Blood test recommended")
+**`src/pages/Dashboard.tsx`**:
+- Import `useAuth` roles
+- Check if user has a clinician role (`doctor` or `nurse`)
+- If not a clinician (i.e. admin-only), show the program cards as disabled with the message: "As a non-clinician, you do not have access to this function."
+- Use a toast or inline alert when an admin clicks a program card
 
-**`src/pages/WeightLossIntake.tsx`:**
-- Replace the single toggle button with 3 selectable options (None / Recommended / Required) styled similarly to the medication selector
-- Update all references from `bloodTestRequired` to `bloodTestLevel`
+**`src/components/AppHeader.tsx`**:
+- No changes needed -- Files, Knowledge Base, and Install links are already visible to all users
+- User Management is already admin-only gated
 
-**`supabase/functions/consultation/index.ts`:**
-- Update the guide generation prompt: use "REQUIRED" vs "RECOMMENDED" wording for the blood test section based on the `bloodTestLevel` value
-- Adjust conditional logic from `treatment_data.bloodTestRequired` to check `treatment_data.bloodTestLevel`
+**`src/pages/PatientIntake.tsx` and `src/pages/WeightLossIntake.tsx`**:
+- Add a role check at the top of each page; if the user is not a clinician (`doctor` or `nurse`), redirect them back to `/dashboard` with a toast notification
 
-**`src/pages/WeightLossConsultation.tsx`:**
-- Update any display of blood test status to show the correct level
-- Display saved `doctor_notes` from the consultation record
+**No database changes needed** -- the existing `app_role` enum and `user_roles` table already support this. The `handle_new_user` function currently assigns `doctor` role by default to all new signups. The admin will need to manually assign roles via User Management.
 
-### Technical Details
+### User Management Enhancement
 
-Files to modify:
-- `src/data/glp1Config.ts` -- type + factory + suggestion generator
-- `src/pages/WeightLossIntake.tsx` -- doctor notes card, blood test selector, handleSubmit
-- `supabase/functions/consultation/index.ts` -- guide generation prompt wording
-- `src/pages/WeightLossConsultation.tsx` -- display doctor notes and blood test level
+**`src/pages/UserManagement.tsx`**:
+- Add a role selector (dropdown or toggle) next to each user so admins can assign users as `doctor`, `nurse`, or `admin`
+- This lets the admin decide who is a clinician vs admin team member
+
+### Files to modify:
+- `src/index.css` -- gold accent colors
+- `src/pages/Dashboard.tsx` -- block non-clinicians from programs
+- `src/pages/PatientIntake.tsx` -- redirect non-clinicians
+- `src/pages/WeightLossIntake.tsx` -- redirect non-clinicians
+- `src/pages/UserManagement.tsx` -- add role assignment UI
+
+### Technical Notes
+
+- A helper function `isClinician(roles)` will check if `roles` includes `"doctor"` or `"nurse"`
+- The `AuthContext` already exposes `roles` so no context changes needed
+- RLS policies on `user_roles` already allow admins to manage roles, so the role assignment will work with existing permissions
 
