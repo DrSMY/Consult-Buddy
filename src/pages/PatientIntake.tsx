@@ -22,16 +22,16 @@ const isClinician = (roles: string[]) => roles.includes("doctor") || roles.inclu
 
 export default function PatientIntake() {
   const { programId } = useParams();
-  const { user, roles } = useAuth();
+  const { user, roles, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
   useEffect(() => {
-    if (!isClinician(roles)) {
+    if (!loading && roles.length > 0 && !isClinician(roles)) {
       toast({ title: "Access Restricted", description: "As a non-clinician, you do not have access to this function.", variant: "destructive" });
       navigate("/dashboard", { replace: true });
     }
-  }, [roles]);
+  }, [roles, loading]);
 
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
   const [gateAnswers, setGateAnswers] = useState<Record<string, "yes" | "no" | null>>({});
