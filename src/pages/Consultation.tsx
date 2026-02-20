@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { AlertTriangle, CheckCircle, FileText, ClipboardList, User, Copy, Loader2, FlaskConical, Info, ShieldCheck, Microscope, StickyNote, MessageCircle } from "lucide-react";
+import { AlertTriangle, CheckCircle, FileText, ClipboardList, User, Copy, Loader2, FlaskConical, Info, ShieldCheck, Microscope, StickyNote, MessageCircle, Ruler, Weight, Scale, Activity } from "lucide-react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import PeptideDetailSheet from "@/components/PeptideDetailSheet";
 import AppHeader from "@/components/AppHeader";
@@ -393,7 +393,9 @@ ${labLines || "As directed by your doctor"}`;
         )}
       </AppHeader>
 
-      <main className="container mx-auto max-w-4xl px-4 py-6">
+      <main className="container mx-auto max-w-6xl px-4 py-6">
+        <div className="flex flex-col lg:flex-row gap-6">
+        <div className="flex-1 min-w-0">
         {analyzing && (
           <Card className="mb-6 border-primary/20 bg-primary/5">
             <CardContent className="flex items-center gap-3 py-6">
@@ -791,6 +793,155 @@ ${labLines || "As directed by your doctor"}`;
         </Dialog>
 
         <PeptideDetailSheet peptideName={detailPeptide} open={!!detailPeptide} onOpenChange={(open) => !open && setDetailPeptide(null)} />
+        </div>
+
+        {/* Patient Info Sidebar */}
+        {consultation && (
+          <aside className="w-full lg:w-80 shrink-0 space-y-4 lg:sticky lg:top-6 lg:self-start">
+            {(() => {
+              const intake = consultation.intake_answers as Record<string, any> || {};
+              const age = intake.age ? Number(intake.age) : null;
+              const gender = intake.gender || null;
+              const heightVal = intake.height ? Number(intake.height) : null;
+              const weightVal = intake.weight ? Number(intake.weight) : null;
+              const bmi = heightVal && weightVal ? Number((weightVal / ((heightVal / 100) ** 2)).toFixed(1)) : null;
+              const activityLevel = intake.activity_level || null;
+              const bodyShape = intake.body_shape || null;
+              const healthConditions = intake.health_conditions;
+              const allergies = intake.allergies;
+              const healthConditionsOther = intake.health_conditions_other;
+              const allergiesOther = intake.allergies_other;
+              const healthConditionsNotes = intake.health_conditions_notes;
+              const allergiesNotes = intake.allergies_notes;
+              const heightFt = heightVal ? Math.floor(heightVal / 30.48) : null;
+              const heightIn = heightVal ? Math.round((heightVal / 2.54) % 12) : null;
+              const weightLbs = weightVal ? Math.round(weightVal * 2.20462) : null;
+
+              return (
+                <>
+                  <Card>
+                    <CardHeader className="pb-2">
+                      <CardTitle className="text-xs font-bold uppercase tracking-wider flex items-center gap-2 text-muted-foreground">
+                        <Scale className="h-3.5 w-3.5" /> Patient Summary
+                      </CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-3">
+                      <div className="text-sm font-semibold">{consultation.patient_name}</div>
+                      <div className="grid grid-cols-2 gap-2">
+                        {age && (
+                          <div className="bg-muted/50 rounded-lg p-2.5 text-center">
+                            <p className="text-[10px] text-muted-foreground uppercase font-bold">Age</p>
+                            <p className="text-sm font-bold">{age}y</p>
+                          </div>
+                        )}
+                        {gender && (
+                          <div className="bg-muted/50 rounded-lg p-2.5 text-center">
+                            <p className="text-[10px] text-muted-foreground uppercase font-bold">Gender</p>
+                            <p className="text-sm font-bold">{gender}</p>
+                          </div>
+                        )}
+                        {heightVal && (
+                          <div className="bg-muted/50 rounded-lg p-2.5 text-center">
+                            <p className="text-[10px] text-muted-foreground uppercase font-bold flex items-center justify-center gap-1"><Ruler className="h-3 w-3" /> Height</p>
+                            <p className="text-sm font-bold">{Math.round(heightVal)} cm</p>
+                            <p className="text-[10px] text-muted-foreground">{heightFt}'{heightIn}"</p>
+                          </div>
+                        )}
+                        {weightVal && (
+                          <div className="bg-muted/50 rounded-lg p-2.5 text-center">
+                            <p className="text-[10px] text-muted-foreground uppercase font-bold flex items-center justify-center gap-1"><Weight className="h-3 w-3" /> Weight</p>
+                            <p className="text-sm font-bold">{Math.round(weightVal)} kg</p>
+                            <p className="text-[10px] text-muted-foreground">{weightLbs} lbs</p>
+                          </div>
+                        )}
+                      </div>
+
+                      {bmi && (
+                        <div className={`p-2.5 rounded-lg flex justify-between items-center ${
+                          bmi < 18.5 ? "bg-blue-50 dark:bg-blue-900/10 text-blue-700 dark:text-blue-300" :
+                          bmi < 25 ? "bg-green-50 dark:bg-green-900/10 text-green-700 dark:text-green-300" :
+                          bmi < 30 ? "bg-amber-50 dark:bg-amber-900/10 text-amber-700 dark:text-amber-300" :
+                          "bg-red-50 dark:bg-red-900/10 text-red-700 dark:text-red-300"
+                        }`}>
+                          <span className="text-xs font-bold">BMI: {bmi}</span>
+                          <span className="text-[10px] font-bold uppercase">
+                            {bmi < 18.5 ? "Underweight" : bmi < 25 ? "Normal" : bmi < 30 ? "Overweight" : "Obese"}
+                          </span>
+                        </div>
+                      )}
+
+                      {(activityLevel || bodyShape) && (
+                        <div className="border-t pt-3 space-y-2">
+                          {activityLevel && (
+                            <div className="flex justify-between items-center">
+                              <span className="text-[11px] text-muted-foreground flex items-center gap-1"><Activity className="h-3 w-3" /> Activity</span>
+                              <Badge variant="outline" className="text-[10px]">{activityLevel}</Badge>
+                            </div>
+                          )}
+                          {bodyShape && (
+                            <div className="flex justify-between items-center">
+                              <span className="text-[11px] text-muted-foreground">Body Shape</span>
+                              <Badge variant="outline" className="text-[10px]">{bodyShape}</Badge>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                  {/* Health Conditions */}
+                  {healthConditions && Array.isArray(healthConditions) && healthConditions.length > 0 && (
+                    <Card className="border-amber-200 dark:border-amber-900/30">
+                      <CardHeader className="pb-2 pt-3 px-4">
+                        <CardTitle className="text-xs font-bold uppercase tracking-wider flex items-center gap-2 text-amber-600 dark:text-amber-400">
+                          <AlertTriangle className="h-3.5 w-3.5" /> Health Conditions
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="px-4 pb-3">
+                        <div className="flex flex-wrap gap-1.5">
+                          {healthConditions.map((c: string, i: number) => (
+                            <Badge key={i} variant="secondary" className="text-[10px]">{c}</Badge>
+                          ))}
+                          {healthConditionsOther && (
+                            <Badge variant="secondary" className="text-[10px]">{healthConditionsOther}</Badge>
+                          )}
+                        </div>
+                        {healthConditionsNotes && (
+                          <p className="text-[11px] text-muted-foreground mt-2 italic">{healthConditionsNotes}</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Allergies */}
+                  {allergies && Array.isArray(allergies) && allergies.length > 0 && (
+                    <Card className="border-rose-200 dark:border-rose-900/30">
+                      <CardHeader className="pb-2 pt-3 px-4">
+                        <CardTitle className="text-xs font-bold uppercase tracking-wider flex items-center gap-2 text-rose-600 dark:text-rose-400">
+                          <AlertTriangle className="h-3.5 w-3.5" /> Allergies
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="px-4 pb-3">
+                        <div className="flex flex-wrap gap-1.5">
+                          {allergies.map((a: string, i: number) => (
+                            <Badge key={i} variant="secondary" className="text-[10px]">{a}</Badge>
+                          ))}
+                          {allergiesOther && (
+                            <Badge variant="secondary" className="text-[10px]">{allergiesOther}</Badge>
+                          )}
+                        </div>
+                        {allergiesNotes && (
+                          <p className="text-[11px] text-muted-foreground mt-2 italic">{allergiesNotes}</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+                </>
+              );
+            })()}
+          </aside>
+        )}
+        </div>
       </main>
     </div>
   );
