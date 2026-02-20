@@ -16,7 +16,7 @@ import {
   CalendarDays, Ruler, Weight as WeightIcon, Calculator, Flame, Utensils,
   TrendingDown, Info, ClipboardList, Pill, StickyNote, FileText, Sparkles,
   BookOpen, Loader2, FlaskConical, Check, Wand2, RefreshCw, Copy, ClipboardCheck,
-  Activity, Zap, ThermometerSnowflake, User, Search, AlertTriangle,
+  Activity, Zap, ThermometerSnowflake, User, Search, AlertTriangle, MessageCircle,
 } from "lucide-react";
 import {
   type GLP1Patient, type TreatmentPlan, type MedicationType, type FollowupData,
@@ -26,6 +26,7 @@ import {
   generateClinicalSuggestion,
 } from "@/data/glp1Config";
 import AppHeader from "@/components/AppHeader";
+import { openWhatsApp } from "@/utils/whatsapp";
 
 type FlowType = "new" | "followup" | null;
 
@@ -1057,13 +1058,26 @@ export default function WeightLossIntake() {
                   <CardTitle className="text-sm flex items-center gap-2">
                     <User className="h-4 w-4 text-accent" /> Patient Care Guide
                   </CardTitle>
-                  <Button
-                    variant="outline" size="sm"
-                    onClick={() => handleCopy(treatment.patientGuide, "guide")}
-                  >
-                    {copiedSection === "guide" ? <ClipboardCheck className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
-                    {copiedSection === "guide" ? "Copied" : "Copy Guide"}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button
+                      variant="outline" size="sm"
+                      onClick={() => handleCopy(treatment.patientGuide, "guide")}
+                    >
+                      {copiedSection === "guide" ? <ClipboardCheck className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
+                      {copiedSection === "guide" ? "Copied" : "Copy Guide"}
+                    </Button>
+                    {treatment.patientGuide && (
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => openWhatsApp(patient.mobileNumber || "", treatment.patientGuide)}
+                        disabled={!patient.mobileNumber}
+                        title={!patient.mobileNumber ? "No phone number available" : "Send via WhatsApp"}
+                      >
+                        <MessageCircle className="h-3 w-3 mr-1" /> WhatsApp
+                      </Button>
+                    )}
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>

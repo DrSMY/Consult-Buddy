@@ -9,10 +9,11 @@ import { useToast } from "@/hooks/use-toast";
 import {
   FileText, User, Copy, ClipboardCheck, ArrowLeft, Activity, Utensils, Zap, ThermometerSnowflake,
   Weight, Ruler, Heart, Flame, TrendingDown, Pill, AlertTriangle, MessageSquare, Scale, Loader2, Sparkles,
-  StickyNote, FlaskConical,
+  StickyNote, FlaskConical, MessageCircle,
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import { getBMICategory, getBMIColorClass } from "@/data/glp1Config";
+import { openWhatsApp } from "@/utils/whatsapp";
 
 export default function WeightLossConsultation() {
   const { id } = useParams();
@@ -296,10 +297,21 @@ export default function WeightLossConsultation() {
                       {generating ? "Generating..." : patientGuide ? "Regenerate" : "Generate"}
                     </Button>
                     {patientGuide && (
-                      <Button variant="outline" size="sm" onClick={() => handleCopy(patientGuide, "guide")}>
-                        {copiedSection === "guide" ? <ClipboardCheck className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
-                        {copiedSection === "guide" ? "Copied" : "Copy"}
-                      </Button>
+                      <>
+                        <Button variant="outline" size="sm" onClick={() => handleCopy(patientGuide, "guide")}>
+                          {copiedSection === "guide" ? <ClipboardCheck className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
+                          {copiedSection === "guide" ? "Copied" : "Copy"}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openWhatsApp(patient?.mobileNumber || "", patientGuide)}
+                          disabled={!patient?.mobileNumber}
+                          title={!patient?.mobileNumber ? "No phone number available" : "Send via WhatsApp"}
+                        >
+                          <MessageCircle className="h-3 w-3 mr-1" /> WhatsApp
+                        </Button>
+                      </>
                     )}
                   </div>
                 </div>
