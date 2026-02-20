@@ -405,29 +405,42 @@ export default function PatientIntake() {
             <CardHeader className="pb-3">
               <CardTitle className="text-lg">Patient Information</CardTitle>
             </CardHeader>
-            <CardContent>
-              <div className="flex items-center gap-2 mb-1">
-                <Label>Patient Name <span className="text-destructive font-bold">*</span></Label>
-                {showValidation && !patientName.trim() && (
-                  <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Required</Badge>
-                )}
+             <CardContent className="space-y-4">
+              <div>
+                <div className="flex items-center gap-2 mb-1">
+                  <Label>Patient Name <span className="text-destructive font-bold">*</span></Label>
+                  {showValidation && !patientName.trim() && (
+                    <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Required</Badge>
+                  )}
+                </div>
+                <div className={`relative mt-1 ${showValidation && !patientName.trim() ? "rounded-md ring-2 ring-destructive/50" : ""}`}>
+                  <Input
+                    value={patientName}
+                    onChange={(e) => setPatientName(e.target.value)}
+                    placeholder="Enter patient's full name"
+                    className="pr-12"
+                  />
+                  <Button
+                    type="button"
+                    variant="ghost"
+                    size="icon"
+                    className={`absolute right-1 top-0.5 ${isRecording && activeField === "patientName" ? "text-destructive" : "text-muted-foreground"}`}
+                    onClick={() => (isRecording && activeField === "patientName" ? stopSpeechToText() : startSpeechToText("patientName"))}
+                  >
+                    {isRecording && activeField === "patientName" ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                  </Button>
+                </div>
               </div>
-              <div className={`relative mt-1 ${showValidation && !patientName.trim() ? "rounded-md ring-2 ring-destructive/50" : ""}`}>
+              <div>
+                <Label>Mobile Number</Label>
                 <Input
-                  value={patientName}
-                  onChange={(e) => setPatientName(e.target.value)}
-                  placeholder="Enter patient's full name"
-                  className="pr-12"
+                  type="tel"
+                  value={(answers["mobile_number"] as string) || ""}
+                  onChange={(e) => setAnswer("mobile_number", e.target.value)}
+                  placeholder="+971 50 123 4567"
+                  className="mt-1"
                 />
-                <Button
-                  type="button"
-                  variant="ghost"
-                  size="icon"
-                  className={`absolute right-1 top-0.5 ${isRecording && activeField === "patientName" ? "text-destructive" : "text-muted-foreground"}`}
-                  onClick={() => (isRecording && activeField === "patientName" ? stopSpeechToText() : startSpeechToText("patientName"))}
-                >
-                  {isRecording && activeField === "patientName" ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                </Button>
+                <p className="text-[11px] text-muted-foreground mt-1">Include country code for WhatsApp delivery</p>
               </div>
             </CardContent>
           </Card>
