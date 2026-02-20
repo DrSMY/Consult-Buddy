@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { intakeQuestions, getVisibleQuestions, intakeSections } from "@/data/intakeQuestions";
-import { ArrowLeft, ArrowRight, Mic, MicOff, Check } from "lucide-react";
+import { ArrowLeft, ArrowRight, Mic, MicOff, Check, Ruler, Weight as WeightIcon } from "lucide-react";
 import type { IntakeQuestion } from "@/data/intakeQuestions";
 import AppHeader from "@/components/AppHeader";
 
@@ -43,6 +43,8 @@ export default function PatientIntake() {
   const [isRecording, setIsRecording] = useState(false);
   const [activeField, setActiveField] = useState<string | null>(null);
   const [showValidation, setShowValidation] = useState(false);
+  const [heightUnit, setHeightUnit] = useState<"cm" | "ft">("cm");
+  const [weightUnit, setWeightUnit] = useState<"kg" | "lbs">("kg");
   const recognitionRef = useRef<any>(null);
 
   const visibleQuestions = getVisibleQuestions(answers);
@@ -241,7 +243,69 @@ export default function PatientIntake() {
         )}
 
         {/* Number input */}
-        {q.type === "number" && (
+        {q.type === "number" && q.id === "height" && (
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <div className="flex bg-secondary rounded-md p-0.5 text-[10px] font-bold">
+                <button type="button" onClick={() => setHeightUnit("cm")} className={`px-2 py-0.5 rounded transition-all ${heightUnit === "cm" ? "bg-background shadow-sm text-primary" : "text-muted-foreground"}`}>CM</button>
+                <button type="button" onClick={() => setHeightUnit("ft")} className={`px-2 py-0.5 rounded transition-all ${heightUnit === "ft" ? "bg-background shadow-sm text-primary" : "text-muted-foreground"}`}>FT</button>
+              </div>
+            </div>
+            {heightUnit === "cm" ? (
+              <div className="flex items-center gap-2">
+                <Input type="number" value={(value as string) || ""} onChange={(e) => setAnswer(q.id, e.target.value)} className="w-32" />
+                <span className="text-sm text-muted-foreground">cm</span>
+              </div>
+            ) : (
+              <div className="flex gap-2 items-center">
+                <div className="relative">
+                  <Input type="number" className="w-20" value={value ? Math.floor(Number(value) / 30.48) : ""} onChange={(e) => {
+                    const ft = Number(e.target.value);
+                    const currIn = value ? Math.round((Number(value) / 2.54) % 12) : 0;
+                    setAnswer(q.id, String(Math.round((ft * 12 + currIn) * 2.54)));
+                  }} />
+                  <span className="absolute right-2 top-2.5 text-muted-foreground text-xs font-bold">ft</span>
+                </div>
+                <div className="relative">
+                  <Input type="number" className="w-20" value={value ? Math.round((Number(value) / 2.54) % 12) : ""} onChange={(e) => {
+                    const inches = Number(e.target.value);
+                    const currFt = value ? Math.floor(Number(value) / 30.48) : 0;
+                    setAnswer(q.id, String(Math.round((currFt * 12 + inches) * 2.54)));
+                  }} />
+                  <span className="absolute right-2 top-2.5 text-muted-foreground text-xs font-bold">in</span>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
+        {q.type === "number" && q.id === "weight" && (
+          <div>
+            <div className="flex items-center gap-2 mb-1">
+              <div className="flex bg-secondary rounded-md p-0.5 text-[10px] font-bold">
+                <button type="button" onClick={() => setWeightUnit("kg")} className={`px-2 py-0.5 rounded transition-all ${weightUnit === "kg" ? "bg-background shadow-sm text-primary" : "text-muted-foreground"}`}>KG</button>
+                <button type="button" onClick={() => setWeightUnit("lbs")} className={`px-2 py-0.5 rounded transition-all ${weightUnit === "lbs" ? "bg-background shadow-sm text-primary" : "text-muted-foreground"}`}>LBS</button>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <Input
+                type="number"
+                className="w-32"
+                value={!value ? "" : weightUnit === "kg" ? value : (Number(value) * 2.20462).toFixed(1)}
+                onChange={(e) => {
+                  if (e.target.value === "") setAnswer(q.id, "");
+                  else {
+                    const num = Number(e.target.value);
+                    setAnswer(q.id, String(weightUnit === "kg" ? num : Math.round(num / 2.20462)));
+                  }
+                }}
+              />
+              <span className="text-sm text-muted-foreground">{weightUnit}</span>
+            </div>
+          </div>
+        )}
+
+        {q.type === "number" && q.id !== "height" && q.id !== "weight" && (
           <div className="flex items-center gap-2">
             <Input
               type="number"
