@@ -24,12 +24,12 @@ interface UserProfile {
 }
 
 export default function UserManagement() {
-  const { roles } = useAuth();
+  const { roles, user } = useAuth();
   const { toast } = useToast();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const isAdmin = roles.includes("admin");
+  const isMainAdmin = user?.email === "dr.sami@dardoc.com";
 
   const fetchUsers = async () => {
     const { data: profiles, error } = await supabase
@@ -55,9 +55,9 @@ export default function UserManagement() {
   };
 
   useEffect(() => {
-    if (isAdmin) fetchUsers();
+    if (isMainAdmin) fetchUsers();
     else setLoading(false);
-  }, [isAdmin]);
+  }, [isMainAdmin]);
 
   const approveUser = async (userId: string) => {
     const { error } = await supabase
@@ -102,7 +102,7 @@ export default function UserManagement() {
     fetchUsers();
   };
 
-  if (!isAdmin) {
+  if (!isMainAdmin) {
     return (
       <div className="min-h-screen gradient-surface">
         <AppHeader title="User Management" showBack />
