@@ -442,6 +442,51 @@ export default function PatientIntake() {
                 />
                 <p className="text-[11px] text-muted-foreground mt-1">Include country code for WhatsApp delivery</p>
               </div>
+
+              {/* Health Goals on first page */}
+              <div className={`space-y-3 ${showValidation && (!(answers["health_goals"] as string[])?.length) ? "rounded-lg border-2 border-destructive/50 bg-destructive/5 p-3 -mx-1" : ""}`}>
+                <div className="flex items-center gap-2">
+                  <Label className="text-sm font-medium">What are your main health goals? (Select all that apply)</Label>
+                  <span className="text-destructive text-xs font-bold">*</span>
+                  {showValidation && (!(answers["health_goals"] as string[])?.length) && (
+                    <Badge variant="destructive" className="text-[10px] px-1.5 py-0">Required</Badge>
+                  )}
+                </div>
+                <div className="flex flex-wrap gap-2">
+                  {["Healthy aging & longevity", "Build muscle & recover better", "Heal injuries & reduce pain", "Improve metabolism & reduce belly fat", "Improve sleep & reset body clock", "Cognitive function & mood enhancement", "Sexual health", "Immune function & inflammation", "Gut health", "Skin & hair"].map((opt) => {
+                    const selected = ((answers["health_goals"] as string[]) || []).includes(opt);
+                    return (
+                      <Badge
+                        key={opt}
+                        variant={selected ? "default" : "outline"}
+                        className={`cursor-pointer px-3 py-1.5 text-sm transition-all ${selected ? "bg-primary text-primary-foreground" : "hover:bg-secondary"}`}
+                        onClick={() => toggleMultiSelect("health_goals", opt)}
+                      >
+                        {selected && <Check className="h-3 w-3 mr-1" />}
+                        {opt}
+                      </Badge>
+                    );
+                  })}
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Other (please specify)</Label>
+                  <Input
+                    value={otherText["health_goals"] || ""}
+                    onChange={(e) => setOtherText((prev) => ({ ...prev, health_goals: e.target.value }))}
+                    placeholder="Specify other..."
+                    className="text-sm"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <Label className="text-xs text-muted-foreground">Additional notes</Label>
+                  <Textarea
+                    value={notes["health_goals"] || ""}
+                    onChange={(e) => setNotes((prev) => ({ ...prev, health_goals: e.target.value }))}
+                    placeholder="Add any relevant details..."
+                    className="text-sm min-h-[60px]"
+                  />
+                </div>
+              </div>
             </CardContent>
           </Card>
         )}
