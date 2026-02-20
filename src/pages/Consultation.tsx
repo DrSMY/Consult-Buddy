@@ -287,8 +287,8 @@ export default function Consultation() {
     const labLabel = labTier === "advanced" ? "Advanced/Comprehensive Panel" : "Basic Panel";
     const labLines = finalLabTests.map((t) => `• ${t}`).join("\n");
 
-    // Doctor Note
-    const doctorNote = `${recommendations.doctor_note}
+    // Doctor Note — based exclusively on confirmed medications
+    const doctorNote = `DOCTOR NOTE — ${consultation?.patient_name || "Patient"}
 
 --- PRESCRIBED MEDICATIONS ---
 ${medsLines || "None selected"}
@@ -297,25 +297,40 @@ ${medsLines || "None selected"}
 ${suppLines || "None selected"}
 
 --- BLOOD WORK (${labLabel}) ---
-${labLines || "None required"}${labNotes ? `\n\nLab Notes: ${labNotes}` : ""}`;
+${labLines || "None required"}${labNotes ? `\n\nLab Notes: ${labNotes}` : ""}
 
-    // Next Steps
-    const nextSteps = `${recommendations.next_steps}
+--- CLINICAL NOTES ---
+${recommendations.clinical_summary || ""}`;
+
+    // Next Steps — based exclusively on confirmed medications
+    const nextSteps = `NEXT STEPS — ${consultation?.patient_name || "Patient"}
+
+Prescribed Medications:
+${selectedRecs.map((p) => `• ${p.name} — ${p.dosage}, ${p.duration}`).join("\n") || "None"}
 
 --- REQUIRED BLOOD WORK (${labLabel}) ---
-${labLines || "None required"}${labNotes ? `\nNotes: ${labNotes}` : ""}`;
+${labLines || "None required"}${labNotes ? `\nNotes: ${labNotes}` : ""}
 
-    // Patient Guidelines
-    const patientGuide = `${recommendations.patient_guidelines}
+--- FOLLOW-UP ---
+• Schedule follow-up appointment as per treatment duration
+• Monitor for any side effects and report immediately`;
+
+    // Patient Guidelines — based exclusively on confirmed medications
+    const patientGuide = `PATIENT CARE GUIDE — ${consultation?.patient_name || "Patient"}
 
 --- YOUR PRESCRIBED MEDICATIONS ---
-${selectedRecs.map((p) => `• ${p.name}: ${p.dosage} (${p.administration})`).join("\n") || "As discussed with your doctor"}
+${selectedRecs.map((p) => `• ${p.name}: ${p.dosage} (${p.administration}), Duration: ${p.duration}`).join("\n") || "As discussed with your doctor"}
 
 --- RECOMMENDED SUPPLEMENTS ---
 ${suppLines || "None"}
 
 --- REQUIRED LAB TESTS (${labLabel}) ---
-${labLines || "As directed by your doctor"}`;
+${labLines || "As directed by your doctor"}
+
+--- IMPORTANT REMINDERS ---
+• Take medications as prescribed by your doctor
+• Complete all recommended lab tests before your next visit
+• Report any unusual side effects immediately`;
 
     return { doctorNote, nextSteps, patientGuide };
   }, [recommendations, selectedPeptides, selectedSupplements, finalLabTests, labTier, labNotes]);
@@ -827,6 +842,9 @@ ${labLines || "As directed by your doctor"}`;
                     </CardHeader>
                     <CardContent className="space-y-3">
                       <div className="text-sm font-semibold">{consultation.patient_name}</div>
+                      {intake.mobile_number && (
+                        <div className="text-xs text-muted-foreground">{intake.mobile_number}</div>
+                      )}
                       <div className="grid grid-cols-2 gap-2">
                         {age && (
                           <div className="bg-muted/50 rounded-lg p-2.5 text-center">
@@ -932,6 +950,36 @@ ${labLines || "As directed by your doctor"}`;
                         </div>
                         {allergiesNotes && (
                           <p className="text-[11px] text-muted-foreground mt-2 italic">{allergiesNotes}</p>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+
+                  {/* Prescribed Medications */}
+                  {selectionConfirmed && recommendations && (
+                    <Card className="border-primary/20">
+                      <CardHeader className="pb-2 pt-3 px-4">
+                        <CardTitle className="text-xs font-bold uppercase tracking-wider flex items-center gap-2 text-primary">
+                          <CheckCircle className="h-3.5 w-3.5" /> Prescribed Medications
+                        </CardTitle>
+                      </CardHeader>
+                      <CardContent className="px-4 pb-3 space-y-2">
+                        {recommendations.recommended_peptides.filter(p => selectedPeptides.has(p.name)).map((p, i) => (
+                          <div key={i} className="text-xs">
+                            <span className="font-medium">{p.name}</span>
+                            <p className="text-muted-foreground">{p.dosage}, {p.administration}</p>
+                          </div>
+                        ))}
+                        {recommendations.recommended_supplements.filter(s => selectedSupplements.has(s.name)).length > 0 && (
+                          <div className="border-t pt-2 mt-2">
+                            <p className="text-[10px] text-muted-foreground uppercase font-bold mb-1">Supplements</p>
+                            {recommendations.recommended_supplements.filter(s => selectedSupplements.has(s.name)).map((s, i) => (
+                              <div key={i} className="text-xs">
+                                <span className="font-medium">{s.name}</span>
+                                <span className="text-muted-foreground"> — {s.dosage}</span>
+                              </div>
+                            ))}
+                          </div>
                         )}
                       </CardContent>
                     </Card>
