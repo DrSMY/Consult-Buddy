@@ -46,7 +46,7 @@ export default function Install() {
         <Card className="max-w-md w-full text-center">
           <CardContent className="pt-8 pb-6 space-y-4">
             <CheckCircle2 className="h-16 w-16 text-accent mx-auto" />
-            <h2 className="text-xl font-semibold">DOCassist is Installed!</h2>
+            <h2 className="text-xl font-semibold">PeptiDOC is Installed!</h2>
             <p className="text-sm text-muted-foreground">You can find it on your home screen.</p>
             <Button onClick={() => navigate("/dashboard")} className="mt-4">Open Dashboard</Button>
           </CardContent>
@@ -64,9 +64,9 @@ export default function Install() {
 
         <div className="text-center space-y-3">
           <Logo size="lg" />
-          <h1 className="text-2xl font-bold">Install DOCassist</h1>
+          <h1 className="text-2xl font-bold">Install PeptiDOC</h1>
           <p className="text-muted-foreground text-sm">
-            Add DOCassist to your home screen for instant access — works like a native app.
+            Add PeptiDOC to your home screen for instant access — works like a native app.
           </p>
         </div>
 
@@ -76,7 +76,7 @@ export default function Install() {
               <Smartphone className="h-10 w-10 text-primary mx-auto" />
               <p className="text-sm font-medium">Your browser supports direct install!</p>
               <Button onClick={handleInstall} className="gap-2 w-full">
-                <Download className="h-4 w-4" /> Install DOCassist
+                <Download className="h-4 w-4" /> Install PeptiDOC
               </Button>
             </CardContent>
           </Card>

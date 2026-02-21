@@ -20,8 +20,8 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       includeAssets: ["favicon.ico", "pwa-192x192.png", "pwa-512x512.png"],
       manifest: {
-        name: "DOCassist — Clinical Consultation Platform",
-        short_name: "DOCassist",
+        name: "PeptiDOC — Clinical Consultation Platform",
+        short_name: "PeptiDOC",
         description: "AI-powered peptide therapy consultation assistant for clinical practitioners",
         theme_color: "#0891b2",
         background_color: "#0f172a",

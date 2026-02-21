@@ -35,7 +35,7 @@ serve(async (req) => {
   <style>
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f4f4f7; margin: 0; padding: 0; }
     .container { max-width: 480px; margin: 40px auto; background: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08); }
-    .header { background: linear-gradient(135deg, #6366f1, #8b5cf6); padding: 32px 24px; text-align: center; }
+    .header { background: linear-gradient(135deg, #0891b2, #0e7490); padding: 32px 24px; text-align: center; }
     .header h1 { color: #ffffff; margin: 0; font-size: 24px; font-weight: 700; }
     .body { padding: 32px 24px; }
     .body h2 { color: #1e293b; font-size: 20px; margin-top: 0; }
@@ -47,17 +47,17 @@ serve(async (req) => {
 <body>
   <div class="container">
     <div class="header">
-      <h1>DOCassist</h1>
+      <h1>PeptiDOC</h1>
     </div>
     <div class="body">
       <h2>Welcome aboard, ${displayName}! 🎉</h2>
-      <p>Thanks for signing up for <strong>DOCassist</strong>. We're excited to have you!</p>
+      <p>Thanks for signing up for <strong>PeptiDOC</strong>. We're excited to have you!</p>
       <p>Your account has been created successfully. Our admin team will now review your account and approve access.</p>
       <p>Hang tight — good things are on the way! ✨</p>
       <p>We'll notify you as soon as you're all set to dive in.</p>
     </div>
     <div class="footer">
-      <p>© DOCassist — Smart Clinical Consultation Platform</p>
+      <p>© PeptiDOC — Smart Clinical Consultation Platform</p>
     </div>
   </div>
 </body>
@@ -70,9 +70,9 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'DOCassist <onboarding@resend.dev>',
+        from: 'PeptiDOC <onboarding@resend.dev>',
         to: [email],
-        subject: 'Welcome to DOCassist — You\'re Almost In!',
+        subject: 'Welcome to PeptiDOC — You\'re Almost In!',
         html: htmlContent,
       }),
     });
