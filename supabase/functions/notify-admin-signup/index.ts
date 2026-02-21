@@ -28,7 +28,7 @@ serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'DOCassist <onboarding@resend.dev>',
+        from: 'PeptiDOC <onboarding@resend.dev>',
         to: ['drsamimoha2013@gmail.com'],
         subject: `New User Signup – Approval Needed: ${name || 'Unnamed'}`,
         html: `
