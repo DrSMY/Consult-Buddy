@@ -12,6 +12,7 @@ import {
   StickyNote, FlaskConical, MessageCircle,
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
+import PatientGuideDisplay from "@/components/PatientGuideDisplay";
 import { getBMICategory, getBMIColorClass } from "@/data/glp1Config";
 import { openWhatsApp } from "@/utils/whatsapp";
 
@@ -323,9 +324,7 @@ export default function WeightLossConsultation() {
                   <Badge variant="secondary" className="text-[10px]"><Zap className="h-3 w-3 mr-1" /> TDEE Focused</Badge>
                   <Badge variant="secondary" className="text-[10px]"><ThermometerSnowflake className="h-3 w-3 mr-1" /> Refrigerated Storage</Badge>
                 </div>
-                <div className="bg-muted/50 p-4 rounded-lg border text-sm whitespace-pre-wrap leading-relaxed">
-                  {patientGuide || "Patient guide not yet generated."}
-                </div>
+                <PatientGuideDisplay text={patientGuide} />
               </CardContent>
             </Card>
 
