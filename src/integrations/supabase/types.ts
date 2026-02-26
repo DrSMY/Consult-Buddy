@@ -59,6 +59,47 @@ export type Database = {
         }
         Relationships: []
       }
+      patient_guides: {
+        Row: {
+          consultation_id: string | null
+          created_at: string
+          expires_at: string
+          guide_data: Json
+          id: string
+          patient_name: string
+          program: string
+          user_id: string
+        }
+        Insert: {
+          consultation_id?: string | null
+          created_at?: string
+          expires_at?: string
+          guide_data: Json
+          id?: string
+          patient_name: string
+          program?: string
+          user_id: string
+        }
+        Update: {
+          consultation_id?: string | null
+          created_at?: string
+          expires_at?: string
+          guide_data?: Json
+          id?: string
+          patient_name?: string
+          program?: string
+          user_id?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "patient_guides_consultation_id_fkey"
+            columns: ["consultation_id"]
+            isOneToOne: false
+            referencedRelation: "consultations"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       peptide_program_matrix: {
         Row: {
           health_goal: string

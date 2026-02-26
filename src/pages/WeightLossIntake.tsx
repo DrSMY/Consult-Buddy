@@ -1024,7 +1024,7 @@ export default function WeightLossIntake() {
                 <PatientGuideHTML
                   data={buildGLP1GuideData(patient, treatment)}
                   phoneNumber={patient.mobileNumber}
-                  showInlinePreview={!!treatment.patientGuide || !!treatment.medication}
+                  program="weight-loss"
                 />
               </CardContent>
             </Card>
@@ -1068,7 +1068,7 @@ export default function WeightLossIntake() {
                 <PatientGuideHTML
                   data={buildGLP1GuideData(patient, treatment)}
                   phoneNumber={patient.mobileNumber}
-                  showInlinePreview
+                  program="weight-loss"
                 />
               </CardContent>
             </Card>
