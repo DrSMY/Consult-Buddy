@@ -14,8 +14,6 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } f
 import PeptideDetailSheet from "@/components/PeptideDetailSheet";
 import AppHeader from "@/components/AppHeader";
 import { openWhatsApp } from "@/utils/whatsapp";
-import PatientGuideHTML from "@/components/PatientGuideHTML";
-import { buildPeptideGuideData } from "@/utils/guideDataBuilders";
 
 interface PeptideRec {
   name: string;
@@ -749,28 +747,28 @@ ${labLines || "As directed by your doctor"}
                     <CardTitle className="text-lg flex items-center gap-2"><User className="h-4 w-4" /> Patient Guidelines</CardTitle>
                     <CardDescription>Patient-friendly instructions with prescribed plan</CardDescription>
                   </div>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={() => copyToClipboard(buildActionPlan.patientGuide, "Patient guidelines")}>
+                      <Copy className="h-3 w-3 mr-1" /> Copy
+                    </Button>
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={() => {
+                        const phone = consultation?.intake_answers?.mobile_number || consultation?.intake_answers?.phone || "";
+                        openWhatsApp(phone, buildActionPlan.patientGuide);
+                      }}
+                      disabled={!consultation?.intake_answers?.mobile_number && !consultation?.intake_answers?.phone}
+                      title={(!consultation?.intake_answers?.mobile_number && !consultation?.intake_answers?.phone) ? "No phone number available" : "Send via WhatsApp"}
+                    >
+                      <MessageCircle className="h-3 w-3 mr-1" /> WhatsApp
+                    </Button>
+                  </div>
                 </CardHeader>
                 <CardContent>
-                  <PatientGuideHTML
-                    data={buildPeptideGuideData({
-                      patientName: consultation?.patient_name || "",
-                      intake: consultation?.intake_answers as Record<string, any> || {},
-                      selectedPeptides: recommendations!.recommended_peptides
-                        .filter(p => selectedPeptides.has(p.name))
-                        .map(p => ({ name: p.name, dosage: p.dosage, administration: p.administration, duration: p.duration })),
-                      selectedSupplements: recommendations!.recommended_supplements
-                        .filter(s => selectedSupplements.has(s.name))
-                        .map(s => ({ name: s.name, dosage: s.dosage, reason: s.reason })),
-                      labTests: finalLabTests,
-                      labTier,
-                    })}
-                    phoneNumber={
-                      (consultation?.intake_answers as any)?.mobile_number ||
-                      (consultation?.intake_answers as any)?.phone || ""
-                    }
-                    consultationId={id}
-                    program="peptides"
-                  />
+                  <div className="prose prose-sm max-w-none text-sm whitespace-pre-wrap bg-muted/50 rounded-lg p-4">
+                    {buildActionPlan.patientGuide}
+                  </div>
                 </CardContent>
               </Card>
             </TabsContent>

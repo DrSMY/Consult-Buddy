@@ -14,8 +14,6 @@ import {
 import AppHeader from "@/components/AppHeader";
 import { getBMICategory, getBMIColorClass } from "@/data/glp1Config";
 import { openWhatsApp } from "@/utils/whatsapp";
-import PatientGuideHTML from "@/components/PatientGuideHTML";
-import { buildGLP1GuideData } from "@/utils/guideDataBuilders";
 
 export default function WeightLossConsultation() {
   const { id } = useParams();
@@ -293,53 +291,41 @@ export default function WeightLossConsultation() {
                   <CardTitle className="text-sm flex items-center gap-2">
                     <User className="h-4 w-4 text-accent" /> Patient Care Guide
                   </CardTitle>
-                  <Button variant="outline" size="sm" onClick={generatePatientGuide} disabled={generating}>
-                    {generating ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}
-                    {generating ? "Generating..." : patientGuide ? "Regenerate" : "Generate"}
-                  </Button>
+                  <div className="flex gap-2">
+                    <Button variant="outline" size="sm" onClick={generatePatientGuide} disabled={generating}>
+                      {generating ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Sparkles className="h-3 w-3 mr-1" />}
+                      {generating ? "Generating..." : patientGuide ? "Regenerate" : "Generate"}
+                    </Button>
+                    {patientGuide && (
+                      <>
+                        <Button variant="outline" size="sm" onClick={() => handleCopy(patientGuide, "guide")}>
+                          {copiedSection === "guide" ? <ClipboardCheck className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
+                          {copiedSection === "guide" ? "Copied" : "Copy"}
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => openWhatsApp(patient?.mobileNumber || "", patientGuide)}
+                          disabled={!patient?.mobileNumber}
+                          title={!patient?.mobileNumber ? "No phone number available" : "Send via WhatsApp"}
+                        >
+                          <MessageCircle className="h-3 w-3 mr-1" /> WhatsApp
+                        </Button>
+                      </>
+                    )}
+                  </div>
                 </div>
               </CardHeader>
               <CardContent>
-                <PatientGuideHTML
-                  data={buildGLP1GuideData(
-                    {
-                      name: patient?.name || consultation.patient_name || "",
-                      mobileNumber: patient?.mobileNumber || "",
-                      gender: patient?.gender,
-                      age: age || "",
-                      height: height || "",
-                      weight: weight || "",
-                      bmi: bmi,
-                      bmr: bmr,
-                      dailyCalories: dailyCalories,
-                      weightLossCalories: weightLossCalories,
-                      activityLevel: patient?.activityLevel || "Sedentary" as any,
-                      chronicIllnesses: chronicIllnesses,
-                      medications: medications,
-                      allergies: patient?.allergies || "",
-                      allergyNotes: patient?.allergyNotes || "",
-                      isPregnant: isPregnant || false,
-                      isBreastfeeding: isBreastfeeding || false,
-                      previousGlp1Use: previousGlp1 || false,
-                      previousMedication: previousMed as any,
-                      previousDose: previousDose,
-                      bookingId: patient?.bookingId || "",
-                      bookingTime: patient?.bookingTime || "",
-                    },
-                    {
-                      medication: medication as any,
-                      dose: dose,
-                      otherDetail: treatment?.otherDetail || "",
-                      bloodTestLevel: recs?.bloodTestLevel || "none",
-                      notes: treatment?.notes || "",
-                      doctorSuggestions: doctorSuggestions,
-                      patientGuide: patientGuide,
-                    }
-                  )}
-                  phoneNumber={patient?.mobileNumber || ""}
-                  consultationId={id}
-                  program="weight-loss"
-                />
+                <div className="flex flex-wrap gap-2 mb-4">
+                  <Badge variant="secondary" className="text-[10px]"><Activity className="h-3 w-3 mr-1" /> Weekly Injection</Badge>
+                  <Badge variant="secondary" className="text-[10px]"><Utensils className="h-3 w-3 mr-1" /> High Protein Plan</Badge>
+                  <Badge variant="secondary" className="text-[10px]"><Zap className="h-3 w-3 mr-1" /> TDEE Focused</Badge>
+                  <Badge variant="secondary" className="text-[10px]"><ThermometerSnowflake className="h-3 w-3 mr-1" /> Refrigerated Storage</Badge>
+                </div>
+                <div className="bg-muted/50 p-4 rounded-lg border text-sm whitespace-pre-wrap leading-relaxed">
+                  {patientGuide || "Patient guide not yet generated."}
+                </div>
               </CardContent>
             </Card>
 
