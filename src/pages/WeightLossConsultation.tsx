@@ -337,7 +337,8 @@ export default function WeightLossConsultation() {
                     }
                   )}
                   phoneNumber={patient?.mobileNumber || ""}
-                  showInlinePreview
+                  consultationId={id}
+                  program="weight-loss"
                 />
               </CardContent>
             </Card>

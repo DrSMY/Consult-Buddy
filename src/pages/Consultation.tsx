@@ -768,7 +768,8 @@ ${labLines || "As directed by your doctor"}
                       (consultation?.intake_answers as any)?.mobile_number ||
                       (consultation?.intake_answers as any)?.phone || ""
                     }
-                    showInlinePreview
+                    consultationId={id}
+                    program="peptides"
                   />
                 </CardContent>
               </Card>
