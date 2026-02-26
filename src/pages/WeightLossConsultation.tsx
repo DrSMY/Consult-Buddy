@@ -9,12 +9,13 @@ import { useToast } from "@/hooks/use-toast";
 import {
   FileText, User, Copy, ClipboardCheck, ArrowLeft, Activity, Utensils, Zap, ThermometerSnowflake,
   Weight, Ruler, Heart, Flame, TrendingDown, Pill, AlertTriangle, MessageSquare, Scale, Loader2, Sparkles,
-  StickyNote, FlaskConical, MessageCircle,
+  StickyNote, FlaskConical, MessageCircle, Printer,
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import PatientGuideDisplay from "@/components/PatientGuideDisplay";
 import { getBMICategory, getBMIColorClass } from "@/data/glp1Config";
 import { openWhatsApp } from "@/utils/whatsapp";
+import { printPatientGuide } from "@/utils/printGuide";
 
 export default function WeightLossConsultation() {
   const { id } = useParams();
@@ -311,6 +312,13 @@ export default function WeightLossConsultation() {
                           title={!patient?.mobileNumber ? "No phone number available" : "Send via WhatsApp"}
                         >
                           <MessageCircle className="h-3 w-3 mr-1" /> WhatsApp
+                        </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => printPatientGuide(patientGuide, consultation.patient_name)}
+                        >
+                          <Printer className="h-3 w-3 mr-1" /> Print / PDF
                         </Button>
                       </>
                     )}

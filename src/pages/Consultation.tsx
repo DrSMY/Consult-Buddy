@@ -9,12 +9,13 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { AlertTriangle, CheckCircle, FileText, ClipboardList, User, Copy, Loader2, FlaskConical, Info, ShieldCheck, Microscope, StickyNote, MessageCircle, Ruler, Weight, Scale, Activity } from "lucide-react";
+import { AlertTriangle, CheckCircle, FileText, ClipboardList, User, Copy, Loader2, FlaskConical, Info, ShieldCheck, Microscope, StickyNote, MessageCircle, Ruler, Weight, Scale, Activity, Printer } from "lucide-react";
 import PatientGuideDisplay from "@/components/PatientGuideDisplay";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
 import PeptideDetailSheet from "@/components/PeptideDetailSheet";
 import AppHeader from "@/components/AppHeader";
 import { openWhatsApp } from "@/utils/whatsapp";
+import { printPatientGuide } from "@/utils/printGuide";
 
 interface PeptideRec {
   name: string;
@@ -763,6 +764,9 @@ ${labLines || "As directed by your doctor"}
                       title={(!consultation?.intake_answers?.mobile_number && !consultation?.intake_answers?.phone) ? "No phone number available" : "Send via WhatsApp"}
                     >
                       <MessageCircle className="h-3 w-3 mr-1" /> WhatsApp
+                    </Button>
+                    <Button variant="outline" size="sm" onClick={() => printPatientGuide(buildActionPlan.patientGuide, consultation?.patient_name)}>
+                      <Printer className="h-3 w-3 mr-1" /> Print / PDF
                     </Button>
                   </div>
                 </CardHeader>
