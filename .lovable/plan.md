@@ -1,32 +1,43 @@
 
 
-## Add "Send WhatsApp" to Completed Consultations
+## Make Patient Guide Display More Attractive
 
-### How It Works
-- Uses `wa.me` deep links to open WhatsApp with the patient's phone number and the guide text pre-filled
-- You press send from your own WhatsApp -- no API keys or third-party accounts needed
-- The patient's mobile number is already captured during intake
+The patient guide text uses a consistent `::: SECTION NAME :::` format. Instead of rendering it as plain monospace text, I'll parse these sections and render each as a styled card with an appropriate icon and color — without changing the text content itself.
 
 ### Changes
 
-**`src/pages/WeightLossIntake.tsx`** (Step 3 - Summary):
-- Add a "Send WhatsApp" button next to the "Copy Guide" button on the Patient Care Guide card
-- Clicking it opens `https://wa.me/{phone}?text={encodedGuide}` in a new tab
-- The phone number comes from `patient.mobileNumber`, the guide from `treatment.patientGuide`
+**New file: `src/components/PatientGuideDisplay.tsx`**
+- A reusable component that takes the raw guide text string and parses it into sections based on the `::: SECTION_NAME :::` delimiter
+- Each section renders as a color-coded card with a matching icon:
+  - INTRODUCTION → BookOpen icon, teal
+  - PATIENT SUMMARY → Scale icon, blue
+  - STORAGE INSTRUCTIONS → ThermometerSnowflake icon, cyan
+  - HOW TO INJECT / HOW TO TAKE → Syringe/Pill icon, indigo
+  - NUTRITION & DIET / DIETARY ADVICE → Utensils icon, green
+  - COMMON SIDE EFFECTS → AlertTriangle icon, amber
+  - RED-FLAG SYMPTOMS → ShieldAlert icon, rose
+  - FOLLOW-UP PLAN → Calendar icon, violet
+  - PHYSICAL ACTIVITY → Activity icon, emerald
+  - CONSISTENCY & MINDSET → Brain icon, purple
+  - HYDRATION & RECOVERY → Droplets icon, sky
+  - YOUR PRESCRIBED MEDICATIONS → Pill icon, blue
+  - Unknown sections → FileText icon, gray
+- The greeting line (before the first `:::`) renders as a highlighted intro banner
+- Bullet points (`*   **Bold:**`) and numbered lists are parsed and rendered with proper formatting (bold labels, indented sub-items)
+- The signature line (Dr Sami) renders as a styled footer
+- Falls back to the plain text display if no `:::` sections are detected (for non-standard guides)
 
-**`src/pages/WeightLossConsultation.tsx`** (Completed consultation review):
-- Add a "Send WhatsApp" button next to the "Copy" button on the Patient Care Guide card
-- Same `wa.me` link logic using the patient data from the consultation record
+**`src/pages/WeightLossConsultation.tsx`**
+- Replace the plain `<div className="whitespace-pre-wrap">` patient guide block with `<PatientGuideDisplay text={patientGuide} />`
+- Keep the copy/WhatsApp buttons unchanged (they still copy the raw text)
 
-**`src/pages/Consultation.tsx`** (Peptide consultation - Patient Guide tab):
-- Add a "Send WhatsApp" button next to the "Copy" button on the Patient Guidelines tab
-- Uses the patient's mobile number from intake answers and the generated patient guidelines text
+**`src/pages/Consultation.tsx`**
+- Replace the plain `<div className="whitespace-pre-wrap">` for `buildActionPlan.patientGuide` with `<PatientGuideDisplay text={patientGuide} />`
 
 ### Technical Details
-- Phone number is sanitized: strips spaces, dashes, and ensures it starts with a country code
-- Guide text is URI-encoded for the WhatsApp URL
-- If no phone number is available, the button is disabled with a tooltip explaining why
-- Uses the MessageCircle icon from lucide-react for the WhatsApp button
-- Opens in a new tab so the consultation page stays open
+- Parsing logic: split text by regex `/^:::\s*(.+?)\s*:::$/gm`, extract section titles and content
+- Each section's content is further parsed: lines starting with `*` or `-` become list items, numbered lines become ordered lists, `**text**` patterns are rendered as `<strong>`
+- The component is purely presentational — no text modification. The raw text is preserved for copy/WhatsApp
+- Section-to-icon mapping uses a simple lookup object
+- Responsive: cards stack vertically, work on mobile
 
-### No backend or database changes needed
