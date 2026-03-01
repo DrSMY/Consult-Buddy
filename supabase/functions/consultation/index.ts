@@ -1,70 +1,15 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
-
-function errorResponse(message: string, status: number) {
-  return new Response(JSON.stringify({ error: message }), {
-    status,
-    headers: { ...corsHeaders, "Content-Type": "application/json" },
-  });
-}
-
-/** Authenticate the request and return the user ID, or null. */
-async function authenticateRequest(req: Request): Promise<string | null> {
-  const authHeader = req.headers.get("authorization");
-  if (!authHeader?.startsWith("Bearer ")) return null;
-
-  const supabaseClient = createClient(
-    Deno.env.get("SUPABASE_URL")!,
-    Deno.env.get("SUPABASE_ANON_KEY")!,
-    { global: { headers: { authorization: authHeader } } },
-  );
-
-  const { data: { user }, error } = await supabaseClient.auth.getUser();
-  if (error || !user) return null;
-  return user.id;
-}
-
-/** Validate and cap string length */
-function validStr(val: unknown, maxLen = 5000): string {
-  if (typeof val !== "string") return "";
-  return val.slice(0, maxLen);
-}
-
-/** Validate a number within range */
-function validNum(val: unknown, min = 0, max = 99999): number | undefined {
-  const n = Number(val);
-  if (isNaN(n) || n < min || n > max) return undefined;
-  return n;
-}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
-    // --- Authentication ---
-    const userId = await authenticateRequest(req);
-    if (!userId) {
-      return errorResponse("Unauthorized", 401);
-    }
-
-    // --- Parse & validate body size ---
-    const rawBody = await req.text();
-    if (rawBody.length > 200_000) {
-      return errorResponse("Request payload too large", 413);
-    }
-
-    let body: Record<string, unknown>;
-    try {
-      body = JSON.parse(rawBody);
-    } catch {
-      return errorResponse("Invalid JSON", 400);
-    }
-
+    const body = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
@@ -72,9 +17,6 @@ serve(async (req) => {
 
     // ---- SMART FILL: extract patient fields from raw text ----
     if (action === "smart-fill") {
-      const rawText = validStr(body.raw_text, 10_000);
-      if (!rawText) return errorResponse("raw_text is required (max 10,000 chars)", 400);
-
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -85,7 +27,7 @@ serve(async (req) => {
           model: "google/gemini-3-flash-preview",
           messages: [
             { role: "system", content: "Extract patient data from raw text. Return ONLY valid JSON with fields: name, mobileNumber, bookingId (booking reference number), bookingTime, age, gender (Male/Female/Other), height (in cm), weight (in kg), chronicIllnesses, medications, allergies. Only include fields you can extract. Do not invent data." },
-            { role: "user", content: rawText },
+            { role: "user", content: body.raw_text },
           ],
           tools: [{
             type: "function",
@@ -130,30 +72,7 @@ serve(async (req) => {
 
     // ---- GENERATE GLP-1 PATIENT GUIDE ----
     if (action === "generate-glp1-guide") {
-      const patientRaw = body.patient_data as Record<string, unknown> | undefined;
-      const treatmentRaw = body.treatment_data as Record<string, unknown> | undefined;
-      if (!patientRaw || !treatmentRaw) return errorResponse("patient_data and treatment_data are required", 400);
-
-      // Sanitize patient data
-      const patient_data = {
-        name: validStr(patientRaw.name, 100),
-        gender: validStr(patientRaw.gender, 10),
-        weight: validNum(patientRaw.weight, 1, 500),
-        height: validNum(patientRaw.height, 30, 300),
-        bmi: patientRaw.bmi ? Number(patientRaw.bmi) : undefined,
-        weightLossCalories: patientRaw.weightLossCalories ? Number(patientRaw.weightLossCalories) : undefined,
-        activityLevel: validStr(patientRaw.activityLevel, 50),
-      };
-
-      // Sanitize treatment data
-      const treatment_data = {
-        medication: validStr(treatmentRaw.medication, 100),
-        otherDetail: validStr(treatmentRaw.otherDetail as string, 200),
-        dose: validStr(treatmentRaw.dose as string, 50),
-        bloodTestLevel: validStr(treatmentRaw.bloodTestLevel as string, 20),
-      };
-
-      if (!patient_data.name) return errorResponse("Patient name is required", 400);
+      const { patient_data, treatment_data } = body;
 
       const glp1Meds = ["Mounjaro", "Wegovy", "Ozempic", "Rybelsus"];
       const isGlp1 = !!treatment_data.medication && glp1Meds.includes(treatment_data.medication);
@@ -274,10 +193,14 @@ SCOPE Certified Physician`;
 
       if (!response.ok) {
         if (response.status === 429) {
-          return errorResponse("Rate limit exceeded. Please try again shortly.", 429);
+          return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again shortly." }), {
+            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
         }
         if (response.status === 402) {
-          return errorResponse("AI credits exhausted. Please add credits.", 402);
+          return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits." }), {
+            status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
         }
         const t = await response.text();
         console.error("AI gateway error:", response.status, t);
@@ -293,21 +216,7 @@ SCOPE Certified Physician`;
     }
 
     // ---- ORIGINAL PEPTIDE CONSULTATION ----
-    const intake_answers = body.intake_answers;
-    const peptide_protocols = body.peptide_protocols;
-
-    if (!intake_answers || typeof intake_answers !== "object") {
-      return errorResponse("intake_answers is required", 400);
-    }
-    if (!Array.isArray(peptide_protocols) || peptide_protocols.length === 0 || peptide_protocols.length > 100) {
-      return errorResponse("peptide_protocols must be a non-empty array (max 100)", 400);
-    }
-
-    // Cap serialized size to prevent abuse
-    const serialized = JSON.stringify({ intake_answers, peptide_protocols });
-    if (serialized.length > 150_000) {
-      return errorResponse("Request data too large", 413);
-    }
+    const { intake_answers, peptide_protocols } = body;
 
     const systemPrompt = `You are a clinical peptide therapy consultation assistant for a medical clinic. You have deep knowledge of peptide protocols.
 
@@ -452,10 +361,14 @@ Based on this patient's intake data and the available peptide protocols, provide
 
     if (!response.ok) {
       if (response.status === 429) {
-        return errorResponse("Rate limit exceeded. Please try again shortly.", 429);
+        return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again shortly." }), {
+          status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
       if (response.status === 402) {
-        return errorResponse("AI credits exhausted. Please add credits.", 402);
+        return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits." }), {
+          status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
       }
       const t = await response.text();
       console.error("AI gateway error:", response.status, t);
@@ -473,6 +386,8 @@ Based on this patient's intake data and the available peptide protocols, provide
     });
   } catch (e) {
     console.error("consultation error:", e);
-    return errorResponse(e instanceof Error ? e.message : "Unknown error", 500);
+    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+      status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
   }
 });
