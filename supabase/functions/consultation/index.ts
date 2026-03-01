@@ -24,10 +24,9 @@ async function authenticateRequest(req: Request): Promise<string | null> {
     { global: { headers: { authorization: authHeader } } },
   );
 
-  const token = authHeader.replace("Bearer ", "");
-  const { data, error } = await supabaseClient.auth.getClaims(token);
-  if (error || !data?.claims) return null;
-  return data.claims.sub as string;
+  const { data: { user }, error } = await supabaseClient.auth.getUser();
+  if (error || !user) return null;
+  return user.id;
 }
 
 /** Validate and cap string length */
