@@ -1,4 +1,5 @@
 // CSV Export utility for weight-loss consultation data
+import { buildEmrOutput } from "@/utils/emrOutput";
 
 interface WeightLossConsultationRow {
   patient_name: string;
@@ -33,6 +34,7 @@ export function exportWeightLossCSV(consultations: WeightLossConsultationRow[]) 
     "Doctor Note and Suggestions",
     "Patient Guide",
     "Follow-up Date",
+    "EMR Output",
   ];
 
   const rows = consultations.map((c) => {
@@ -50,6 +52,14 @@ export function exportWeightLossCSV(consultations: WeightLossConsultationRow[]) 
     const encounterDate = new Date(c.created_at);
     const followUpDate = new Date(encounterDate);
     followUpDate.setDate(encounterDate.getDate() + 21);
+
+    const emr = buildEmrOutput({
+      patient,
+      treatment,
+      recs,
+      doctorNotes: c.doctor_notes,
+      createdAt: c.created_at,
+    });
 
     return [
       esc(patient.bookingId || ""),
@@ -72,6 +82,7 @@ export function exportWeightLossCSV(consultations: WeightLossConsultationRow[]) 
       esc(treatment.doctorSuggestions || recs.doctorSuggestions || ""),
       esc(recs.patientGuide || treatment.patientGuide || ""),
       esc(followUpDate.toLocaleDateString()),
+      esc(emr),
     ];
   });
 

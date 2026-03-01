@@ -16,6 +16,7 @@ import PatientGuideDisplay from "@/components/PatientGuideDisplay";
 import { getBMICategory, getBMIColorClass } from "@/data/glp1Config";
 import { openWhatsApp } from "@/utils/whatsapp";
 import { printPatientGuide } from "@/utils/printGuide";
+import { buildEmrOutput } from "@/utils/emrOutput";
 
 export default function WeightLossConsultation() {
   const { id } = useParams();
@@ -114,6 +115,14 @@ export default function WeightLossConsultation() {
   const treatment = intake?.treatment;
   const followupData = intake?.followupData;
   const flowType = intake?.flowType;
+
+  const emrOutput = buildEmrOutput({
+    patient,
+    treatment,
+    recs,
+    doctorNotes: consultation.doctor_notes,
+    createdAt: consultation.created_at,
+  });
 
   const bmi = patient?.bmi ? Number(patient.bmi) : null;
   const weight = patient?.weight ? Number(patient.weight) : null;
@@ -333,6 +342,26 @@ export default function WeightLossConsultation() {
                   <Badge variant="secondary" className="text-[10px]"><ThermometerSnowflake className="h-3 w-3 mr-1" /> Refrigerated Storage</Badge>
                 </div>
                 <PatientGuideDisplay text={patientGuide} />
+              </CardContent>
+            </Card>
+
+            {/* EMR Output */}
+            <Card>
+              <CardHeader className="pb-3">
+                <div className="flex justify-between items-center">
+                  <CardTitle className="text-sm flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-primary" /> EMR Output
+                  </CardTitle>
+                  <Button variant="outline" size="sm" onClick={() => handleCopy(emrOutput, "emr")}>
+                    {copiedSection === "emr" ? <ClipboardCheck className="h-3 w-3 mr-1" /> : <Copy className="h-3 w-3 mr-1" />}
+                    {copiedSection === "emr" ? "Copied" : "Copy EMR"}
+                  </Button>
+                </div>
+              </CardHeader>
+              <CardContent>
+                <div className="bg-muted/50 p-4 rounded-lg border text-sm font-mono whitespace-pre-wrap leading-relaxed">
+                  {emrOutput}
+                </div>
               </CardContent>
             </Card>
 
