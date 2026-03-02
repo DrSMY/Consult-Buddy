@@ -1,22 +1,88 @@
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
+
+const MAX_PAYLOAD = 200 * 1024; // 200KB
+
+function sanitizeString(str: unknown, maxLen: number): string {
+  if (typeof str !== "string") return "";
+  return str.slice(0, maxLen).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "");
+}
+
+function validateNumber(val: unknown, min: number, max: number): number | undefined {
+  const n = Number(val);
+  if (isNaN(n) || n < min || n > max) return undefined;
+  return n;
+}
 
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
   try {
+    // --- Authentication ---
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader?.startsWith("Bearer ")) {
+      return new Response(JSON.stringify({ error: "Unauthorized" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const supabaseClient = createClient(
+      Deno.env.get("SUPABASE_URL") ?? "",
+      Deno.env.get("SUPABASE_ANON_KEY") ?? "",
+      { global: { headers: { Authorization: authHeader } } }
+    );
+
+    const token = authHeader.replace("Bearer ", "");
+    const { data: claimsData, error: claimsError } = await supabaseClient.auth.getClaims(token);
+    if (claimsError || !claimsData?.claims) {
+      return new Response(JSON.stringify({ error: "Invalid token" }), {
+        status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    const userId = claimsData.claims.sub;
+
+    // Verify user is approved
+    const { data: profile } = await supabaseClient
+      .from("profiles")
+      .select("approved")
+      .eq("user_id", userId)
+      .single();
+
+    if (!profile?.approved) {
+      return new Response(JSON.stringify({ error: "Account not approved" }), {
+        status: 403, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // --- Payload size check ---
+    const contentLength = req.headers.get("content-length");
+    if (contentLength && parseInt(contentLength) > MAX_PAYLOAD) {
+      return new Response(JSON.stringify({ error: "Payload too large" }), {
+        status: 413, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     const body = await req.json();
     const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) throw new Error("LOVABLE_API_KEY not configured");
 
-    const action = body.action;
+    const action = sanitizeString(body.action, 50);
 
     // ---- SMART FILL: extract patient fields from raw text ----
     if (action === "smart-fill") {
+      const rawText = sanitizeString(body.raw_text, 5000);
+      if (!rawText) {
+        return new Response(JSON.stringify({ error: "raw_text is required (max 5000 chars)" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
       const response = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
         method: "POST",
         headers: {
@@ -27,7 +93,7 @@ serve(async (req) => {
           model: "google/gemini-3-flash-preview",
           messages: [
             { role: "system", content: "Extract patient data from raw text. Return ONLY valid JSON with fields: name, mobileNumber, bookingId (booking reference number), bookingTime, age, gender (Male/Female/Other), height (in cm), weight (in kg), chronicIllnesses, medications, allergies. Only include fields you can extract. Do not invent data." },
-            { role: "user", content: body.raw_text },
+            { role: "user", content: rawText },
           ],
           tools: [{
             type: "function",
@@ -74,28 +140,48 @@ serve(async (req) => {
     if (action === "generate-glp1-guide") {
       const { patient_data, treatment_data } = body;
 
+      if (!patient_data || typeof patient_data !== "object" || !treatment_data || typeof treatment_data !== "object") {
+        return new Response(JSON.stringify({ error: "patient_data and treatment_data are required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      // Sanitize patient data
+      const pName = sanitizeString(patient_data.name, 100) || "Patient";
+      const pGender = (["Male", "Female", "Other"].includes(patient_data.gender) ? patient_data.gender : "Other") as string;
+      const pWeight = validateNumber(patient_data.weight, 1, 500) || 0;
+      const pHeight = validateNumber(patient_data.height, 1, 300) || 0;
+      const pBmi = validateNumber(patient_data.bmi, 1, 100);
+      const pWeightLossCalories = validateNumber(patient_data.weightLossCalories, 100, 10000);
+      const pActivityLevel = sanitizeString(patient_data.activityLevel, 50);
+
+      // Sanitize treatment data
+      const tMedication = sanitizeString(treatment_data.medication, 100);
+      const tOtherDetail = sanitizeString(treatment_data.otherDetail, 200);
+      const tDose = sanitizeString(treatment_data.dose, 100);
+      const tBloodTestLevel = sanitizeString(treatment_data.bloodTestLevel, 20);
+
       const glp1Meds = ["Mounjaro", "Wegovy", "Ozempic", "Rybelsus"];
-      const isGlp1 = !!treatment_data.medication && glp1Meds.includes(treatment_data.medication);
-      const isOral = treatment_data.medication === "Rybelsus";
+      const isGlp1 = !!tMedication && glp1Meds.includes(tMedication);
+      const isOral = tMedication === "Rybelsus";
 
-      const medName = treatment_data.medication === "Other"
-        ? (treatment_data.otherDetail || "Custom Program")
-        : (treatment_data.medication || "Lifestyle Program");
-      const dose = treatment_data.dose || "";
+      const medName = tMedication === "Other"
+        ? (tOtherDetail || "Custom Program")
+        : (tMedication || "Lifestyle Program");
+      const dose = tDose;
 
-      const salutation = patient_data.gender === "Male" ? "Mr" : (patient_data.gender === "Female" ? "Ms" : "");
+      const salutation = pGender === "Male" ? "Mr" : (pGender === "Female" ? "Ms" : "");
 
       let videoLink = "";
-      if (treatment_data.medication === "Mounjaro") videoLink = "https://youtube.com/shorts/S0c4uOykHOs";
-      else if (treatment_data.medication === "Wegovy") videoLink = "https://youtu.be/mWSu8hZZOAs?si=mad5y_oeapGbJYno";
+      if (tMedication === "Mounjaro") videoLink = "https://youtube.com/shorts/S0c4uOykHOs";
+      else if (tMedication === "Wegovy") videoLink = "https://youtu.be/mWSu8hZZOAs?si=mad5y_oeapGbJYno";
 
-      const weight = Number(patient_data.weight) || 0;
-      const protMin = Math.round(weight * 1.2);
-      const protMax = Math.round(weight * 1.5);
+      const protMin = Math.round(pWeight * 1.2);
+      const protMax = Math.round(pWeight * 1.5);
 
       let prompt = "";
       if (isGlp1) {
-        const greeting = `Hi ${salutation} ${patient_data.name}, this is a guide for you to start your journey with us and take the medication as advised.`;
+        const greeting = `Hi ${salutation} ${pName}, this is a guide for you to start your journey with us and take the medication as advised.`;
 
         const storageSection = isOral
           ? "::: STORAGE INSTRUCTIONS :::\nStore in a dry place at room temperature (below 30°C). Keep in original blister pack until used to protect from moisture."
@@ -105,7 +191,7 @@ serve(async (req) => {
           ? `::: HOW TO TAKE :::\nTake one tablet daily on an empty stomach. Swallow whole with a small sip of water (no more than 4oz/120ml). Wait at least 30 minutes before your first food, drink, or other oral medications.`
           : `::: HOW TO INJECT :::\nStep-by-step instructions for ${medName}. Rotate sites. ${videoLink ? `Include this video link: ${videoLink}` : ""}`;
 
-        prompt = `Create a professional Patient-Centered Care Guide for ${patient_data.name} starting ${medName} ${dose}.
+        prompt = `Create a professional Patient-Centered Care Guide for ${pName} starting ${medName} ${dose}.
 CRITICAL INSTRUCTION: Start exactly with: "${greeting}"
 
 Follow this structure strictly:
@@ -114,8 +200,8 @@ Follow this structure strictly:
 Purpose of guide, medication name (${medName} ${dose}), explanation of GLP-1/GIP receptor agonists (appetite reduction, delayed gastric emptying, metabolism), and the medical journey ahead.
 
 ::: PATIENT SUMMARY :::
-Weight: ${patient_data.weight}kg, Height: ${patient_data.height}cm, BMI: ${patient_data.bmi?.toFixed?.(1) || "N/A"}.
-Estimated Daily Calories for Weight Loss: ${patient_data.weightLossCalories ? Math.round(patient_data.weightLossCalories) : "---"} kcal/day.
+Weight: ${pWeight}kg, Height: ${pHeight}cm, BMI: ${pBmi?.toFixed?.(1) || "N/A"}.
+Estimated Daily Calories for Weight Loss: ${pWeightLossCalories ? Math.round(pWeightLossCalories) : "---"} kcal/day.
 
 ${storageSection}
 
@@ -137,15 +223,15 @@ Severe abdominal pain, persistent vomiting, dehydration. Advise when to seek urg
 
 ::: FOLLOW-UP PLAN :::
 Mandatory review after 4th dose. Assess tolerance and response.
-${treatment_data.bloodTestLevel === "required" ? "REQUIRED: Complete Weight Loss Blood Test (https://www.dardoc.com/dubai/lab-test/weight-loss-blood-test)" : treatment_data.bloodTestLevel === "recommended" ? "RECOMMENDED: Weight Loss Blood Test (https://www.dardoc.com/dubai/lab-test/weight-loss-blood-test)" : ""}
+${tBloodTestLevel === "required" ? "REQUIRED: Complete Weight Loss Blood Test (https://www.dardoc.com/dubai/lab-test/weight-loss-blood-test)" : tBloodTestLevel === "recommended" ? "RECOMMENDED: Weight Loss Blood Test (https://www.dardoc.com/dubai/lab-test/weight-loss-blood-test)" : ""}
 
 Sign as:
 Dr Sami M. Yesuf
 SCOPE Certified Physician`;
       } else {
-        const lifestyleGreeting = `Hi ${salutation} ${patient_data.name}, this is your personalized guide for a healthy lifestyle and sustainable weight management journey with us${treatment_data.medication === "Other" ? ` alongside your ${treatment_data.otherDetail} treatment` : ""}.`;
+        const lifestyleGreeting = `Hi ${salutation} ${pName}, this is your personalized guide for a healthy lifestyle and sustainable weight management journey with us${tMedication === "Other" ? ` alongside your ${tOtherDetail} treatment` : ""}.`;
 
-        prompt = `Create a professional Weight Loss & Lifestyle Guide for ${patient_data.name}.
+        prompt = `Create a professional Weight Loss & Lifestyle Guide for ${pName}.
 CRITICAL INSTRUCTION: Start with: "${lifestyleGreeting}"
 
 Focus strictly on lifestyle modifications:
@@ -159,7 +245,7 @@ Macro Breakdown:
 • Carbohydrates: <20% (Whole grains, low-GI).
 
 ::: PHYSICAL ACTIVITY PLAN :::
-Activity Level: ${patient_data.activityLevel}. Provide specific cardio and strength training recommendations based on their weight (${patient_data.weight}kg).
+Activity Level: ${pActivityLevel}. Provide specific cardio and strength training recommendations based on their weight (${pWeight}kg).
 
 ::: CONSISTENCY & MINDSET :::
 Strategies for habit formation, tracking progress, and overcoming weight-loss plateaus.
@@ -169,7 +255,7 @@ Guidelines for water intake and the importance of sleep in metabolism.
 
 ::: FOLLOW-UP PLAN :::
 Regular check-ins (monthly) to monitor progress.
-${treatment_data.bloodTestLevel === "required" ? "Note: Please complete the required lab test: https://www.dardoc.com/dubai/lab-test/weight-loss-blood-test" : treatment_data.bloodTestLevel === "recommended" ? "Note: We recommend completing the lab test: https://www.dardoc.com/dubai/lab-test/weight-loss-blood-test" : ""}
+${tBloodTestLevel === "required" ? "Note: Please complete the required lab test: https://www.dardoc.com/dubai/lab-test/weight-loss-blood-test" : tBloodTestLevel === "recommended" ? "Note: We recommend completing the lab test: https://www.dardoc.com/dubai/lab-test/weight-loss-blood-test" : ""}
 
 Sign as:
 Dr Sami M. Yesuf
@@ -217,6 +303,12 @@ SCOPE Certified Physician`;
 
     // ---- ORIGINAL PEPTIDE CONSULTATION ----
     const { intake_answers, peptide_protocols } = body;
+
+    if (!intake_answers || typeof intake_answers !== "object") {
+      return new Response(JSON.stringify({ error: "intake_answers is required" }), {
+        status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
 
     const systemPrompt = `You are a clinical peptide therapy consultation assistant for a medical clinic. You have deep knowledge of peptide protocols.
 
@@ -386,7 +478,7 @@ Based on this patient's intake data and the available peptide protocols, provide
     });
   } catch (e) {
     console.error("consultation error:", e);
-    return new Response(JSON.stringify({ error: e instanceof Error ? e.message : "Unknown error" }), {
+    return new Response(JSON.stringify({ error: "An error occurred processing your request" }), {
       status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" },
     });
   }
