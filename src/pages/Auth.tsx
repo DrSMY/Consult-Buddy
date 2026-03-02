@@ -8,26 +8,42 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import Logo from "@/components/Logo";
 
+type View = "login" | "signup" | "forgot";
+
 export default function Auth() {
-  const [isLogin, setIsLogin] = useState(true);
+  const [view, setView] = useState<View>("login");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [loading, setLoading] = useState(false);
+  const [resetSent, setResetSent] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setLoading(true);
+    const { error } = await supabase.auth.resetPasswordForEmail(email, {
+      redirectTo: `${window.location.origin}/reset-password`,
+    });
+    setLoading(false);
+    if (error) {
+      toast({ title: "Error", description: error.message, variant: "destructive" });
+    } else {
+      setResetSent(true);
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
 
-    if (isLogin) {
+    if (view === "login") {
       const { data, error } = await supabase.auth.signInWithPassword({ email, password });
       if (error) {
         toast({ title: "Login failed", description: error.message, variant: "destructive" });
       } else if (data.user) {
-        // Check if the user is approved
         const { data: profile } = await supabase
           .from("profiles")
           .select("approved, rejected")
@@ -63,16 +79,12 @@ export default function Auth() {
       if (error) {
         toast({ title: "Sign up failed", description: error.message, variant: "destructive" });
       } else {
-        // Send branded confirmation email to user (fire-and-forget)
         supabase.functions.invoke('send-confirmation-email', {
           body: { name: fullName, email },
         }).catch(console.error);
-
-        // Notify admin about new signup (fire-and-forget)
         supabase.functions.invoke('notify-admin-signup', {
           body: { name: fullName, email, phone },
         }).catch(console.error);
-
         toast({
           title: "You're almost in! 🎉",
           description: "Our admin will review and approve your account shortly — hang tight, good things are coming!",
@@ -81,6 +93,77 @@ export default function Auth() {
     }
     setLoading(false);
   };
+
+  // Forgot password view
+  if (view === "forgot") {
+    return (
+      <div className="flex min-h-screen items-center justify-center gradient-surface px-4">
+        <div className="w-full max-w-md animate-slide-up">
+          <div className="flex justify-center mb-8">
+            <Logo size="lg" />
+          </div>
+          <Card className="glass-card shadow-xl shadow-primary/5">
+            <CardHeader className="text-center space-y-1 pb-4">
+              <CardTitle className="text-xl">
+                {resetSent ? "Check your email" : "Reset Password"}
+              </CardTitle>
+              <CardDescription>
+                {resetSent
+                  ? "We've sent a password reset link to your email."
+                  : "Enter your email and we'll send you a reset link"}
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {resetSent ? (
+                <div className="space-y-4 text-center">
+                  <p className="text-sm text-muted-foreground">
+                    Didn't get the email? Check your spam folder or try again.
+                  </p>
+                  <Button
+                    variant="outline"
+                    onClick={() => { setResetSent(false); setView("login"); }}
+                    className="w-full"
+                  >
+                    Back to Sign In
+                  </Button>
+                </div>
+              ) : (
+                <form onSubmit={handleForgotPassword} className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="email">Email</Label>
+                    <Input
+                      id="email"
+                      type="email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      placeholder="you@clinic.com"
+                      required
+                    />
+                  </div>
+                  <Button type="submit" className="w-full gradient-primary" disabled={loading}>
+                    {loading ? "Sending..." : "Send Reset Link"}
+                  </Button>
+                </form>
+              )}
+              {!resetSent && (
+                <div className="mt-4 text-center text-sm text-muted-foreground">
+                  <button
+                    type="button"
+                    onClick={() => setView("login")}
+                    className="text-primary hover:underline font-medium"
+                  >
+                    Back to Sign In
+                  </button>
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
+      </div>
+    );
+  }
+
+  const isLogin = view === "login";
 
   return (
     <div className="flex min-h-screen items-center justify-center gradient-surface px-4">
@@ -106,7 +189,7 @@ export default function Auth() {
                     id="fullName"
                     value={fullName}
                     onChange={(e) => setFullName(e.target.value)}
-                  placeholder="Dr. Jane Smith"
+                    placeholder="Dr. Jane Smith"
                     required
                   />
                 </div>
@@ -136,7 +219,18 @@ export default function Auth() {
                 />
               </div>
               <div className="space-y-2">
-                <Label htmlFor="password">Password</Label>
+                <div className="flex items-center justify-between">
+                  <Label htmlFor="password">Password</Label>
+                  {isLogin && (
+                    <button
+                      type="button"
+                      onClick={() => setView("forgot")}
+                      className="text-xs text-primary hover:underline"
+                    >
+                      Forgot password?
+                    </button>
+                  )}
+                </div>
                 <Input
                   id="password"
                   type="password"
@@ -155,7 +249,7 @@ export default function Auth() {
               {isLogin ? "Don't have an account?" : "Already have an account?"}{" "}
               <button
                 type="button"
-                onClick={() => setIsLogin(!isLogin)}
+                onClick={() => setView(isLogin ? "signup" : "login")}
                 className="text-primary hover:underline font-medium"
               >
                 {isLogin ? "Sign up" : "Sign in"}
