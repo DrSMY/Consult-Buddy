@@ -4,3 +4,12 @@ project_id = "kokottennducgqcearxu"
 [auth.email.template.confirmation]
 subject = "Welcome to DOCassist — You're Almost In!"
 content_path = "./supabase/templates/confirmation.html"
+
+[functions.consultation]
+verify_jwt = false
+
+[functions.notify-admin-signup]
+verify_jwt = false
+
+[functions.send-confirmation-email]
+verify_jwt = false

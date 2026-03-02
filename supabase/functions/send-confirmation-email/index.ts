@@ -5,6 +5,18 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version',
 };
 
+function sanitize(val: unknown, maxLen: number): string {
+  if (typeof val !== "string") return "";
+  return val.slice(0, maxLen).replace(/[<>&"']/g, (c) => {
+    const map: Record<string, string> = { "<": "&lt;", ">": "&gt;", "&": "&amp;", '"': "&quot;", "'": "&#39;" };
+    return map[c] || c;
+  }).replace(/[\x00-\x08\x0B\x0C\x0E-\x1F]/g, "");
+}
+
+function isValidEmail(email: string): boolean {
+  return /^[^\s@]{1,64}@[^\s@]{1,255}\.[^\s@]{2,}$/.test(email);
+}
+
 serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -12,17 +24,23 @@ serve(async (req) => {
 
   const RESEND_API_KEY = Deno.env.get('RESEND_API_KEY');
   if (!RESEND_API_KEY) {
-    return new Response(JSON.stringify({ error: 'RESEND_API_KEY is not configured' }), {
+    return new Response(JSON.stringify({ error: 'Email service not configured' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 
   try {
-    const { name, email } = await req.json();
+    const body = await req.json();
 
-    if (!email) {
-      throw new Error('Email is required');
+    const name = sanitize(body.name, 100);
+    const email = typeof body.email === "string" ? body.email.trim().slice(0, 255) : "";
+
+    if (!email || !isValidEmail(email)) {
+      return new Response(JSON.stringify({ error: 'Valid email is required' }), {
+        status: 400,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
 
     const displayName = name || 'there';
@@ -50,14 +68,14 @@ serve(async (req) => {
       <h1>PeptiDOC</h1>
     </div>
     <div class="body">
-      <h2>Welcome aboard, ${displayName}! 🎉</h2>
+      <h2>Welcome aboard, ${displayName}!</h2>
       <p>Thanks for signing up for <strong>PeptiDOC</strong>. We're excited to have you!</p>
       <p>Your account has been created successfully. Our admin team will now review your account and approve access.</p>
-      <p>Hang tight — good things are on the way! ✨</p>
+      <p>Hang tight — good things are on the way!</p>
       <p>We'll notify you as soon as you're all set to dive in.</p>
     </div>
     <div class="footer">
-      <p>© PeptiDOC — Smart Clinical Consultation Platform</p>
+      <p>&copy; PeptiDOC — Smart Clinical Consultation Platform</p>
     </div>
   </div>
 </body>
@@ -72,14 +90,14 @@ serve(async (req) => {
       body: JSON.stringify({
         from: 'PeptiDOC <onboarding@resend.dev>',
         to: [email],
-        subject: 'Welcome to PeptiDOC — You\'re Almost In!',
+        subject: "Welcome to PeptiDOC — You're Almost In!",
         html: htmlContent,
       }),
     });
 
     const data = await response.json();
     if (!response.ok) {
-      throw new Error(`Resend API error [${response.status}]: ${JSON.stringify(data)}`);
+      throw new Error('Email service error');
     }
 
     return new Response(JSON.stringify({ success: true }), {
@@ -88,8 +106,7 @@ serve(async (req) => {
     });
   } catch (error: unknown) {
     console.error('Error sending confirmation email:', error);
-    const errorMessage = error instanceof Error ? error.message : 'Unknown error';
-    return new Response(JSON.stringify({ success: false, error: errorMessage }), {
+    return new Response(JSON.stringify({ success: false, error: 'Failed to send email' }), {
       status: 500,
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
