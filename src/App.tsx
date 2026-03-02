@@ -16,6 +16,7 @@ import PatientFiles from "./pages/PatientFiles";
 import UserManagement from "./pages/UserManagement";
 import NotFound from "./pages/NotFound";
 import Install from "./pages/Install";
+import InstallBanner from "./components/InstallBanner";
 
 const queryClient = new QueryClient();
 
@@ -26,6 +27,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <AuthProvider>
+          <InstallBanner />
           <Routes>
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/auth" element={<Auth />} />
