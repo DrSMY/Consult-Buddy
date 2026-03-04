@@ -170,7 +170,8 @@ export function calculateBMR(
 
 export function generateClinicalSuggestion(
   patient: GLP1Patient,
-  treatment: TreatmentPlan
+  treatment: TreatmentPlan,
+  followupData?: FollowupData
 ): string {
   if (!treatment.medication || !patient.name) return "";
 
@@ -180,16 +181,29 @@ export function generateClinicalSuggestion(
       : treatment.medication;
 
   const doseText = treatment.dose ? ` ${treatment.dose}` : "";
-  let pronoun = "the patient";
   let salutation = "Mr";
 
   if (patient.gender === Gender.Male) {
-    pronoun = "He";
     salutation = "Mr";
   } else if (patient.gender === Gender.Female) {
-    pronoun = "She";
     salutation = "Ms";
   }
+
+  // Follow-up format
+  if (followupData) {
+    const weightLostText = followupData.weightLost
+      ? `lost ${followupData.weightLost} kg on ${followupData.previousDose || "previous dose"}`
+      : `on ${followupData.previousDose || "previous dose"}`;
+    const sideEffectsText = followupData.sideEffects?.trim() || "No side effects";
+    const notesText = followupData.notes?.trim() || treatment.notes?.trim() || "";
+
+    return `Refill : booking ID ${patient.bookingId || "N/A"} , ${salutation} ${patient.name} (${patient.mobileNumber || "No phone"}) \nprescribed ${medName}${doseText} , ${weightLostText} , ${sideEffectsText}${notesText ? `, ${notesText}` : ""}`.trim();
+  }
+
+  // New patient format
+  let pronoun = "the patient";
+  if (patient.gender === Gender.Male) pronoun = "He";
+  else if (patient.gender === Gender.Female) pronoun = "She";
 
   const bmiVal = patient.bmi || 0;
   const bmiCat = getBMICategory(bmiVal);

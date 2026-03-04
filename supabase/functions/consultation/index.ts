@@ -138,7 +138,7 @@ serve(async (req) => {
 
     // ---- GENERATE GLP-1 PATIENT GUIDE ----
     if (action === "generate-glp1-guide") {
-      const { patient_data, treatment_data } = body;
+      const { patient_data, treatment_data, is_followup, followup_data } = body;
 
       if (!patient_data || typeof patient_data !== "object" || !treatment_data || typeof treatment_data !== "object") {
         return new Response(JSON.stringify({ error: "patient_data and treatment_data are required" }), {
@@ -180,7 +180,45 @@ serve(async (req) => {
       const protMax = Math.round(pWeight * 1.5);
 
       let prompt = "";
-      if (isGlp1) {
+
+      // FOLLOW-UP: short, focused guide
+      if (is_followup) {
+        const fPreviousDose = sanitizeString(followup_data?.previousDose, 100) || "previous dose";
+        const fWeightLost = validateNumber(followup_data?.weightLost, 0, 500);
+        const fSideEffects = sanitizeString(followup_data?.sideEffects, 500) || "none reported";
+
+        const followupGreeting = `Hi ${salutation} ${pName}, here is your follow-up reminder for your continued ${medName} treatment.`;
+
+        prompt = `Create a SHORT follow-up patient reminder for ${pName} continuing ${medName} ${dose}.
+CRITICAL: This is a FOLLOW-UP visit, NOT a new patient. Keep it concise — no more than 4–5 short sections.
+Start exactly with: "${followupGreeting}"
+
+::: REFILL SUMMARY :::
+Previous dose: ${fPreviousDose}. New prescribed dose: ${medName} ${dose}.
+${fWeightLost ? `Weight lost so far: ${fWeightLost} kg.` : ""}
+Side effects reported: ${fSideEffects}.
+
+::: MEDICATION REMINDER :::
+${isOral
+  ? "Continue taking one tablet daily on an empty stomach. Swallow whole with a small sip of water. Wait 30 minutes before eating."
+  : `Continue ${medName} ${dose} injection once weekly on the same day. Rotate injection sites.`}
+
+::: IMPORTANT REMINDERS :::
+- Stay hydrated (2-3 liters/day)
+- Maintain high protein intake (${protMin}–${protMax}g/day)
+- Report any new or worsening side effects immediately
+- Do NOT skip doses; if missed, take as soon as possible within 5 days
+
+::: FOLLOW-UP :::
+Next review after 4 weeks. Contact the clinic if you experience severe nausea, vomiting, or abdominal pain.
+${tBloodTestLevel === "required" ? "REQUIRED: Complete Weight Loss Blood Test (https://www.dardoc.com/dubai/lab-test/weight-loss-blood-test)" : tBloodTestLevel === "recommended" ? "RECOMMENDED: Weight Loss Blood Test (https://www.dardoc.com/dubai/lab-test/weight-loss-blood-test)" : ""}
+
+Sign as:
+Dr Sami M. Yesuf
+SCOPE Certified Physician
+
+IMPORTANT: Keep this guide SHORT and to the point. Do not repeat full new-patient education.`;
+      } else if (isGlp1) {
         const greeting = `Hi ${salutation} ${pName}, this is a guide for you to start your journey with us and take the medication as advised.`;
 
         const storageSection = isOral
