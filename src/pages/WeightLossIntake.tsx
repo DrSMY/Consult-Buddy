@@ -95,10 +95,10 @@ export default function WeightLossIntake() {
   // Auto-generate clinical suggestion
   useEffect(() => {
     if (treatment.medication) {
-      const suggestion = generateClinicalSuggestion(patient, treatment);
+      const suggestion = generateClinicalSuggestion(patient, treatment, flowType === "followup" ? followup : undefined);
       setTreatment(t => ({ ...t, doctorSuggestions: suggestion }));
     }
-  }, [treatment.medication, treatment.dose, treatment.otherDetail, treatment.notes, treatment.bloodTestLevel, patient.mobileNumber, patient.name, patient.bmi, patient.previousGlp1Use, patient.previousMedication, patient.previousDose, patient.chronicIllnesses, patient.weight, patient.weightLossCalories, patient.bookingId, patient.gender]);
+  }, [treatment.medication, treatment.dose, treatment.otherDetail, treatment.notes, treatment.bloodTestLevel, patient.mobileNumber, patient.name, patient.bmi, patient.previousGlp1Use, patient.previousMedication, patient.previousDose, patient.chronicIllnesses, patient.weight, patient.weightLossCalories, patient.bookingId, patient.gender, flowType, followup.weightLost, followup.sideEffects, followup.previousDose, followup.notes]);
 
   // Load previous weight-loss consultations for follow-up
   useEffect(() => {
@@ -202,6 +202,8 @@ export default function WeightLossIntake() {
           action: "generate-glp1-guide",
           patient_data: patient,
           treatment_data: treatment,
+          is_followup: flowType === "followup",
+          followup_data: flowType === "followup" ? followup : undefined,
         },
       });
       if (error) throw error;
@@ -340,6 +342,9 @@ export default function WeightLossIntake() {
               className="pl-10"
             />
           </div>
+          <Button className="w-full mb-4" onClick={() => { setSelectedPrevConsultation({}); setStep(0); }}>
+            <UserPlus className="h-4 w-4 mr-1" /> New Follow-up Patient
+          </Button>
           {loadingFollowups ? (
             <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
           ) : filteredPrevConsultations.length === 0 ? (
@@ -348,9 +353,6 @@ export default function WeightLossIntake() {
                 <AlertTriangle className="h-8 w-8 mx-auto mb-3 opacity-40" />
                 <p className="font-medium">No previous weight-loss patients found</p>
                 <p className="text-sm mt-1">You can start a new follow-up encounter manually.</p>
-                <Button className="mt-4" onClick={() => { setSelectedPrevConsultation({}); setStep(0); }}>
-                  <UserPlus className="h-4 w-4 mr-1" /> New Follow-up Patient
-                </Button>
               </CardContent>
             </Card>
           ) : (
@@ -387,12 +389,9 @@ export default function WeightLossIntake() {
               })}
             </div>
           )}
-          <div className="mt-6 flex justify-between">
+          <div className="mt-6">
             <Button variant="outline" onClick={() => setFlowType(null)}>
               <ArrowLeft className="h-4 w-4 mr-1" /> Back
-            </Button>
-            <Button onClick={() => { setSelectedPrevConsultation({}); setStep(0); }}>
-              <UserPlus className="h-4 w-4 mr-1" /> New Follow-up Patient
             </Button>
           </div>
         </main>
@@ -995,7 +994,7 @@ export default function WeightLossIntake() {
                     <FileText className="h-4 w-4 text-primary" /> Clinical Suggestion
                   </CardTitle>
                   <Button variant="outline" size="sm" onClick={() => {
-                    const s = generateClinicalSuggestion(patient, treatment);
+                    const s = generateClinicalSuggestion(patient, treatment, flowType === "followup" ? followup : undefined);
                     updateTreatment("doctorSuggestions", s);
                   }} disabled={!treatment.medication}>
                     <Sparkles className="h-3 w-3 mr-1" /> Refresh
