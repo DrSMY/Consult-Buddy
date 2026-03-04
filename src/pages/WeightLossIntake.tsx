@@ -141,6 +141,7 @@ export default function WeightLossIntake() {
       });
       setFollowup(f => ({
         ...f,
+        previousMedication: prevTreatment?.medication || "",
         previousDose: prevTreatment?.dose || prevTreatment?.otherDetail || "",
       }));
       setTreatment(t => ({
@@ -842,8 +843,48 @@ export default function WeightLossIntake() {
                 <CardContent className="space-y-4">
                   <div className="grid grid-cols-2 gap-4">
                     <div>
+                      <Label className="text-xs font-bold text-muted-foreground uppercase">Previous Medication</Label>
+                      <select
+                        className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                        value={followup.previousMedication}
+                        onChange={e => setFollowup(f => ({ ...f, previousMedication: e.target.value as MedicationType, previousDose: "" }))}
+                      >
+                        <option value="">Select...</option>
+                        <option value="Mounjaro">Mounjaro</option>
+                        <option value="Wegovy">Wegovy</option>
+                        <option value="Ozempic">Ozempic</option>
+                        <option value="Rybelsus">Rybelsus</option>
+                        <option value="Other">Other</option>
+                      </select>
+                    </div>
+                    <div>
                       <Label className="text-xs font-bold text-muted-foreground uppercase">Previous Dose</Label>
-                      <Input value={followup.previousDose} readOnly className="mt-1 bg-muted/50" />
+                      {followup.previousMedication && ["Mounjaro", "Wegovy", "Ozempic", "Rybelsus"].includes(followup.previousMedication) ? (
+                        <select
+                          className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
+                          value={followup.previousDose}
+                          onChange={e => setFollowup(f => ({ ...f, previousDose: e.target.value }))}
+                        >
+                          <option value="">Select...</option>
+                          {getDoseOptions(followup.previousMedication as MedicationType).map(d => (
+                            <option key={d} value={d}>{d}</option>
+                          ))}
+                        </select>
+                      ) : (
+                        <Input value={followup.previousDose} onChange={e => setFollowup(f => ({ ...f, previousDose: e.target.value }))} placeholder="e.g. 10mg" className="mt-1" />
+                      )}
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <Label className="text-xs font-bold text-muted-foreground uppercase">Current Weight (kg)</Label>
+                      <Input
+                        type="number"
+                        placeholder="e.g. 88"
+                        value={followup.currentWeight}
+                        onChange={e => setFollowup(f => ({ ...f, currentWeight: e.target.value === "" ? "" : Number(e.target.value) }))}
+                        className="mt-1"
+                      />
                     </div>
                     <div>
                       <Label className="text-xs font-bold text-muted-foreground uppercase">Weight Lost (kg)</Label>
