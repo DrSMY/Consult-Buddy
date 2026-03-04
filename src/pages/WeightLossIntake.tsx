@@ -267,7 +267,9 @@ export default function WeightLossIntake() {
     setTreatment(t => ({ ...t, [field]: value }));
   };
 
-  const isIdentityValid = patient.name && patient.mobileNumber && patient.age && patient.height && patient.weight;
+  const isIdentityValid = flowType === "followup"
+    ? patient.name && patient.mobileNumber
+    : patient.name && patient.mobileNumber && patient.age && patient.height && patient.weight;
   const isTreatmentComplete = treatment.medication !== "" && (treatment.medication === "Other" ? !!treatment.otherDetail : !!treatment.dose);
 
   // ---- SELECTION SCREEN ----
@@ -569,7 +571,7 @@ export default function WeightLossIntake() {
 
                 <div className="grid grid-cols-2 gap-4">
                   <div>
-                    <Label>Age <span className="text-destructive">*</span></Label>
+                    <Label>Age {flowType !== "followup" && <span className="text-destructive">*</span>}</Label>
                     <Input type="number" value={patient.age} onChange={e => updatePatient("age", e.target.value === "" ? "" : Number(e.target.value))} className="mt-1" />
                   </div>
                   <div>
@@ -590,7 +592,7 @@ export default function WeightLossIntake() {
                 <div className="grid grid-cols-2 gap-4 pt-4 border-t">
                   <div>
                     <div className="flex justify-between items-center mb-1">
-                      <Label className="flex items-center gap-1"><Ruler className="h-3.5 w-3.5" /> Height <span className="text-destructive">*</span></Label>
+                      <Label className="flex items-center gap-1"><Ruler className="h-3.5 w-3.5" /> Height {flowType !== "followup" && <span className="text-destructive">*</span>}</Label>
                       <div className="flex bg-secondary rounded-md p-0.5 text-[10px] font-bold">
                         <button type="button" onClick={() => setHeightUnit("cm")} className={`px-2 py-0.5 rounded transition-all ${heightUnit === "cm" ? "bg-background shadow-sm text-primary" : "text-muted-foreground"}`}>CM</button>
                         <button type="button" onClick={() => setHeightUnit("ft")} className={`px-2 py-0.5 rounded transition-all ${heightUnit === "ft" ? "bg-background shadow-sm text-primary" : "text-muted-foreground"}`}>FT</button>
@@ -626,7 +628,7 @@ export default function WeightLossIntake() {
                   {/* Weight */}
                   <div>
                     <div className="flex justify-between items-center mb-1">
-                      <Label className="flex items-center gap-1"><WeightIcon className="h-3.5 w-3.5" /> Weight <span className="text-destructive">*</span></Label>
+                      <Label className="flex items-center gap-1"><WeightIcon className="h-3.5 w-3.5" /> Weight {flowType !== "followup" && <span className="text-destructive">*</span>}</Label>
                       <div className="flex bg-secondary rounded-md p-0.5 text-[10px] font-bold">
                         <button type="button" onClick={() => setWeightUnit("kg")} className={`px-2 py-0.5 rounded transition-all ${weightUnit === "kg" ? "bg-background shadow-sm text-primary" : "text-muted-foreground"}`}>KG</button>
                         <button type="button" onClick={() => setWeightUnit("lbs")} className={`px-2 py-0.5 rounded transition-all ${weightUnit === "lbs" ? "bg-background shadow-sm text-primary" : "text-muted-foreground"}`}>LBS</button>
