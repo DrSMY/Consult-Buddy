@@ -98,18 +98,22 @@ export const createEmptyPatient = (): GLP1Patient => ({
 });
 
 export interface FollowupData {
+  previousMedication: MedicationType | "";
   previousDose: string;
   nextDose: string;
   sideEffects: string;
   weightLost: number | "";
+  currentWeight: number | "";
   notes: string;
 }
 
 export const createEmptyFollowup = (): FollowupData => ({
+  previousMedication: "",
   previousDose: "",
   nextDose: "",
   sideEffects: "",
   weightLost: "",
+  currentWeight: "",
   notes: "",
 });
 
