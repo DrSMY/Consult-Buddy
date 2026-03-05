@@ -1,43 +1,37 @@
 
 
-## Make Patient Guide Display More Attractive
+## Approach: Colorful, Icon-Rich Patient Guide PDF
 
-The patient guide text uses a consistent `::: SECTION NAME :::` format. Instead of rendering it as plain monospace text, I'll parse these sections and render each as a styled card with an appropriate icon and color — without changing the text content itself.
+Since the PDF is generated via `window.open()` + `print()`, we're working with pure HTML/CSS in a standalone window. Here's how to make it attractive:
 
-### Changes
+### Strategy
 
-**New file: `src/components/PatientGuideDisplay.tsx`**
-- A reusable component that takes the raw guide text string and parses it into sections based on the `::: SECTION_NAME :::` delimiter
-- Each section renders as a color-coded card with a matching icon:
-  - INTRODUCTION → BookOpen icon, teal
-  - PATIENT SUMMARY → Scale icon, blue
-  - STORAGE INSTRUCTIONS → ThermometerSnowflake icon, cyan
-  - HOW TO INJECT / HOW TO TAKE → Syringe/Pill icon, indigo
-  - NUTRITION & DIET / DIETARY ADVICE → Utensils icon, green
-  - COMMON SIDE EFFECTS → AlertTriangle icon, amber
-  - RED-FLAG SYMPTOMS → ShieldAlert icon, rose
-  - FOLLOW-UP PLAN → Calendar icon, violet
-  - PHYSICAL ACTIVITY → Activity icon, emerald
-  - CONSISTENCY & MINDSET → Brain icon, purple
-  - HYDRATION & RECOVERY → Droplets icon, sky
-  - YOUR PRESCRIBED MEDICATIONS → Pill icon, blue
-  - Unknown sections → FileText icon, gray
-- The greeting line (before the first `:::`) renders as a highlighted intro banner
-- Bullet points (`*   **Bold:**`) and numbered lists are parsed and rendered with proper formatting (bold labels, indented sub-items)
-- The signature line (Dr Sami) renders as a styled footer
-- Falls back to the plain text display if no `:::` sections are detected (for non-standard guides)
+**Inline SVG icons** — We can embed SVG icons directly in the HTML string (no external dependencies needed in the print window). We'll map each section title to a colored SVG icon, matching the same icon/color scheme already used in `PatientGuideDisplay.tsx`.
 
-**`src/pages/WeightLossConsultation.tsx`**
-- Replace the plain `<div className="whitespace-pre-wrap">` patient guide block with `<PatientGuideDisplay text={patientGuide} />`
-- Keep the copy/WhatsApp buttons unchanged (they still copy the raw text)
+**Colored section headers** — Each section gets a unique background color on its header bar (teal for intro, blue for patient summary, green for nutrition, amber for side effects, rose for red flags, etc.).
 
-**`src/pages/Consultation.tsx`**
-- Replace the plain `<div className="whitespace-pre-wrap">` for `buildActionPlan.patientGuide` with `<PatientGuideDisplay text={patientGuide} />`
+**Visual enhancements:**
+- Gradient header banner with the PeptiDOC branding
+- Colored left border accent on each section card
+- Soft pastel background tints per section
+- Styled bullet points with colored dots
+- A professional footer with branding
 
-### Technical Details
-- Parsing logic: split text by regex `/^:::\s*(.+?)\s*:::$/gm`, extract section titles and content
-- Each section's content is further parsed: lines starting with `*` or `-` become list items, numbered lines become ordered lists, `**text**` patterns are rendered as `<strong>`
-- The component is purely presentational — no text modification. The raw text is preserved for copy/WhatsApp
-- Section-to-icon mapping uses a simple lookup object
-- Responsive: cards stack vertically, work on mobile
+### What changes
+
+**Single file: `src/utils/printGuide.ts`**
+
+1. Add an `SVG_ICONS` map — inline SVG strings for each section type (syringe, pill, utensils, alert-triangle, etc.), sourced from Lucide icon paths
+2. Add a `SECTION_COLORS` map — matching the color scheme from `PatientGuideDisplay.tsx` (teal, blue, green, amber, rose, violet, etc.)
+3. Update the HTML template:
+   - Header: gradient teal banner with logo-style text
+   - Intro: teal-tinted card with a book icon
+   - Each section: colored left border, tinted header background with inline SVG icon, white content area
+   - Bullets: colored dot markers instead of plain dots
+   - Footer: styled PeptiDOC branding strip
+4. All styles use `!important` where needed for print compatibility and `-webkit-print-color-adjust: exact` to ensure colors print
+
+### No functional changes
+- Same parsing logic, same section detection, same text formatting
+- Only the visual presentation of the generated HTML changes
 
