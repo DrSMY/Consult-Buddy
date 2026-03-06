@@ -1,37 +1,28 @@
 
 
-## Approach: Colorful, Icon-Rich Patient Guide PDF
+## Diagnosis
 
-Since the PDF is generated via `window.open()` + `print()`, we're working with pure HTML/CSS in a standalone window. Here's how to make it attractive:
+The current PDF template has two issues causing the "only header/footer have color" appearance:
 
-### Strategy
+1. **`.section-content` forces `background: white`** (line 188) — this overrides the colored section background, so only the tiny section header bar shows color while the actual content is plain white.
+2. **Subtle pastel tints are too faint** — even when fixed, the colors need to be more vivid to be noticeable in print.
 
-**Inline SVG icons** — We can embed SVG icons directly in the HTML string (no external dependencies needed in the print window). We'll map each section title to a colored SVG icon, matching the same icon/color scheme already used in `PatientGuideDisplay.tsx`.
+The icons and color-mapping code is already in place and working. The fix is purely CSS/template adjustments.
 
-**Colored section headers** — Each section gets a unique background color on its header bar (teal for intro, blue for patient summary, green for nutrition, amber for side effects, rose for red flags, etc.).
+## Plan — Single file: `src/utils/printGuide.ts`
 
-**Visual enhancements:**
-- Gradient header banner with the PeptiDOC branding
-- Colored left border accent on each section card
-- Soft pastel background tints per section
-- Styled bullet points with colored dots
-- A professional footer with branding
+### Changes
 
-### What changes
+1. **Remove `background: white` from `.section-content`** — let the section's tinted background show through the content area
+2. **Increase color saturation** on section backgrounds so they're clearly visible in print (e.g., `#f0fdfa` → a slightly richer tint)
+3. **Add a colored accent bar** at the top of each section content area (a thin gradient divider between header and content)
+4. **Make section icons larger** (18px → 22px) so they're more prominent
+5. **Add a subtle colored left-border stripe** that runs the full height of each section (already present at 4px, increase to 5px for more visual weight)
+6. **Style bullet points larger** (7px → 9px colored dots) for more visual pop
+7. **Add a subtle background gradient to the page body** so it's not plain white between sections
 
-**Single file: `src/utils/printGuide.ts`**
+No external dependencies or images needed — all visual richness comes from CSS colors, gradients, and the existing inline SVG icons. Nothing from the user is required.
 
-1. Add an `SVG_ICONS` map — inline SVG strings for each section type (syringe, pill, utensils, alert-triangle, etc.), sourced from Lucide icon paths
-2. Add a `SECTION_COLORS` map — matching the color scheme from `PatientGuideDisplay.tsx` (teal, blue, green, amber, rose, violet, etc.)
-3. Update the HTML template:
-   - Header: gradient teal banner with logo-style text
-   - Intro: teal-tinted card with a book icon
-   - Each section: colored left border, tinted header background with inline SVG icon, white content area
-   - Bullets: colored dot markers instead of plain dots
-   - Footer: styled PeptiDOC branding strip
-4. All styles use `!important` where needed for print compatibility and `-webkit-print-color-adjust: exact` to ensure colors print
-
-### No functional changes
-- Same parsing logic, same section detection, same text formatting
-- Only the visual presentation of the generated HTML changes
+### Preview note
+I cannot render a live preview of the print window, but after implementation you can click **Print / PDF** on any consultation to see the result immediately. The print dialog's preview will show the full colorful layout before you commit to printing.
 
