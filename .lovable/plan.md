@@ -1,28 +1,27 @@
 
 
-## Diagnosis
+## Root Cause
 
-The current PDF template has two issues causing the "only header/footer have color" appearance:
+The section parsing regex in `printGuide.ts` line 81 is:
+```
+/^(?::::\s*(.+?)\s*::::|---\s*(.+?)\s*---)$/gm
+```
+It expects **4 colons** (`::::`) but the consultation edge function generates section markers with **3 colons** (`::: INTRODUCTION :::`). Because nothing matches, the entire guide renders as plain unstyled text -- no colored cards, no icons, no section backgrounds.
 
-1. **`.section-content` forces `background: white`** (line 188) — this overrides the colored section background, so only the tiny section header bar shows color while the actual content is plain white.
-2. **Subtle pastel tints are too faint** — even when fixed, the colors need to be more vivid to be noticeable in print.
+## Fix -- Single file: `src/utils/printGuide.ts`
 
-The icons and color-mapping code is already in place and working. The fix is purely CSS/template adjustments.
+**Line 81**: Change the regex to match 3+ colons instead of exactly 4:
+```
+/^(?:::+\s*(.+?)\s*:::+|---\s*(.+?)\s*---)$/gm
+```
 
-## Plan — Single file: `src/utils/printGuide.ts`
+This single character change (`:::+` instead of `::::`) will make the regex match `::: TITLE :::` correctly. Once matched, all the existing icon mapping, color mapping, and section card rendering will work as designed -- colored backgrounds, SVG icons in headers, tinted bullet dots, the full layout.
 
-### Changes
-
-1. **Remove `background: white` from `.section-content`** — let the section's tinted background show through the content area
-2. **Increase color saturation** on section backgrounds so they're clearly visible in print (e.g., `#f0fdfa` → a slightly richer tint)
-3. **Add a colored accent bar** at the top of each section content area (a thin gradient divider between header and content)
-4. **Make section icons larger** (18px → 22px) so they're more prominent
-5. **Add a subtle colored left-border stripe** that runs the full height of each section (already present at 4px, increase to 5px for more visual weight)
-6. **Style bullet points larger** (7px → 9px colored dots) for more visual pop
-7. **Add a subtle background gradient to the page body** so it's not plain white between sections
-
-No external dependencies or images needed — all visual richness comes from CSS colors, gradients, and the existing inline SVG icons. Nothing from the user is required.
-
-### Preview note
-I cannot render a live preview of the print window, but after implementation you can click **Print / PDF** on any consultation to see the result immediately. The print dialog's preview will show the full colorful layout before you commit to printing.
+Additionally, some section titles in the guide don't exactly match the keys in `SECTION_COLORS` / `SVG_ICONS` (e.g., `"NUTRITION & DIET STRUCTURE"` vs `"NUTRITION & DIET PLAN"`, `"HOW TO TAKE"` vs `"HOW TO TAKE YOUR MEDICATION"`, `"COMMON SIDE EFFECTS & MANAGEMENT"` vs `"COMMON SIDE EFFECTS"`). The fuzzy matching via `includes()` in `getColors`/`getIcon` handles most of these, but I will add a few missing key variants to ensure full coverage:
+- `"NUTRITION & DIET STRUCTURE"` 
+- `"COMMON SIDE EFFECTS & MANAGEMENT"`
+- `"HOW TO TAKE"`
+- `"PHYSICAL ACTIVITY PLAN"`
+- `"NUTRITION & DIETARY ADVICE"`
+- `"FOLLOW-UP"`
 
