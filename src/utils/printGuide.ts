@@ -78,7 +78,7 @@ export function printPatientGuide(guideText: string, patientName?: string) {
   if (!win) return;
 
   // Parse ::: or --- sections
-  const sectionRegex = /^(?::::\s*(.+?)\s*::::|---\s*(.+?)\s*---)$/gm;
+  const sectionRegex = /^(?:::+\s*(.+?)\s*:::+|---\s*(.+?)\s*---)$/gm;
   const titles: { title: string; start: number; end: number }[] = [];
   let match: RegExpExecArray | null;
   while ((match = sectionRegex.exec(guideText)) !== null) {
