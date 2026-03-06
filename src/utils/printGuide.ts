@@ -222,7 +222,7 @@ export function printPatientGuide(guideText: string, patientName?: string) {
 </style></head><body>
 
 <div class="header-banner">
-  <div class="header-brand">PeptiDOC</div>
+  <div class="header-brand">DarDoc</div>
   <h1>${esc(title)}</h1>
   <div class="header-date">Generated: ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</div>
 </div>
@@ -232,7 +232,7 @@ ${bodyHtml}
 </div>
 
 <div class="footer">
-  <div class="footer-brand">PeptiDOC</div>
+  <div class="footer-brand">DarDoc</div>
   <div class="footer-sub">Confidential Patient Information — For Personal Use Only</div>
 </div>
 
