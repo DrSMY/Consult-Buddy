@@ -342,6 +342,16 @@ export default function WeightLossConsultation() {
                         >
                           <Printer className="h-3 w-3 mr-1" /> Print / PDF
                         </Button>
+                        <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={handleShareGuideWhatsApp}
+                          disabled={!patient?.mobileNumber || sharing}
+                          title={!patient?.mobileNumber ? "No phone number available" : "Send PDF guide via WhatsApp"}
+                        >
+                          {sharing ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Send className="h-3 w-3 mr-1" />}
+                          {sharing ? "Sending..." : "Send PDF"}
+                        </Button>
                       </>
                     )}
                   </div>
