@@ -26,6 +26,7 @@ export default function WeightLossConsultation() {
   const queryClient = useQueryClient();
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
+  const [sharing, setSharing] = useState(false);
 
   const { data: consultation, isLoading } = useQuery({
     queryKey: ["weight-loss-consultation", id],
