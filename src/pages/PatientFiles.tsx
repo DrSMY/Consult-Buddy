@@ -10,8 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Download, FileText, Loader2, Calendar, User, Pencil } from "lucide-react";
-import * as XLSX from "xlsx";
+import { Search, Download, FileText, Loader2, Calendar, User, Pencil, ChevronDown } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { exportWeightLossExcel, exportPeptideExcel } from "@/utils/excelExport";
 import AppHeader from "@/components/AppHeader";
 
 interface ConsultationRow {
@@ -68,32 +69,15 @@ export default function PatientFiles() {
     });
   }, [consultations, search, statusFilter]);
 
-  const exportToExcel = () => {
-    const rows = filtered.map((c) => {
-      const recs = c.ai_recommendations as any;
-      const peptides = recs?.recommended_peptides?.map((p: any) => p.name).join(", ") || "";
-      const supplements = recs?.recommended_supplements?.map((s: any) => s.name).join(", ") || "";
-      const labTests = recs?.required_blood_tests?.join(", ") || "";
-
-      return {
-        "Patient Name": c.patient_name,
-        Program: c.program,
-        Status: c.status,
-        "Date Created": new Date(c.created_at).toLocaleDateString(),
-        "Prescribed Peptides": peptides,
-        Supplements: supplements,
-        "Lab Tests": labTests,
-        "Doctor Notes": c.doctor_notes || "",
-        "Next Steps": c.next_steps || "",
-        "Patient Guidelines": c.patient_guidelines || "",
-      };
-    });
-
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Patient Files");
-    XLSX.writeFile(wb, `patient-files-${new Date().toISOString().split("T")[0]}.xlsx`);
-    toast({ title: `Exported ${rows.length} records` });
+  const handleExport = (program: "weight-loss" | "peptides") => {
+    const count = program === "weight-loss"
+      ? exportWeightLossExcel(filtered)
+      : exportPeptideExcel(filtered);
+    if (count === 0) {
+      toast({ title: `No ${program === "weight-loss" ? "weight loss" : "peptide"} consultations found`, variant: "destructive" });
+    } else {
+      toast({ title: `Exported ${count} ${program === "weight-loss" ? "weight loss" : "peptide"} records` });
+    }
   };
 
   const statusCounts = useMemo(() => {
@@ -150,10 +134,19 @@ export default function PatientFiles() {
   return (
     <div className="min-h-screen gradient-surface">
       <AppHeader title="Patient Files" subtitle={`${consultations.length} consultations`} showBack>
-        <Button variant="outline" size="sm" onClick={exportToExcel} className="gap-1.5 px-2 sm:px-3 text-xs">
-          <Download className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Export</span>
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-1.5 px-2 sm:px-3 text-xs">
+              <Download className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Export</span>
+              <ChevronDown className="h-3 w-3" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => handleExport("weight-loss")}>Weight Loss Clients</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleExport("peptides")}>Peptide Clients</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </AppHeader>
 
       <main className="container mx-auto max-w-4xl px-4 py-6 space-y-4">
