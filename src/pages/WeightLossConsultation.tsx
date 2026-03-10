@@ -85,6 +85,17 @@ export default function WeightLossConsultation() {
     setGenerating(false);
   };
 
+  const handleShareGuideWhatsApp = async () => {
+    if (!consultation || !patientGuide || !patient?.mobileNumber) return;
+    setSharing(true);
+    try {
+      await shareGuideViaWhatsApp(patientGuide, consultation.patient_name, patient.mobileNumber);
+    } catch (e: any) {
+      toast({ title: "Failed to share guide", description: e.message, variant: "destructive" });
+    }
+    setSharing(false);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen gradient-surface">
