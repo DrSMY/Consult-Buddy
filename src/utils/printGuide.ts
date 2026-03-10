@@ -73,10 +73,8 @@ function getIcon(title: string): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg>`;
 }
 
-export function printPatientGuide(guideText: string, patientName?: string) {
-  const win = window.open("", "_blank", "width=800,height=900");
-  if (!win) return;
-
+/** Build the full HTML string for the patient guide (shared by print & share). */
+export function buildGuideHtml(guideText: string, patientName?: string): string {
   // Parse ::: or --- sections
   const sectionRegex = /^(?:::+\s*(.+?)\s*:::+|---\s*(.+?)\s*---)$/gm;
   const titles: { title: string; start: number; end: number }[] = [];
@@ -114,7 +112,7 @@ export function printPatientGuide(guideText: string, patientName?: string) {
 
   const title = patientName ? `Patient Guide — ${patientName}` : "Patient Care Guide";
 
-  win.document.write(`<!DOCTYPE html><html><head><meta charset="utf-8"><title>${esc(title)}</title>
+  return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${esc(title)}</title>
 <style>
   @media print {
     @page { margin: 1.2cm; }
@@ -238,8 +236,14 @@ ${bodyHtml}
   <div class="footer-sub">Confidential Patient Information — For Personal Use Only</div>
 </div>
 
-</body></html>`);
+</body></html>`;
+}
 
+export function printPatientGuide(guideText: string, patientName?: string) {
+  const win = window.open("", "_blank", "width=800,height=900");
+  if (!win) return;
+
+  win.document.write(buildGuideHtml(guideText, patientName));
   win.document.close();
   setTimeout(() => win.print(), 400);
 }
