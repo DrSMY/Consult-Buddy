@@ -134,10 +134,19 @@ export default function PatientFiles() {
   return (
     <div className="min-h-screen gradient-surface">
       <AppHeader title="Patient Files" subtitle={`${consultations.length} consultations`} showBack>
-        <Button variant="outline" size="sm" onClick={exportToExcel} className="gap-1.5 px-2 sm:px-3 text-xs">
-          <Download className="h-3.5 w-3.5" />
-          <span className="hidden sm:inline">Export</span>
-        </Button>
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button variant="outline" size="sm" className="gap-1.5 px-2 sm:px-3 text-xs">
+              <Download className="h-3.5 w-3.5" />
+              <span className="hidden sm:inline">Export</span>
+              <ChevronDown className="h-3 w-3" />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent align="end">
+            <DropdownMenuItem onClick={() => handleExport("weight-loss")}>Weight Loss Clients</DropdownMenuItem>
+            <DropdownMenuItem onClick={() => handleExport("peptides")}>Peptide Clients</DropdownMenuItem>
+          </DropdownMenuContent>
+        </DropdownMenu>
       </AppHeader>
 
       <main className="container mx-auto max-w-4xl px-4 py-6 space-y-4">
