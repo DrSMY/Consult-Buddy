@@ -10,8 +10,9 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Download, FileText, Loader2, Calendar, User, Pencil } from "lucide-react";
-import * as XLSX from "xlsx";
+import { Search, Download, FileText, Loader2, Calendar, User, Pencil, ChevronDown } from "lucide-react";
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
+import { exportWeightLossExcel, exportPeptideExcel } from "@/utils/excelExport";
 import AppHeader from "@/components/AppHeader";
 
 interface ConsultationRow {
