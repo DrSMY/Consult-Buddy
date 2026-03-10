@@ -69,32 +69,15 @@ export default function PatientFiles() {
     });
   }, [consultations, search, statusFilter]);
 
-  const exportToExcel = () => {
-    const rows = filtered.map((c) => {
-      const recs = c.ai_recommendations as any;
-      const peptides = recs?.recommended_peptides?.map((p: any) => p.name).join(", ") || "";
-      const supplements = recs?.recommended_supplements?.map((s: any) => s.name).join(", ") || "";
-      const labTests = recs?.required_blood_tests?.join(", ") || "";
-
-      return {
-        "Patient Name": c.patient_name,
-        Program: c.program,
-        Status: c.status,
-        "Date Created": new Date(c.created_at).toLocaleDateString(),
-        "Prescribed Peptides": peptides,
-        Supplements: supplements,
-        "Lab Tests": labTests,
-        "Doctor Notes": c.doctor_notes || "",
-        "Next Steps": c.next_steps || "",
-        "Patient Guidelines": c.patient_guidelines || "",
-      };
-    });
-
-    const ws = XLSX.utils.json_to_sheet(rows);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Patient Files");
-    XLSX.writeFile(wb, `patient-files-${new Date().toISOString().split("T")[0]}.xlsx`);
-    toast({ title: `Exported ${rows.length} records` });
+  const handleExport = (program: "weight-loss" | "peptides") => {
+    const count = program === "weight-loss"
+      ? exportWeightLossExcel(filtered)
+      : exportPeptideExcel(filtered);
+    if (count === 0) {
+      toast({ title: `No ${program === "weight-loss" ? "weight loss" : "peptide"} consultations found`, variant: "destructive" });
+    } else {
+      toast({ title: `Exported ${count} ${program === "weight-loss" ? "weight loss" : "peptide"} records` });
+    }
   };
 
   const statusCounts = useMemo(() => {
