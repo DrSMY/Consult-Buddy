@@ -17,6 +17,7 @@ import { getBMICategory, getBMIColorClass } from "@/data/glp1Config";
 import { openWhatsApp } from "@/utils/whatsapp";
 import { printPatientGuide } from "@/utils/printGuide";
 import { buildEmrOutput } from "@/utils/emrOutput";
+import { shareGuideViaWhatsApp } from "@/utils/shareGuide";
 
 export default function WeightLossConsultation() {
   const { id } = useParams();
