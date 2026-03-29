@@ -1,23 +1,28 @@
 
 
-## Add Smart Fill to Peptide Patient Intake
+## Add Cancer/Malignancy History Question to Step 2
 
 ### What changes
 
-**Single file: `src/pages/PatientIntake.tsx`**
+**Single file: `src/data/intakeQuestions.ts`**
 
-1. **Add state variables**: `smartInput` (string) and `isParsing` (boolean)
-2. **Add imports**: `Wand2`, `RefreshCw` from lucide-react
-3. **Add `handleSmartFill` function** that calls the existing `smart-fill` edge function action and maps extracted fields:
-   - `name` → `patientName`
-   - `age` → `answers.age`
-   - `gender` → `answers.gender`
-   - `height` → `answers.height`
-   - `weight` → `answers.weight`
-   - `chronicIllnesses` → parsed into `answers.health_conditions` multiselect
-   - `allergies` → parsed into `answers.allergies` multiselect
-4. **Add Smart Fill card UI** at the top of step 0 (before the "Patient Information" card), identical styling to the weight loss version — an input field with a "Fill" button and helper text
+Add a new question after `allergies` and before the pregnancy questions (line 38), in the "Health Status & Medical Background" section:
 
-### No backend changes needed
-The existing `consultation` edge function already handles the `smart-fill` action with all the required field extraction.
+```typescript
+{
+  id: "cancer_history",
+  section: "Health Status & Medical Background",
+  question: "Have you or anyone in your close family ever been diagnosed with cancer or any type of tumor/growth?",
+  type: "select",
+  options: ["No", "Yes - myself", "Yes - a family member", "Yes - both myself and a family member"],
+  hasNotes: true
+}
+```
+
+- **Patient-friendly language**: Uses "cancer or any type of tumor/growth" instead of clinical "malignancy"
+- **`hasNotes: true`**: Allows the patient/doctor to add details (type, when, treatment status)
+- **Covers both personal and family history** since family history of malignancy is also a clinical red flag for peptide therapy (especially growth-factor peptides)
+- **No conditional logic needed** — this applies to all patients regardless of gender or goals
+
+This question will automatically appear on Step 2 of the intake form alongside other health background questions, and the answer will flow through to the consultation AI for clinical consideration.
 
