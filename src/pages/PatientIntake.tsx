@@ -439,6 +439,31 @@ export default function PatientIntake() {
           <Progress value={progress} className="h-2" />
         </div>
 
+        {/* Smart Fill */}
+        {currentStep === 0 && (
+          <Card className="mb-4 border-primary/20 bg-primary/5">
+            <CardContent className="pt-4 pb-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Wand2 className="h-4 w-4 text-primary" />
+                <span className="text-sm font-semibold text-primary">Smart Fill</span>
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Ahmed Ali, 35y Male, 180cm, 95kg, diabetic..."
+                  value={smartInput}
+                  onChange={e => setSmartInput(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleSmartFill()}
+                />
+                <Button onClick={handleSmartFill} disabled={isParsing || !smartInput} size="sm">
+                  {isParsing ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+                  <span className="ml-1">{isParsing ? "Parsing..." : "Fill"}</span>
+                </Button>
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1.5">Paste or type patient info — name, age, gender, height, weight, conditions — and we'll fill the form.</p>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Show Primary Health Objectives at the beginning (step 0) */}
         {currentStep === 0 && (
           <Card className="mb-4">
