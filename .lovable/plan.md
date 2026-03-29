@@ -1,27 +1,23 @@
 
 
-## Root Cause
+## Add Smart Fill to Peptide Patient Intake
 
-The section parsing regex in `printGuide.ts` line 81 is:
-```
-/^(?::::\s*(.+?)\s*::::|---\s*(.+?)\s*---)$/gm
-```
-It expects **4 colons** (`::::`) but the consultation edge function generates section markers with **3 colons** (`::: INTRODUCTION :::`). Because nothing matches, the entire guide renders as plain unstyled text -- no colored cards, no icons, no section backgrounds.
+### What changes
 
-## Fix -- Single file: `src/utils/printGuide.ts`
+**Single file: `src/pages/PatientIntake.tsx`**
 
-**Line 81**: Change the regex to match 3+ colons instead of exactly 4:
-```
-/^(?:::+\s*(.+?)\s*:::+|---\s*(.+?)\s*---)$/gm
-```
+1. **Add state variables**: `smartInput` (string) and `isParsing` (boolean)
+2. **Add imports**: `Wand2`, `RefreshCw` from lucide-react
+3. **Add `handleSmartFill` function** that calls the existing `smart-fill` edge function action and maps extracted fields:
+   - `name` → `patientName`
+   - `age` → `answers.age`
+   - `gender` → `answers.gender`
+   - `height` → `answers.height`
+   - `weight` → `answers.weight`
+   - `chronicIllnesses` → parsed into `answers.health_conditions` multiselect
+   - `allergies` → parsed into `answers.allergies` multiselect
+4. **Add Smart Fill card UI** at the top of step 0 (before the "Patient Information" card), identical styling to the weight loss version — an input field with a "Fill" button and helper text
 
-This single character change (`:::+` instead of `::::`) will make the regex match `::: TITLE :::` correctly. Once matched, all the existing icon mapping, color mapping, and section card rendering will work as designed -- colored backgrounds, SVG icons in headers, tinted bullet dots, the full layout.
-
-Additionally, some section titles in the guide don't exactly match the keys in `SECTION_COLORS` / `SVG_ICONS` (e.g., `"NUTRITION & DIET STRUCTURE"` vs `"NUTRITION & DIET PLAN"`, `"HOW TO TAKE"` vs `"HOW TO TAKE YOUR MEDICATION"`, `"COMMON SIDE EFFECTS & MANAGEMENT"` vs `"COMMON SIDE EFFECTS"`). The fuzzy matching via `includes()` in `getColors`/`getIcon` handles most of these, but I will add a few missing key variants to ensure full coverage:
-- `"NUTRITION & DIET STRUCTURE"` 
-- `"COMMON SIDE EFFECTS & MANAGEMENT"`
-- `"HOW TO TAKE"`
-- `"PHYSICAL ACTIVITY PLAN"`
-- `"NUTRITION & DIETARY ADVICE"`
-- `"FOLLOW-UP"`
+### No backend changes needed
+The existing `consultation` edge function already handles the `smart-fill` action with all the required field extraction.
 
