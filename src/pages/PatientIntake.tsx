@@ -148,6 +148,44 @@ export default function PatientIntake() {
     setActiveField(null);
   };
 
+  const handleSmartFill = async () => {
+    if (!smartInput.trim()) return;
+    setIsParsing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("consultation", {
+        body: {
+          action: "smart-fill",
+          raw_text: smartInput,
+        },
+      });
+      if (error) throw error;
+      if (data) {
+        if (data.name) setPatientName(data.name);
+        setAnswers(prev => ({
+          ...prev,
+          ...(data.age && { age: String(data.age) }),
+          ...(data.gender && { gender: data.gender }),
+          ...(data.height && { height: String(data.height) }),
+          ...(data.weight && { weight: String(data.weight) }),
+          ...(data.mobileNumber && { mobile_number: data.mobileNumber }),
+          ...(data.chronicIllnesses && { health_conditions: Array.isArray(data.chronicIllnesses) ? data.chronicIllnesses : [data.chronicIllnesses] }),
+          ...(data.allergies && { allergies: Array.isArray(data.allergies) ? data.allergies : [data.allergies] }),
+        }));
+        if (data.chronicIllnesses && (Array.isArray(data.chronicIllnesses) ? data.chronicIllnesses.length > 0 : true)) {
+          setGateAnswers(prev => ({ ...prev, health_conditions: "yes" }));
+        }
+        if (data.allergies && (Array.isArray(data.allergies) ? data.allergies.length > 0 : true)) {
+          setGateAnswers(prev => ({ ...prev, allergies: "yes" }));
+        }
+        setSmartInput("");
+        toast({ title: "Smart Fill complete", description: "Fields populated from your input." });
+      }
+    } catch {
+      toast({ title: "Smart Fill failed", description: "Could not parse the input.", variant: "destructive" });
+    }
+    setIsParsing(false);
+  };
+
   const handleSubmit = async () => {
     if (!user || !patientName.trim()) {
       toast({ title: "Patient name required", variant: "destructive" });
