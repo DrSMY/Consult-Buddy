@@ -45,6 +45,8 @@ export default function PatientIntake() {
   const [showValidation, setShowValidation] = useState(false);
   const [heightUnit, setHeightUnit] = useState<"cm" | "ft">("cm");
   const [weightUnit, setWeightUnit] = useState<"kg" | "lbs">("kg");
+  const [smartInput, setSmartInput] = useState("");
+  const [isParsing, setIsParsing] = useState(false);
   const recognitionRef = useRef<any>(null);
 
   const visibleQuestions = getVisibleQuestions(answers);
