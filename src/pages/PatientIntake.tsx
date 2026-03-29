@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { intakeQuestions, getVisibleQuestions, intakeSections } from "@/data/intakeQuestions";
-import { ArrowLeft, ArrowRight, Mic, MicOff, Check, Ruler, Weight as WeightIcon } from "lucide-react";
+import { ArrowLeft, ArrowRight, Mic, MicOff, Check, Ruler, Weight as WeightIcon, Wand2, RefreshCw } from "lucide-react";
 import type { IntakeQuestion } from "@/data/intakeQuestions";
 import AppHeader from "@/components/AppHeader";
 
@@ -45,6 +45,8 @@ export default function PatientIntake() {
   const [showValidation, setShowValidation] = useState(false);
   const [heightUnit, setHeightUnit] = useState<"cm" | "ft">("cm");
   const [weightUnit, setWeightUnit] = useState<"kg" | "lbs">("kg");
+  const [smartInput, setSmartInput] = useState("");
+  const [isParsing, setIsParsing] = useState(false);
   const recognitionRef = useRef<any>(null);
 
   const visibleQuestions = getVisibleQuestions(answers);
@@ -144,6 +146,44 @@ export default function PatientIntake() {
     recognitionRef.current?.stop();
     setIsRecording(false);
     setActiveField(null);
+  };
+
+  const handleSmartFill = async () => {
+    if (!smartInput.trim()) return;
+    setIsParsing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("consultation", {
+        body: {
+          action: "smart-fill",
+          raw_text: smartInput,
+        },
+      });
+      if (error) throw error;
+      if (data) {
+        if (data.name) setPatientName(data.name);
+        setAnswers(prev => ({
+          ...prev,
+          ...(data.age && { age: String(data.age) }),
+          ...(data.gender && { gender: data.gender }),
+          ...(data.height && { height: String(data.height) }),
+          ...(data.weight && { weight: String(data.weight) }),
+          ...(data.mobileNumber && { mobile_number: data.mobileNumber }),
+          ...(data.chronicIllnesses && { health_conditions: Array.isArray(data.chronicIllnesses) ? data.chronicIllnesses : [data.chronicIllnesses] }),
+          ...(data.allergies && { allergies: Array.isArray(data.allergies) ? data.allergies : [data.allergies] }),
+        }));
+        if (data.chronicIllnesses && (Array.isArray(data.chronicIllnesses) ? data.chronicIllnesses.length > 0 : true)) {
+          setGateAnswers(prev => ({ ...prev, health_conditions: "yes" }));
+        }
+        if (data.allergies && (Array.isArray(data.allergies) ? data.allergies.length > 0 : true)) {
+          setGateAnswers(prev => ({ ...prev, allergies: "yes" }));
+        }
+        setSmartInput("");
+        toast({ title: "Smart Fill complete", description: "Fields populated from your input." });
+      }
+    } catch {
+      toast({ title: "Smart Fill failed", description: "Could not parse the input.", variant: "destructive" });
+    }
+    setIsParsing(false);
   };
 
   const handleSubmit = async () => {
@@ -398,6 +438,31 @@ export default function PatientIntake() {
           </div>
           <Progress value={progress} className="h-2" />
         </div>
+
+        {/* Smart Fill */}
+        {currentStep === 0 && (
+          <Card className="mb-4 border-primary/20 bg-primary/5">
+            <CardContent className="pt-4 pb-3">
+              <div className="flex items-center gap-2 mb-2">
+                <Wand2 className="h-4 w-4 text-primary" />
+                <span className="text-sm font-semibold text-primary">Smart Fill</span>
+              </div>
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Ahmed Ali, 35y Male, 180cm, 95kg, diabetic..."
+                  value={smartInput}
+                  onChange={e => setSmartInput(e.target.value)}
+                  onKeyDown={e => e.key === "Enter" && handleSmartFill()}
+                />
+                <Button onClick={handleSmartFill} disabled={isParsing || !smartInput} size="sm">
+                  {isParsing ? <RefreshCw className="h-4 w-4 animate-spin" /> : <Wand2 className="h-4 w-4" />}
+                  <span className="ml-1">{isParsing ? "Parsing..." : "Fill"}</span>
+                </Button>
+              </div>
+              <p className="text-[11px] text-muted-foreground mt-1.5">Paste or type patient info — name, age, gender, height, weight, conditions — and we'll fill the form.</p>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Show Primary Health Objectives at the beginning (step 0) */}
         {currentStep === 0 && (
