@@ -475,6 +475,26 @@ export default function WeightLossConsultation() {
                     </div>
                   </div>
                 )}
+                {/* Missed Appointment WhatsApp */}
+                <div className="border-t pt-3">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    className="w-full text-[11px] gap-1.5 border-amber-300 text-amber-700 hover:bg-amber-50 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-amber-900/20"
+                    onClick={() => {
+                      const phone = patient?.mobileNumber || "";
+                      const name = consultation.patient_name || "Patient";
+                      const now = new Date();
+                      const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                      const msg = `Dear ${name},\n\nWe attempted to contact you at your scheduled appointment time (${time}) today for your Justlife Weight Loss Program — GLP-1 medication consultation, but were unable to reach you.\n\nPlease reply with your preferred time and availability for a call back (today or tomorrow), and we will arrange it.\n\nKind regards,\n\nDr Sami M. Yesuf\nScope Certified Physician`;
+                      openWhatsApp(phone, msg);
+                    }}
+                    disabled={!patient?.mobileNumber}
+                    title={!patient?.mobileNumber ? "No phone number available" : "Send missed appointment message via WhatsApp"}
+                  >
+                    <MessageCircle className="h-3 w-3" /> Missed Appointment
+                  </Button>
+                </div>
               </CardContent>
             </Card>
 
