@@ -465,6 +465,36 @@ export default function PatientIntake() {
           </Card>
         )}
 
+        {/* Missed Appointment WhatsApp */}
+        {currentStep === 0 && (
+          <Card className="mb-4 border-amber-200 dark:border-amber-800 bg-amber-50/50 dark:bg-amber-900/10">
+            <CardContent className="p-4 flex items-center gap-3">
+              <MessageCircle className="h-5 w-5 text-amber-600 dark:text-amber-400 shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-semibold text-amber-700 dark:text-amber-300">Missed Appointment?</p>
+                <p className="text-[10px] text-muted-foreground">Send a WhatsApp message to reschedule</p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                className="shrink-0 border-amber-300 text-amber-700 hover:bg-amber-100 dark:border-amber-700 dark:text-amber-400 dark:hover:bg-amber-900/30"
+                onClick={() => {
+                  const phone = (answers["mobile_number"] as string) || "";
+                  const name = patientName || "Patient";
+                  const now = new Date();
+                  const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+                  const msg = `Dear ${name},\n\nWe attempted to contact you at your scheduled appointment time (${time}) today for your Justlife Weight Loss Program — GLP-1 medication consultation, but were unable to reach you.\n\nPlease reply with your preferred time and availability for a call back (today or tomorrow), and we will arrange it.\n\nKind regards,\n\nDr Sami M. Yesuf\nScope Certified Physician`;
+                  openWhatsApp(phone, msg);
+                }}
+                disabled={!(answers["mobile_number"] as string)}
+                title={!(answers["mobile_number"] as string) ? "Enter mobile number first" : "Send missed appointment message"}
+              >
+                <MessageCircle className="h-3.5 w-3.5 mr-1" /> Send
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Show Primary Health Objectives at the beginning (step 0) */}
         {currentStep === 0 && (
           <Card className="mb-4">
