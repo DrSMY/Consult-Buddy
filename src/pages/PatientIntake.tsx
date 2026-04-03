@@ -483,7 +483,7 @@ export default function PatientIntake() {
                   const name = patientName || "Patient";
                   const now = new Date();
                   const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                  const msg = `Dear ${name},\n\nWe attempted to contact you at your scheduled appointment time (${time}) today for your Justlife Weight Loss Program — GLP-1 medication consultation, but were unable to reach you.\n\nPlease reply with your preferred time and availability for a call back (today or tomorrow), and we will arrange it.\n\nKind regards,\n\nDr Sami M. Yesuf\nScope Certified Physician`;
+                  const msg = `Dear ${name},\n\nWe attempted to contact you at your scheduled appointment time (${time}) today for your Weight Loss Program — GLP-1 medication consultation, but were unable to reach you.\n\nPlease reply with your preferred time and availability for a call back (today or tomorrow), and we will arrange it.\n\nKind regards,\n\nDr Sami M. Yesuf\nScope Certified Physician`;
                   openWhatsApp(phone, msg);
                 }}
                 disabled={!(answers["mobile_number"] as string)}
