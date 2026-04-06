@@ -603,6 +603,79 @@ export default function WeightLossConsultation() {
           </aside>
         </div>
       </main>
+
+      {/* Edit Medication Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Pencil className="h-4 w-4" /> Edit Consultation</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Medication</Label>
+              <Select value={editMed} onValueChange={(v) => { setEditMed(v as MedicationType); setEditDose(""); }}>
+                <SelectTrigger><SelectValue placeholder="Select medication" /></SelectTrigger>
+                <SelectContent>
+                  {MEDICATION_OPTIONS.map((m) => (
+                    <SelectItem key={m} value={m}>{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {editMed === "Other" && (
+              <div className="space-y-2">
+                <Label>Medication Name</Label>
+                <Input value={editOtherDetail} onChange={(e) => setEditOtherDetail(e.target.value)} placeholder="Enter medication name" />
+              </div>
+            )}
+            {editMed && editMed !== "Other" && (
+              <div className="space-y-2">
+                <Label>Dose</Label>
+                <Select value={editDose} onValueChange={setEditDose}>
+                  <SelectTrigger><SelectValue placeholder="Select dose" /></SelectTrigger>
+                  <SelectContent>
+                    {getDoseOptions(editMed).map((d) => (
+                      <SelectItem key={d} value={d}>{d}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {editMed === "Other" && (
+              <div className="space-y-2">
+                <Label>Dose</Label>
+                <Input value={editDose} onChange={(e) => setEditDose(e.target.value)} placeholder="Enter dose" />
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label>Blood Test</Label>
+              <Select value={editBloodTest} onValueChange={(v) => setEditBloodTest(v as BloodTestLevel)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  <SelectItem value="recommended">Recommended</SelectItem>
+                  <SelectItem value="required">Required</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Treatment Notes</Label>
+              <Textarea rows={2} value={editNotes} onChange={(e) => setEditNotes(e.target.value)} placeholder="Monthly followup, blood test, etc." />
+            </div>
+            <div className="space-y-2">
+              <Label>Doctor Notes</Label>
+              <Textarea rows={3} value={editDoctorNotes} onChange={(e) => setEditDoctorNotes(e.target.value)} placeholder="Additional doctor notes..." />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+            <Button onClick={saveEdit} disabled={editSaving}>
+              {editSaving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
