@@ -59,6 +59,7 @@ export default function Consultation() {
   const [detailPeptide, setDetailPeptide] = useState<string | null>(null);
   const [labTier, setLabTier] = useState<LabTier>("basic");
   const [labNotes, setLabNotes] = useState("");
+  const [selectedLabTest, setSelectedLabTest] = useState<string | null>(null);
   const [addMedOpen, setAddMedOpen] = useState(false);
   const [newMedName, setNewMedName] = useState("");
   const [newMedDosage, setNewMedDosage] = useState("");
