@@ -394,6 +394,33 @@ ${labLines || "As directed by your doctor"}
     toast({ title: "Selection unlocked for editing" });
   };
 
+  const addManualPeptide = () => {
+    if (!newMedName.trim() || !recommendations) return;
+    const newPeptide: PeptideRec = {
+      name: newMedName.trim(),
+      rationale: "Manually added by doctor",
+      dosage: newMedDosage || "As prescribed",
+      duration: newMedDuration || "As directed",
+      administration: newMedAdmin || "As directed",
+      priority: newMedPriority,
+    };
+    const updated: Recommendation = {
+      ...recommendations,
+      recommended_peptides: [...recommendations.recommended_peptides, newPeptide],
+    };
+    setRecommendations(updated);
+    setSelectedPeptides((prev) => new Set([...prev, newPeptide.name]));
+    // Save updated recommendations to DB
+    supabase.from("consultations").update({ ai_recommendations: updated as any }).eq("id", id);
+    setAddMedOpen(false);
+    setNewMedName("");
+    setNewMedDosage("");
+    setNewMedDuration("");
+    setNewMedAdmin("");
+    setNewMedPriority("Primary");
+    toast({ title: `${newPeptide.name} added to recommendations` });
+  };
+
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     toast({ title: `${label} copied to clipboard` });
