@@ -9,9 +9,11 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { AlertTriangle, CheckCircle, FileText, ClipboardList, User, Copy, Loader2, FlaskConical, Info, ShieldCheck, Microscope, StickyNote, MessageCircle, Ruler, Weight, Scale, Activity, Printer } from "lucide-react";
+import { AlertTriangle, CheckCircle, FileText, ClipboardList, User, Copy, Loader2, FlaskConical, Info, ShieldCheck, Microscope, StickyNote, MessageCircle, Ruler, Weight, Scale, Activity, Printer, Plus } from "lucide-react";
 import PatientGuideDisplay from "@/components/PatientGuideDisplay";
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "@/components/ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { Label as FormLabel } from "@/components/ui/label";
 import PeptideDetailSheet from "@/components/PeptideDetailSheet";
 import AppHeader from "@/components/AppHeader";
 import { openWhatsApp } from "@/utils/whatsapp";
@@ -58,6 +60,12 @@ export default function Consultation() {
   const [labTier, setLabTier] = useState<LabTier>("basic");
   const [labNotes, setLabNotes] = useState("");
   const [selectedLabTest, setSelectedLabTest] = useState<string | null>(null);
+  const [addMedOpen, setAddMedOpen] = useState(false);
+  const [newMedName, setNewMedName] = useState("");
+  const [newMedDosage, setNewMedDosage] = useState("");
+  const [newMedDuration, setNewMedDuration] = useState("");
+  const [newMedAdmin, setNewMedAdmin] = useState("");
+  const [newMedPriority, setNewMedPriority] = useState<"Primary" | "Supportive">("Primary");
 
   useEffect(() => {
     loadConsultation();
@@ -386,6 +394,33 @@ ${labLines || "As directed by your doctor"}
     toast({ title: "Selection unlocked for editing" });
   };
 
+  const addManualPeptide = () => {
+    if (!newMedName.trim() || !recommendations) return;
+    const newPeptide: PeptideRec = {
+      name: newMedName.trim(),
+      rationale: "Manually added by doctor",
+      dosage: newMedDosage || "As prescribed",
+      duration: newMedDuration || "As directed",
+      administration: newMedAdmin || "As directed",
+      priority: newMedPriority,
+    };
+    const updated: Recommendation = {
+      ...recommendations,
+      recommended_peptides: [...recommendations.recommended_peptides, newPeptide],
+    };
+    setRecommendations(updated);
+    setSelectedPeptides((prev) => new Set([...prev, newPeptide.name]));
+    // Save updated recommendations to DB
+    supabase.from("consultations").update({ ai_recommendations: updated as any }).eq("id", id);
+    setAddMedOpen(false);
+    setNewMedName("");
+    setNewMedDosage("");
+    setNewMedDuration("");
+    setNewMedAdmin("");
+    setNewMedPriority("Primary");
+    toast({ title: `${newPeptide.name} added to recommendations` });
+  };
+
   const copyToClipboard = (text: string, label: string) => {
     navigator.clipboard.writeText(text);
     toast({ title: `${label} copied to clipboard` });
@@ -557,10 +592,16 @@ ${labLines || "As directed by your doctor"}
                   ))}
 
                   {!selectionConfirmed && (
-                    <Button onClick={confirmSelection} className="w-full" size="lg">
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Confirm Selection ({selectedPeptides.size} peptide{selectedPeptides.size !== 1 ? "s" : ""})
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button onClick={() => setAddMedOpen(true)} variant="outline" className="flex-1" size="lg">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Medication
+                      </Button>
+                      <Button onClick={confirmSelection} className="flex-1" size="lg">
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Confirm ({selectedPeptides.size})
+                      </Button>
+                    </div>
                   )}
                 </CardContent>
               </Card>
@@ -811,7 +852,49 @@ ${labLines || "As directed by your doctor"}
         </Dialog>
 
         <PeptideDetailSheet peptideName={detailPeptide} open={!!detailPeptide} onOpenChange={(open) => !open && setDetailPeptide(null)} />
+
+        {/* Add Medication Dialog */}
+        <Dialog open={addMedOpen} onOpenChange={setAddMedOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2"><Plus className="h-4 w-4" /> Add Medication</DialogTitle>
+              <DialogDescription>Manually add a peptide or medication to the prescription list.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <FormLabel>Medication Name *</FormLabel>
+                <Input value={newMedName} onChange={(e) => setNewMedName(e.target.value)} placeholder="e.g. BPC-157, Sermorelin" />
+              </div>
+              <div className="space-y-2">
+                <FormLabel>Dosage</FormLabel>
+                <Input value={newMedDosage} onChange={(e) => setNewMedDosage(e.target.value)} placeholder="e.g. 250mcg twice daily" />
+              </div>
+              <div className="space-y-2">
+                <FormLabel>Duration</FormLabel>
+                <Input value={newMedDuration} onChange={(e) => setNewMedDuration(e.target.value)} placeholder="e.g. 4-8 weeks" />
+              </div>
+              <div className="space-y-2">
+                <FormLabel>Administration Route</FormLabel>
+                <Input value={newMedAdmin} onChange={(e) => setNewMedAdmin(e.target.value)} placeholder="e.g. Subcutaneous injection" />
+              </div>
+              <div className="space-y-2">
+                <FormLabel>Priority</FormLabel>
+                <div className="flex gap-2">
+                  <Button variant={newMedPriority === "Primary" ? "default" : "outline"} size="sm" onClick={() => setNewMedPriority("Primary")}>Primary</Button>
+                  <Button variant={newMedPriority === "Supportive" ? "default" : "outline"} size="sm" onClick={() => setNewMedPriority("Supportive")}>Supportive</Button>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setAddMedOpen(false)}>Cancel</Button>
+              <Button onClick={addManualPeptide} disabled={!newMedName.trim()}>
+                <Plus className="h-4 w-4 mr-1" /> Add
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
         </div>
+
 
         {/* Patient Info Sidebar */}
         {consultation && (

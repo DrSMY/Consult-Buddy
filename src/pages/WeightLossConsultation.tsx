@@ -5,19 +5,26 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import {
   FileText, User, Copy, ClipboardCheck, ArrowLeft, Activity, Utensils, Zap, ThermometerSnowflake,
   Weight, Ruler, Heart, Flame, TrendingDown, Pill, AlertTriangle, MessageSquare, Scale, Loader2, Sparkles,
-  StickyNote, FlaskConical, MessageCircle, Printer, Send,
+  StickyNote, FlaskConical, MessageCircle, Printer, Send, Pencil,
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import PatientGuideDisplay from "@/components/PatientGuideDisplay";
-import { getBMICategory, getBMIColorClass } from "@/data/glp1Config";
+import { getBMICategory, getBMIColorClass, getDoseOptions, type MedicationType, type BloodTestLevel, generateClinicalSuggestion } from "@/data/glp1Config";
 import { openWhatsApp } from "@/utils/whatsapp";
 import { printPatientGuide } from "@/utils/printGuide";
 import { buildEmrOutput } from "@/utils/emrOutput";
 import { shareGuideViaWhatsApp } from "@/utils/shareGuide";
+
+const MEDICATION_OPTIONS: MedicationType[] = ["Mounjaro", "Wegovy", "Ozempic", "Rybelsus", "Other"];
 
 export default function WeightLossConsultation() {
   const { id } = useParams();
@@ -27,6 +34,14 @@ export default function WeightLossConsultation() {
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editMed, setEditMed] = useState<MedicationType | "">("");
+  const [editDose, setEditDose] = useState("");
+  const [editOtherDetail, setEditOtherDetail] = useState("");
+  const [editBloodTest, setEditBloodTest] = useState<BloodTestLevel>("none");
+  const [editNotes, setEditNotes] = useState("");
+  const [editDoctorNotes, setEditDoctorNotes] = useState("");
 
   const { data: consultation, isLoading } = useQuery({
     queryKey: ["weight-loss-consultation", id],
@@ -94,6 +109,69 @@ export default function WeightLossConsultation() {
       toast({ title: "Failed to share guide", description: e.message, variant: "destructive" });
     }
     setSharing(false);
+  };
+
+  const openEditDialog = () => {
+    const recs = consultation?.ai_recommendations as any;
+    const intake = consultation?.intake_answers as any;
+    const treatment = intake?.treatment || {};
+    setEditMed((recs?.medication || treatment?.medication || "") as MedicationType | "");
+    setEditDose(recs?.dose || treatment?.dose || "");
+    setEditOtherDetail(treatment?.otherDetail || "");
+    setEditBloodTest((recs?.bloodTestLevel || treatment?.bloodTestLevel || "none") as BloodTestLevel);
+    setEditNotes(treatment?.notes || "");
+    setEditDoctorNotes(consultation?.doctor_notes || "");
+    setEditOpen(true);
+  };
+
+  const saveEdit = async () => {
+    if (!consultation) return;
+    setEditSaving(true);
+    try {
+      const intake = consultation.intake_answers as any;
+      const oldRecs = consultation.ai_recommendations as any || {};
+      const patient = intake?.patient || {};
+      const followupData = intake?.followupData;
+
+      // Update treatment in intake_answers
+      const updatedTreatment = {
+        ...(intake?.treatment || {}),
+        medication: editMed,
+        dose: editDose,
+        otherDetail: editOtherDetail,
+        bloodTestLevel: editBloodTest,
+        notes: editNotes,
+      };
+      const updatedIntake = { ...intake, treatment: updatedTreatment };
+
+      // Regenerate clinical suggestion
+      const updatedSuggestion = generateClinicalSuggestion(
+        { ...patient, ...updatedTreatment },
+        updatedTreatment,
+        followupData
+      );
+
+      const updatedRecs = {
+        ...oldRecs,
+        medication: editMed,
+        dose: editDose,
+        bloodTestLevel: editBloodTest,
+        doctorSuggestions: updatedSuggestion,
+      };
+
+      await supabase.from("consultations").update({
+        intake_answers: updatedIntake,
+        ai_recommendations: updatedRecs,
+        doctor_notes: editDoctorNotes,
+      }).eq("id", consultation.id);
+
+      queryClient.invalidateQueries({ queryKey: ["weight-loss-consultation", id] });
+      setEditOpen(false);
+      toast({ title: "Consultation updated successfully" });
+    } catch (e: any) {
+      toast({ title: "Failed to save changes", description: e.message, variant: "destructive" });
+    }
+    setEditSaving(false);
   };
 
   if (isLoading) {
@@ -247,7 +325,11 @@ export default function WeightLossConsultation() {
 
   return (
     <div className="min-h-screen gradient-surface">
-      <AppHeader title="Weight Loss Consultation" subtitle={consultation.patient_name} showBack />
+      <AppHeader title="Weight Loss Consultation" subtitle={consultation.patient_name} showBack>
+        <Button variant="outline" size="sm" className="text-xs px-2 sm:px-3" onClick={openEditDialog}>
+          <Pencil className="h-3 w-3 mr-1" /> Edit
+        </Button>
+      </AppHeader>
 
       <main className="container mx-auto px-4 py-6 animate-fade-in">
         <div className="flex flex-col lg:flex-row gap-6 max-w-6xl mx-auto">
@@ -521,6 +603,79 @@ export default function WeightLossConsultation() {
           </aside>
         </div>
       </main>
+
+      {/* Edit Medication Dialog */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent className="max-w-md max-h-[90vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Pencil className="h-4 w-4" /> Edit Consultation</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="space-y-2">
+              <Label>Medication</Label>
+              <Select value={editMed} onValueChange={(v) => { setEditMed(v as MedicationType); setEditDose(""); }}>
+                <SelectTrigger><SelectValue placeholder="Select medication" /></SelectTrigger>
+                <SelectContent>
+                  {MEDICATION_OPTIONS.map((m) => (
+                    <SelectItem key={m} value={m}>{m}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            {editMed === "Other" && (
+              <div className="space-y-2">
+                <Label>Medication Name</Label>
+                <Input value={editOtherDetail} onChange={(e) => setEditOtherDetail(e.target.value)} placeholder="Enter medication name" />
+              </div>
+            )}
+            {editMed && editMed !== "Other" && (
+              <div className="space-y-2">
+                <Label>Dose</Label>
+                <Select value={editDose} onValueChange={setEditDose}>
+                  <SelectTrigger><SelectValue placeholder="Select dose" /></SelectTrigger>
+                  <SelectContent>
+                    {getDoseOptions(editMed).map((d) => (
+                      <SelectItem key={d} value={d}>{d}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            )}
+            {editMed === "Other" && (
+              <div className="space-y-2">
+                <Label>Dose</Label>
+                <Input value={editDose} onChange={(e) => setEditDose(e.target.value)} placeholder="Enter dose" />
+              </div>
+            )}
+            <div className="space-y-2">
+              <Label>Blood Test</Label>
+              <Select value={editBloodTest} onValueChange={(v) => setEditBloodTest(v as BloodTestLevel)}>
+                <SelectTrigger><SelectValue /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">None</SelectItem>
+                  <SelectItem value="recommended">Recommended</SelectItem>
+                  <SelectItem value="required">Required</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-2">
+              <Label>Treatment Notes</Label>
+              <Textarea rows={2} value={editNotes} onChange={(e) => setEditNotes(e.target.value)} placeholder="Monthly followup, blood test, etc." />
+            </div>
+            <div className="space-y-2">
+              <Label>Doctor Notes</Label>
+              <Textarea rows={3} value={editDoctorNotes} onChange={(e) => setEditDoctorNotes(e.target.value)} placeholder="Additional doctor notes..." />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+            <Button onClick={saveEdit} disabled={editSaving}>
+              {editSaving ? <Loader2 className="h-4 w-4 animate-spin mr-1" /> : null}
+              Save Changes
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
