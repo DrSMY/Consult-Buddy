@@ -852,7 +852,49 @@ ${labLines || "As directed by your doctor"}
         </Dialog>
 
         <PeptideDetailSheet peptideName={detailPeptide} open={!!detailPeptide} onOpenChange={(open) => !open && setDetailPeptide(null)} />
+
+        {/* Add Medication Dialog */}
+        <Dialog open={addMedOpen} onOpenChange={setAddMedOpen}>
+          <DialogContent className="max-w-md">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2"><Plus className="h-4 w-4" /> Add Medication</DialogTitle>
+              <DialogDescription>Manually add a peptide or medication to the prescription list.</DialogDescription>
+            </DialogHeader>
+            <div className="space-y-4 py-2">
+              <div className="space-y-2">
+                <FormLabel>Medication Name *</FormLabel>
+                <Input value={newMedName} onChange={(e) => setNewMedName(e.target.value)} placeholder="e.g. BPC-157, Sermorelin" />
+              </div>
+              <div className="space-y-2">
+                <FormLabel>Dosage</FormLabel>
+                <Input value={newMedDosage} onChange={(e) => setNewMedDosage(e.target.value)} placeholder="e.g. 250mcg twice daily" />
+              </div>
+              <div className="space-y-2">
+                <FormLabel>Duration</FormLabel>
+                <Input value={newMedDuration} onChange={(e) => setNewMedDuration(e.target.value)} placeholder="e.g. 4-8 weeks" />
+              </div>
+              <div className="space-y-2">
+                <FormLabel>Administration Route</FormLabel>
+                <Input value={newMedAdmin} onChange={(e) => setNewMedAdmin(e.target.value)} placeholder="e.g. Subcutaneous injection" />
+              </div>
+              <div className="space-y-2">
+                <FormLabel>Priority</FormLabel>
+                <div className="flex gap-2">
+                  <Button variant={newMedPriority === "Primary" ? "default" : "outline"} size="sm" onClick={() => setNewMedPriority("Primary")}>Primary</Button>
+                  <Button variant={newMedPriority === "Supportive" ? "default" : "outline"} size="sm" onClick={() => setNewMedPriority("Supportive")}>Supportive</Button>
+                </div>
+              </div>
+            </div>
+            <DialogFooter>
+              <Button variant="outline" onClick={() => setAddMedOpen(false)}>Cancel</Button>
+              <Button onClick={addManualPeptide} disabled={!newMedName.trim()}>
+                <Plus className="h-4 w-4 mr-1" /> Add
+              </Button>
+            </DialogFooter>
+          </DialogContent>
+        </Dialog>
         </div>
+
 
         {/* Patient Info Sidebar */}
         {consultation && (
