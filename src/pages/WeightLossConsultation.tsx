@@ -111,6 +111,69 @@ export default function WeightLossConsultation() {
     setSharing(false);
   };
 
+  const openEditDialog = () => {
+    const recs = consultation?.ai_recommendations as any;
+    const intake = consultation?.intake_answers as any;
+    const treatment = intake?.treatment || {};
+    setEditMed((recs?.medication || treatment?.medication || "") as MedicationType | "");
+    setEditDose(recs?.dose || treatment?.dose || "");
+    setEditOtherDetail(treatment?.otherDetail || "");
+    setEditBloodTest((recs?.bloodTestLevel || treatment?.bloodTestLevel || "none") as BloodTestLevel);
+    setEditNotes(treatment?.notes || "");
+    setEditDoctorNotes(consultation?.doctor_notes || "");
+    setEditOpen(true);
+  };
+
+  const saveEdit = async () => {
+    if (!consultation) return;
+    setEditSaving(true);
+    try {
+      const intake = consultation.intake_answers as any;
+      const oldRecs = consultation.ai_recommendations as any || {};
+      const patient = intake?.patient || {};
+      const followupData = intake?.followupData;
+
+      // Update treatment in intake_answers
+      const updatedTreatment = {
+        ...(intake?.treatment || {}),
+        medication: editMed,
+        dose: editDose,
+        otherDetail: editOtherDetail,
+        bloodTestLevel: editBloodTest,
+        notes: editNotes,
+      };
+      const updatedIntake = { ...intake, treatment: updatedTreatment };
+
+      // Regenerate clinical suggestion
+      const updatedSuggestion = generateClinicalSuggestion(
+        { ...patient, ...updatedTreatment },
+        updatedTreatment,
+        followupData
+      );
+
+      const updatedRecs = {
+        ...oldRecs,
+        medication: editMed,
+        dose: editDose,
+        bloodTestLevel: editBloodTest,
+        doctorSuggestions: updatedSuggestion,
+      };
+
+      await supabase.from("consultations").update({
+        intake_answers: updatedIntake,
+        ai_recommendations: updatedRecs,
+        doctor_notes: editDoctorNotes,
+      }).eq("id", consultation.id);
+
+      queryClient.invalidateQueries({ queryKey: ["weight-loss-consultation", id] });
+      setEditOpen(false);
+      toast({ title: "Consultation updated successfully" });
+    } catch (e: any) {
+      toast({ title: "Failed to save changes", description: e.message, variant: "destructive" });
+    }
+    setEditSaving(false);
+  };
+
   if (isLoading) {
     return (
       <div className="min-h-screen gradient-surface">
