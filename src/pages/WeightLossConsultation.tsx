@@ -5,19 +5,26 @@ import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Textarea } from "@/components/ui/textarea";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import {
   FileText, User, Copy, ClipboardCheck, ArrowLeft, Activity, Utensils, Zap, ThermometerSnowflake,
   Weight, Ruler, Heart, Flame, TrendingDown, Pill, AlertTriangle, MessageSquare, Scale, Loader2, Sparkles,
-  StickyNote, FlaskConical, MessageCircle, Printer, Send,
+  StickyNote, FlaskConical, MessageCircle, Printer, Send, Pencil,
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import PatientGuideDisplay from "@/components/PatientGuideDisplay";
-import { getBMICategory, getBMIColorClass } from "@/data/glp1Config";
+import { getBMICategory, getBMIColorClass, getDoseOptions, type MedicationType, type BloodTestLevel, generateClinicalSuggestion } from "@/data/glp1Config";
 import { openWhatsApp } from "@/utils/whatsapp";
 import { printPatientGuide } from "@/utils/printGuide";
 import { buildEmrOutput } from "@/utils/emrOutput";
 import { shareGuideViaWhatsApp } from "@/utils/shareGuide";
+
+const MEDICATION_OPTIONS: MedicationType[] = ["Mounjaro", "Wegovy", "Ozempic", "Rybelsus", "Other"];
 
 export default function WeightLossConsultation() {
   const { id } = useParams();
@@ -27,6 +34,14 @@ export default function WeightLossConsultation() {
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
   const [sharing, setSharing] = useState(false);
+  const [editOpen, setEditOpen] = useState(false);
+  const [editSaving, setEditSaving] = useState(false);
+  const [editMed, setEditMed] = useState<MedicationType | "">("");
+  const [editDose, setEditDose] = useState("");
+  const [editOtherDetail, setEditOtherDetail] = useState("");
+  const [editBloodTest, setEditBloodTest] = useState<BloodTestLevel>("none");
+  const [editNotes, setEditNotes] = useState("");
+  const [editDoctorNotes, setEditDoctorNotes] = useState("");
 
   const { data: consultation, isLoading } = useQuery({
     queryKey: ["weight-loss-consultation", id],
