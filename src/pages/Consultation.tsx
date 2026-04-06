@@ -592,10 +592,16 @@ ${labLines || "As directed by your doctor"}
                   ))}
 
                   {!selectionConfirmed && (
-                    <Button onClick={confirmSelection} className="w-full" size="lg">
-                      <CheckCircle className="h-4 w-4 mr-2" />
-                      Confirm Selection ({selectedPeptides.size} peptide{selectedPeptides.size !== 1 ? "s" : ""})
-                    </Button>
+                    <div className="flex gap-2">
+                      <Button onClick={() => setAddMedOpen(true)} variant="outline" className="flex-1" size="lg">
+                        <Plus className="h-4 w-4 mr-2" />
+                        Add Medication
+                      </Button>
+                      <Button onClick={confirmSelection} className="flex-1" size="lg">
+                        <CheckCircle className="h-4 w-4 mr-2" />
+                        Confirm ({selectedPeptides.size})
+                      </Button>
+                    </div>
                   )}
                 </CardContent>
               </Card>
