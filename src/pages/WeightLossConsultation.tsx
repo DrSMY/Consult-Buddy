@@ -325,7 +325,11 @@ export default function WeightLossConsultation() {
 
   return (
     <div className="min-h-screen gradient-surface">
-      <AppHeader title="Weight Loss Consultation" subtitle={consultation.patient_name} showBack />
+      <AppHeader title="Weight Loss Consultation" subtitle={consultation.patient_name} showBack>
+        <Button variant="outline" size="sm" className="text-xs px-2 sm:px-3" onClick={openEditDialog}>
+          <Pencil className="h-3 w-3 mr-1" /> Edit
+        </Button>
+      </AppHeader>
 
       <main className="container mx-auto px-4 py-6 animate-fade-in">
         <div className="flex flex-col lg:flex-row gap-6 max-w-6xl mx-auto">
