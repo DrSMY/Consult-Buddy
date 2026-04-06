@@ -1,28 +1,30 @@
+## Enable Editing Consultations (Medications & Details)
 
+### Problem
+- **Weight Loss consultations**: Completely read-only after completion — no way to edit medication, dose, or treatment details
+- **Peptide consultations**: The "Edit" button already unlocks peptide selection, but you can only toggle from the original AI-recommended list — no way to **add new peptides** that weren't recommended
 
-## Add Cancer/Malignancy History Question to Step 2
+### Changes
 
-### What changes
+#### 1. Weight Loss Consultation — Add Edit Medication Dialog (`WeightLossConsultation.tsx`)
+- Add an **"Edit" button** in the header (like peptide consultations have)
+- When clicked, open a dialog with editable fields:
+  - Medication (Mounjaro/Wegovy/Ozempic/Rybelsus/Other)
+  - Dose (dynamic based on medication)
+  - Blood test level (none/recommended/required)
+  - Doctor notes (textarea)
+  - Treatment notes
+- On save: update `intake_answers.treatment` and `ai_recommendations` in the database, regenerate the clinical suggestion text
+- The clinical record and side panel will reflect the updated medication
 
-**Single file: `src/data/intakeQuestions.ts`**
+#### 2. Peptide Consultation — Add "Add Medication" capability (`Consultation.tsx`)
+- When in edit mode (unlocked), show an **"Add Medication"** button below the peptide list
+- Opens a dialog/form where the doctor can manually add a peptide:
+  - Name (text input or search from protocols DB)
+  - Dosage, Duration, Administration route (text inputs)
+  - Priority (Primary/Supportive)
+- The manually added peptide joins the `recommended_peptides` array and can be selected like AI-recommended ones
+- On confirm, it gets saved alongside the other selections
 
-Add a new question after `allergies` and before the pregnancy questions (line 38), in the "Health Status & Medical Background" section:
-
-```typescript
-{
-  id: "cancer_history",
-  section: "Health Status & Medical Background",
-  question: "Have you or anyone in your close family ever been diagnosed with cancer or any type of tumor/growth?",
-  type: "select",
-  options: ["No", "Yes - myself", "Yes - a family member", "Yes - both myself and a family member"],
-  hasNotes: true
-}
-```
-
-- **Patient-friendly language**: Uses "cancer or any type of tumor/growth" instead of clinical "malignancy"
-- **`hasNotes: true`**: Allows the patient/doctor to add details (type, when, treatment status)
-- **Covers both personal and family history** since family history of malignancy is also a clinical red flag for peptide therapy (especially growth-factor peptides)
-- **No conditional logic needed** — this applies to all patients regardless of gender or goals
-
-This question will automatically appear on Step 2 of the intake form alongside other health background questions, and the answer will flow through to the consultation AI for clinical consideration.
-
+### No database changes needed
+All data is stored in the existing `ai_recommendations` and `intake_answers` JSONB columns.
