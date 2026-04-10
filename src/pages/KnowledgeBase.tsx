@@ -467,9 +467,14 @@ export default function KnowledgeBase() {
                                 if (!doc) return null;
                                 return (
                                   <div className="rounded-xl bg-gradient-to-br from-primary/10 via-primary/5 to-accent/10 border border-primary/20 p-4">
-                                    <h4 className="font-semibold text-sm mb-3 text-primary flex items-center gap-2">
-                                      <User className="h-4 w-4" /> Patient Quick-Start Guide
-                                    </h4>
+                                    <div className="flex items-center justify-between mb-3">
+                                      <h4 className="font-semibold text-sm text-primary flex items-center gap-2">
+                                        <User className="h-4 w-4" /> Patient Quick-Start Guide
+                                      </h4>
+                                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditDoc(doc)}>
+                                        <Pencil className="h-3 w-3 text-muted-foreground" />
+                                      </Button>
+                                    </div>
                                     <div className="prose prose-sm max-w-none text-sm whitespace-pre-wrap leading-relaxed text-muted-foreground">
                                       {doc.content}
                                     </div>
