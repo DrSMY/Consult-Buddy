@@ -683,7 +683,7 @@ SCOPE Certified Physician`;
       } else {
         setSelectedSupplements(new Set(rec.recommended_supplements.map((s) => s.name)));
       }
-      const saved = data.ai_recommendations as any;
+      
       if (saved.selected_lab_tier) setLabTier(saved.selected_lab_tier);
       if (saved.lab_notes) setLabNotes(saved.lab_notes);
       if (saved.custom_lab_tests) setCustomLabTests(saved.custom_lab_tests);
