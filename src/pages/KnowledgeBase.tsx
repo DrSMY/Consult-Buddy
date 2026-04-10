@@ -2,16 +2,20 @@ import { useState, useEffect, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Collapsible, CollapsibleContent, CollapsibleTrigger } from "@/components/ui/collapsible";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
 import {
   Search, ChevronDown, FlaskConical, Syringe, Pill,
   Activity, ShieldAlert, TestTubes, Combine, BookOpen, Loader2, Pencil, Plus, Save, X,
+  Stethoscope, User, FileText, Eye,
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import AppHeader from "@/components/AppHeader";
@@ -33,6 +37,14 @@ interface Protocol {
   recommended_supplements: string | null;
   possible_combinations: string | null;
   prescription_details: string | null;
+}
+
+interface ClinicalDoc {
+  id: string;
+  title: string;
+  document_type: string;
+  peptide_name: string | null;
+  content: string;
 }
 
 const CATEGORY_ICONS: Record<string, any> = {
@@ -59,10 +71,13 @@ const EDITABLE_FIELDS: { key: keyof Protocol; label: string; multiline?: boolean
   { key: "prescription_details", label: "Prescription Details", multiline: true },
 ];
 
+type ViewMode = "normal" | "doctor";
+
 export default function KnowledgeBase() {
   const navigate = useNavigate();
   const { toast } = useToast();
   const [protocols, setProtocols] = useState<Protocol[]>([]);
+  const [clinicalDocs, setClinicalDocs] = useState<ClinicalDoc[]>([]);
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState("");
   const [openIds, setOpenIds] = useState<Set<string>>(new Set());
@@ -71,6 +86,7 @@ export default function KnowledgeBase() {
   const [editCategories, setEditCategories] = useState("");
   const [saving, setSaving] = useState(false);
   const [isNew, setIsNew] = useState(false);
+  const [viewMode, setViewMode] = useState<ViewMode>("normal");
 
   const loadProtocols = () => {
     supabase
@@ -83,7 +99,34 @@ export default function KnowledgeBase() {
       });
   };
 
-  useEffect(() => { loadProtocols(); }, []);
+  const loadClinicalDocs = () => {
+    supabase
+      .from("clinical_documents")
+      .select("*")
+      .order("title")
+      .then(({ data }) => {
+        setClinicalDocs((data as ClinicalDoc[]) || []);
+      });
+  };
+
+  useEffect(() => {
+    loadProtocols();
+    loadClinicalDocs();
+  }, []);
+
+  // Map quickstart guides by peptide_name for doctor view
+  const quickstartByPeptide = useMemo(() => {
+    const map = new Map<string, ClinicalDoc>();
+    clinicalDocs
+      .filter((d) => d.document_type === "patient_quickstart_guide" && d.peptide_name)
+      .forEach((d) => map.set(d.peptide_name!, d));
+    return map;
+  }, [clinicalDocs]);
+
+  const glp1Protocol = useMemo(
+    () => clinicalDocs.find((d) => d.document_type === "glp1_protocol"),
+    [clinicalDocs]
+  );
 
   const filtered = useMemo(() => {
     if (!search.trim()) return protocols;
@@ -187,15 +230,57 @@ export default function KnowledgeBase() {
       </AppHeader>
 
       <main className="container mx-auto max-w-4xl px-4 py-6 space-y-6">
-        <div className="relative">
-          <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-          <Input
-            placeholder="Search peptides, categories, or benefits..."
-            value={search}
-            onChange={(e) => setSearch(e.target.value)}
-            className="pl-10"
-          />
+        {/* View Mode Toggle + Search */}
+        <div className="flex flex-col sm:flex-row gap-3">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search peptides, categories, or benefits..."
+              value={search}
+              onChange={(e) => setSearch(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <div className="flex rounded-lg border border-border overflow-hidden shrink-0">
+            <button
+              className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium transition-colors ${
+                viewMode === "normal"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-card hover:bg-muted/50 text-muted-foreground"
+              }`}
+              onClick={() => setViewMode("normal")}
+            >
+              <Eye className="h-3.5 w-3.5" /> Normal
+            </button>
+            <button
+              className={`flex items-center gap-1.5 px-4 py-2 text-sm font-medium transition-colors ${
+                viewMode === "doctor"
+                  ? "bg-primary text-primary-foreground"
+                  : "bg-card hover:bg-muted/50 text-muted-foreground"
+              }`}
+              onClick={() => setViewMode("doctor")}
+            >
+              <Stethoscope className="h-3.5 w-3.5" /> Doctor
+            </button>
+          </div>
         </div>
+
+        {/* GLP-1 Clinical Protocol — Doctor view only */}
+        {viewMode === "doctor" && glp1Protocol && !search.trim() && (
+          <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <FileText className="h-4 w-4 text-primary" /> GLP-1 Clinical Protocol
+              </CardTitle>
+              <CardDescription>Comprehensive prescribing guidelines for GLP-1 receptor agonists</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="prose prose-sm max-w-none text-sm whitespace-pre-wrap leading-relaxed">
+                {glp1Protocol.content}
+              </div>
+            </CardContent>
+          </Card>
+        )}
 
         {grouped.map(([category, items]) => {
           const Icon = CATEGORY_ICONS[category] || FlaskConical;
@@ -214,13 +299,23 @@ export default function KnowledgeBase() {
                       <CollapsibleTrigger asChild>
                         <CardHeader className="pb-3 cursor-pointer hover:bg-muted/30 transition-colors">
                           <div className="flex items-center justify-between">
-                            <div>
-                              <CardTitle className="text-base">{p.name}</CardTitle>
-                              {p.target_benefits && (
+                            <div className="min-w-0 flex-1">
+                              <div className="flex items-center gap-2">
+                                <CardTitle className="text-base">{p.name}</CardTitle>
+                                {viewMode === "doctor" && quickstartByPeptide.has(p.name) && (
+                                  <Badge variant="outline" className="text-[9px] border-primary/30 text-primary shrink-0">
+                                    Quick-Start
+                                  </Badge>
+                                )}
+                              </div>
+                              {viewMode === "normal" && p.target_benefits && (
                                 <p className="text-xs text-muted-foreground mt-1">{p.target_benefits}</p>
                               )}
+                              {viewMode === "doctor" && p.best_use_for && (
+                                <p className="text-xs text-muted-foreground mt-1">{p.best_use_for}</p>
+                              )}
                             </div>
-                            <div className="flex items-center gap-2">
+                            <div className="flex items-center gap-2 shrink-0">
                               <Button
                                 variant="ghost"
                                 size="icon"
@@ -241,43 +336,98 @@ export default function KnowledgeBase() {
 
                       <CollapsibleContent>
                         <CardContent className="pt-0 space-y-4 text-sm">
-                          {p.how_it_works && (
-                            <DetailSection icon={Activity} title="How It Works" content={p.how_it_works} />
-                          )}
-                          {p.best_use_for && (
-                            <DetailSection icon={BookOpen} title="Best Use For" content={p.best_use_for} />
-                          )}
-                          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                            {p.dosage_instructions && (
-                              <InfoBlock label="Dosage" value={p.dosage_instructions} />
-                            )}
-                            {p.administration_route && (
-                              <InfoBlock label="Administration" value={p.administration_route} />
-                            )}
-                            {p.strength_volume && (
-                              <InfoBlock label="Strength/Volume" value={p.strength_volume} />
-                            )}
-                            {p.treatment_duration && (
-                              <InfoBlock label="Duration" value={p.treatment_duration} />
-                            )}
-                          </div>
-                          {p.contraindications && (
-                            <DetailSection icon={ShieldAlert} title="Contraindications" content={p.contraindications} variant="warning" />
-                          )}
-                          {p.common_side_effects && (
-                            <InfoBlock label="Common Side Effects" value={p.common_side_effects} />
-                          )}
-                          {p.key_blood_tests && (
-                            <DetailSection icon={TestTubes} title="Key Blood Tests" content={p.key_blood_tests} />
-                          )}
-                          {p.possible_combinations && (
-                            <DetailSection icon={Combine} title="Possible Combinations" content={p.possible_combinations} />
-                          )}
-                          {p.recommended_supplements && (
-                            <InfoBlock label="Recommended Supplements" value={p.recommended_supplements} />
-                          )}
-                          {p.prescription_details && (
-                            <InfoBlock label="Prescription Details" value={p.prescription_details} />
+                          {viewMode === "normal" ? (
+                            /* === NORMAL VIEW === */
+                            <>
+                              {p.how_it_works && (
+                                <DetailSection icon={Activity} title="How It Works" content={p.how_it_works} />
+                              )}
+                              {p.best_use_for && (
+                                <DetailSection icon={BookOpen} title="Best Use For" content={p.best_use_for} />
+                              )}
+                              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                                {p.dosage_instructions && <InfoBlock label="Dosage" value={p.dosage_instructions} />}
+                                {p.administration_route && <InfoBlock label="Administration" value={p.administration_route} />}
+                                {p.strength_volume && <InfoBlock label="Strength/Volume" value={p.strength_volume} />}
+                                {p.treatment_duration && <InfoBlock label="Duration" value={p.treatment_duration} />}
+                              </div>
+                              {p.contraindications && (
+                                <DetailSection icon={ShieldAlert} title="Contraindications" content={p.contraindications} variant="warning" />
+                              )}
+                            </>
+                          ) : (
+                            /* === DOCTOR VIEW — Full Clinical Detail === */
+                            <>
+                              {p.how_it_works && (
+                                <DetailSection icon={Activity} title="Mechanism of Action" content={p.how_it_works} />
+                              )}
+                              {p.target_benefits && (
+                                <DetailSection icon={Activity} title="Target Benefits" content={p.target_benefits} variant="success" />
+                              )}
+                              {p.best_use_for && (
+                                <DetailSection icon={BookOpen} title="Clinical Indications" content={p.best_use_for} />
+                              )}
+
+                              {/* Prescribing Details Grid */}
+                              <div className="space-y-2">
+                                <h4 className="font-semibold text-xs uppercase tracking-wide text-muted-foreground flex items-center gap-2">
+                                  <span className="h-px flex-1 bg-border" />
+                                  Prescribing Information
+                                  <span className="h-px flex-1 bg-border" />
+                                </h4>
+                                <div className="grid grid-cols-2 gap-2">
+                                  {p.dosage_instructions && <PrescribingCard label="Dosage" value={p.dosage_instructions} />}
+                                  {p.administration_route && <PrescribingCard label="Route" value={p.administration_route} />}
+                                  {p.strength_volume && <PrescribingCard label="Strength/Volume" value={p.strength_volume} />}
+                                  {p.treatment_duration && <PrescribingCard label="Duration" value={p.treatment_duration} />}
+                                </div>
+                              </div>
+
+                              {p.prescription_details && (
+                                <DetailSection icon={FileText} title="Prescription Details" content={p.prescription_details} />
+                              )}
+
+                              {p.contraindications && (
+                                <DetailSection icon={ShieldAlert} title="Contraindications" content={p.contraindications} variant="warning" />
+                              )}
+                              {p.common_side_effects && (
+                                <DetailSection icon={ShieldAlert} title="Side Effects" content={p.common_side_effects} variant="muted" />
+                              )}
+                              {p.key_blood_tests && (
+                                <DetailSection icon={TestTubes} title="Required Blood Tests" content={p.key_blood_tests} />
+                              )}
+                              {p.possible_combinations && (
+                                <DetailSection icon={Combine} title="Possible Combinations" content={p.possible_combinations} />
+                              )}
+                              {p.recommended_supplements && (
+                                <DetailSection icon={Pill} title="Recommended Supplements" content={p.recommended_supplements} />
+                              )}
+
+                              {/* Patient Quick-Start Guide — from clinical_documents */}
+                              {(() => {
+                                // Check for exact match first, then partial match
+                                const exactDoc = quickstartByPeptide.get(p.name);
+                                const partialDoc = !exactDoc
+                                  ? Array.from(quickstartByPeptide.entries()).find(([key]) =>
+                                      p.name.toLowerCase().includes(key.split(" (")[0].toLowerCase()) ||
+                                      key.toLowerCase().includes(p.name.toLowerCase())
+                                    )?.[1]
+                                  : null;
+                                const doc = exactDoc || partialDoc;
+
+                                if (!doc) return null;
+                                return (
+                                  <div className="rounded-xl bg-gradient-to-br from-primary/10 via-primary/5 to-accent/10 border border-primary/20 p-4">
+                                    <h4 className="font-semibold text-sm mb-3 text-primary flex items-center gap-2">
+                                      <User className="h-4 w-4" /> Patient Quick-Start Guide
+                                    </h4>
+                                    <div className="prose prose-sm max-w-none text-sm whitespace-pre-wrap leading-relaxed text-muted-foreground">
+                                      {doc.content}
+                                    </div>
+                                  </div>
+                                );
+                              })()}
+                            </>
                           )}
                         </CardContent>
                       </CollapsibleContent>
@@ -357,16 +507,27 @@ function DetailSection({
   icon: any;
   title: string;
   content: string;
-  variant?: "warning";
+  variant?: "warning" | "success" | "muted";
 }) {
+  const bg =
+    variant === "warning"
+      ? "bg-destructive/10 border border-destructive/20"
+      : variant === "success"
+      ? "bg-accent/10 border border-accent/20"
+      : variant === "muted"
+      ? "bg-muted/30 border border-border"
+      : "bg-muted/50";
+  const iconColor =
+    variant === "warning"
+      ? "text-destructive"
+      : variant === "success"
+      ? "text-accent"
+      : "text-primary";
+
   return (
-    <div
-      className={`rounded-lg p-3 ${
-        variant === "warning" ? "bg-destructive/10 border border-destructive/20" : "bg-muted/50"
-      }`}
-    >
+    <div className={`rounded-lg p-3 ${bg}`}>
       <div className="flex items-center gap-2 mb-1">
-        <Icon className={`h-3.5 w-3.5 ${variant === "warning" ? "text-destructive" : "text-primary"}`} />
+        <Icon className={`h-3.5 w-3.5 ${iconColor}`} />
         <span className="font-medium text-xs uppercase tracking-wide">{title}</span>
       </div>
       <p className="text-sm whitespace-pre-wrap">{content}</p>
@@ -379,6 +540,15 @@ function InfoBlock({ label, value }: { label: string; value: string }) {
     <div className="space-y-0.5">
       <span className="text-xs font-medium text-muted-foreground">{label}</span>
       <p className="text-sm">{value}</p>
+    </div>
+  );
+}
+
+function PrescribingCard({ label, value }: { label: string; value: string }) {
+  return (
+    <div className="rounded-lg bg-muted/50 p-3">
+      <span className="text-[10px] font-semibold uppercase tracking-wider text-muted-foreground">{label}</span>
+      <p className="text-sm mt-0.5 font-medium">{value}</p>
     </div>
   );
 }
