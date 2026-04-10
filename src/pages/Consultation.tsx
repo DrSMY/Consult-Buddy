@@ -1261,7 +1261,7 @@ SCOPE Certified Physician`;
                                 <p className="text-sm font-medium">
                                   Vial lasts <span className="text-accent font-bold">{p.supply_days} days</span>
                                   {p.vial_size_ml && p.dose_per_injection_ml && (
-                                    <span className="text-muted-foreground font-normal ml-1">({Math.floor(p.vial_size_ml / p.dose_per_injection_ml)} injections from {p.vial_size_ml}ml vial)</span>
+                                    <span className="text-muted-foreground font-normal ml-1">({Math.floor(p.vial_size_ml / p.dose_per_injection_ml)} injections × {formatDose(p.dose_per_injection_ml, doseUnit)} from {p.vial_size_ml}ml vial)</span>
                                   )}
                                 </p>
                               </div>
