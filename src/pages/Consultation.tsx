@@ -227,7 +227,11 @@ export default function Consultation() {
       if (data.status === "completed") {
         setSelectionConfirmed(true);
         setSelectedPeptides(new Set(rec.recommended_peptides.map((p) => p.name)));
-        setSelectedSupplements(new Set(rec.recommended_supplements.map((s) => s.name)));
+        if (raw.selected_supplement_names) {
+          setSelectedSupplements(new Set(raw.selected_supplement_names));
+        } else {
+          setSelectedSupplements(new Set(rec.recommended_supplements.map((s) => s.name)));
+        }
       }
     } else {
       runAIAnalysis(data);
@@ -639,12 +643,13 @@ SCOPE Certified Physician`;
     }
 
     const selectedRecs = recommendations!.recommended_peptides.filter((p) => selectedPeptides.has(p.name));
-    const selectedSupps = recommendations!.recommended_supplements.filter((s) => selectedSupplements.has(s.name));
 
     const updatedRec: any = {
       ...recommendations!,
       recommended_peptides: selectedRecs,
-      recommended_supplements: selectedSupps,
+      // Keep ALL supplements in the list so they remain available on re-edit
+      // Track which ones were selected via a separate field
+      selected_supplement_names: Array.from(selectedSupplements),
       required_blood_tests: derivedBasicTests,
       recommended_blood_tests: derivedAdvancedTests,
       selected_lab_tier: labTier,
@@ -675,8 +680,14 @@ SCOPE Certified Physician`;
       setRecommendations(rec);
       setConsultation(data);
       setSelectedPeptides(new Set(rec.recommended_peptides.map((p) => p.name)));
-      setSelectedSupplements(new Set(rec.recommended_supplements.map((s) => s.name)));
       const saved = data.ai_recommendations as any;
+      // Restore selected supplements from saved selection, or fall back to all
+      if (saved.selected_supplement_names) {
+        setSelectedSupplements(new Set(saved.selected_supplement_names));
+      } else {
+        setSelectedSupplements(new Set(rec.recommended_supplements.map((s) => s.name)));
+      }
+      
       if (saved.selected_lab_tier) setLabTier(saved.selected_lab_tier);
       if (saved.lab_notes) setLabNotes(saved.lab_notes);
       if (saved.custom_lab_tests) setCustomLabTests(saved.custom_lab_tests);
