@@ -29,7 +29,29 @@ interface PeptideRec {
   required_blood_tests?: string[];
   mandatory_blood_tests?: string[];
   recommended_blood_tests?: string[];
+  vial_size_ml?: number;
+  dose_per_injection_ml?: number;
+  frequency?: string; // e.g. "daily", "every other day", "3x per week", "weekly"
+  supply_days?: number; // auto-calculated
 }
+
+const FREQUENCY_OPTIONS = [
+  { label: "Daily", value: "daily", factor: 1 },
+  { label: "Every other day", value: "every other day", factor: 0.5 },
+  { label: "3x per week", value: "3x per week", factor: 3 / 7 },
+  { label: "2x per week", value: "2x per week", factor: 2 / 7 },
+  { label: "Weekly", value: "weekly", factor: 1 / 7 },
+  { label: "Bi-weekly", value: "bi-weekly", factor: 1 / 14 },
+];
+
+const calcSupplyDays = (vialMl?: number, doseMl?: number, frequency?: string): number | null => {
+  if (!vialMl || !doseMl || doseMl <= 0 || !frequency) return null;
+  const freq = FREQUENCY_OPTIONS.find((f) => f.value === frequency);
+  if (!freq) return null;
+  const injectionsPerDay = freq.factor;
+  const totalInjections = vialMl / doseMl;
+  return Math.floor(totalInjections / injectionsPerDay);
+};
 
 interface Recommendation {
   recommended_peptides: PeptideRec[];
