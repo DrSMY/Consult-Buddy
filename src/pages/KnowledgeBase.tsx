@@ -311,10 +311,17 @@ export default function KnowledgeBase() {
         {viewMode === "doctor" && glp1Protocol && !search.trim() && (
           <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <FileText className="h-4 w-4 text-primary" /> GLP-1 Clinical Protocol
-              </CardTitle>
-              <CardDescription>Comprehensive prescribing guidelines for GLP-1 receptor agonists</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-primary" /> GLP-1 Clinical Protocol
+                  </CardTitle>
+                  <CardDescription>Comprehensive prescribing guidelines for GLP-1 receptor agonists</CardDescription>
+                </div>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditDoc(glp1Protocol)}>
+                  <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="prose prose-sm max-w-none text-sm whitespace-pre-wrap leading-relaxed">
