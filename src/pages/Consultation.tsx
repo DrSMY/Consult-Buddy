@@ -68,6 +68,14 @@ interface Recommendation {
 
 type LabTier = "basic" | "advanced";
 type WizardStep = "select" | "configure" | "labs" | "supplements";
+type DoseUnit = "ml" | "units";
+
+// 0.1 ml = 10 units (1 ml = 100 units on a standard insulin syringe)
+const mlToUnits = (ml: number): number => Math.round(ml * 100 * 100) / 100;
+const unitsToMl = (units: number): number => Math.round((units / 100) * 1000) / 1000;
+const formatDose = (ml: number, unit: DoseUnit): string =>
+  unit === "units" ? `${mlToUnits(ml)} Units` : `${ml} ml`;
+const formatDoseLabel = (unit: DoseUnit): string => unit === "units" ? "Units" : "ml";
 
 // Parse protocol data into supply calculator presets
 interface ProtocolPreset {
