@@ -142,6 +142,8 @@ export default function Consultation() {
   const [protocolPresets, setProtocolPresets] = useState<Map<string, ProtocolPreset>>(new Map());
   // Quick-start guides from clinical_documents
   const [quickStartGuides, setQuickStartGuides] = useState<Map<string, string>>(new Map());
+  // Dose display unit toggle
+  const [doseUnit, setDoseUnit] = useState<DoseUnit>("ml");
 
   useEffect(() => {
     loadConsultation();
