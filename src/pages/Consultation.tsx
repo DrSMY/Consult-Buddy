@@ -600,7 +600,7 @@ Warm regards,
 Your DarDoc Clinical Team`;
 
     return { doctorNote, nurseInstructions, nextSteps, patientGuide };
-  }, [recommendations, selectedPeptides, selectedSupplements, finalLabTests, labTier, labNotes, consultation]);
+  }, [recommendations, selectedPeptides, selectedSupplements, finalLabTests, labTier, labNotes, consultation, quickStartGuides]);
 
   const confirmSelection = async () => {
     if (selectedPeptides.size === 0) {
