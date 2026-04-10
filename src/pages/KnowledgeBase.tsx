@@ -217,6 +217,43 @@ export default function KnowledgeBase() {
     loadProtocols();
   };
 
+  const openEditDoc = (doc: ClinicalDoc) => {
+    setIsNewDoc(false);
+    setEditDoc(doc);
+    setEditDocForm({ title: doc.title, content: doc.content, peptide_name: doc.peptide_name || "", document_type: doc.document_type });
+  };
+
+  const openNewDoc = () => {
+    setIsNewDoc(true);
+    setEditDoc({} as ClinicalDoc);
+    setEditDocForm({ title: "", content: "", peptide_name: "", document_type: "patient_quickstart_guide" });
+  };
+
+  const handleSaveDoc = async () => {
+    if (!editDocForm.title.trim() || !editDocForm.content.trim()) {
+      toast({ title: "Title and content are required", variant: "destructive" });
+      return;
+    }
+    setSaving(true);
+    const payload = {
+      title: editDocForm.title.trim(),
+      content: editDocForm.content.trim(),
+      peptide_name: editDocForm.peptide_name.trim() || null,
+      document_type: editDocForm.document_type.trim(),
+    };
+    if (isNewDoc) {
+      const { error } = await supabase.from("clinical_documents").insert(payload);
+      if (error) toast({ title: "Failed to add document", description: error.message, variant: "destructive" });
+      else toast({ title: "Document added successfully" });
+    } else {
+      const { error } = await supabase.from("clinical_documents").update(payload).eq("id", editDoc!.id);
+      if (error) toast({ title: "Failed to update document", description: error.message, variant: "destructive" });
+      else toast({ title: "Document updated successfully" });
+    }
+    setSaving(false);
+    setEditDoc(null);
+    loadClinicalDocs();
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
