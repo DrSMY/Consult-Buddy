@@ -87,6 +87,10 @@ export default function KnowledgeBase() {
   const [saving, setSaving] = useState(false);
   const [isNew, setIsNew] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("normal");
+  // Clinical document editing
+  const [editDoc, setEditDoc] = useState<ClinicalDoc | null>(null);
+  const [editDocForm, setEditDocForm] = useState({ title: "", content: "", peptide_name: "", document_type: "" });
+  const [isNewDoc, setIsNewDoc] = useState(false);
 
   const loadProtocols = () => {
     supabase
@@ -213,6 +217,44 @@ export default function KnowledgeBase() {
     loadProtocols();
   };
 
+  const openEditDoc = (doc: ClinicalDoc) => {
+    setIsNewDoc(false);
+    setEditDoc(doc);
+    setEditDocForm({ title: doc.title, content: doc.content, peptide_name: doc.peptide_name || "", document_type: doc.document_type });
+  };
+
+  const openNewDoc = () => {
+    setIsNewDoc(true);
+    setEditDoc({} as ClinicalDoc);
+    setEditDocForm({ title: "", content: "", peptide_name: "", document_type: "patient_quickstart_guide" });
+  };
+
+  const handleSaveDoc = async () => {
+    if (!editDocForm.title.trim() || !editDocForm.content.trim()) {
+      toast({ title: "Title and content are required", variant: "destructive" });
+      return;
+    }
+    setSaving(true);
+    const payload = {
+      title: editDocForm.title.trim(),
+      content: editDocForm.content.trim(),
+      peptide_name: editDocForm.peptide_name.trim() || null,
+      document_type: editDocForm.document_type.trim(),
+    };
+    if (isNewDoc) {
+      const { error } = await supabase.from("clinical_documents").insert(payload);
+      if (error) toast({ title: "Failed to add document", description: error.message, variant: "destructive" });
+      else toast({ title: "Document added successfully" });
+    } else {
+      const { error } = await supabase.from("clinical_documents").update(payload).eq("id", editDoc!.id);
+      if (error) toast({ title: "Failed to update document", description: error.message, variant: "destructive" });
+      else toast({ title: "Document updated successfully" });
+    }
+    setSaving(false);
+    setEditDoc(null);
+    loadClinicalDocs();
+  };
+
   if (loading) {
     return (
       <div className="flex min-h-screen items-center justify-center">
@@ -224,6 +266,9 @@ export default function KnowledgeBase() {
   return (
     <div className="min-h-screen gradient-surface">
       <AppHeader title="Knowledge Base" subtitle={`${protocols.length} protocols`} showBack>
+        <Button size="sm" variant="outline" className="text-xs" onClick={openNewDoc}>
+          <Plus className="h-3.5 w-3.5 mr-1" /> Add Document
+        </Button>
         <Button size="sm" variant="outline" className="text-xs" onClick={openNew}>
           <Plus className="h-3.5 w-3.5 mr-1" /> Add Protocol
         </Button>
@@ -269,10 +314,17 @@ export default function KnowledgeBase() {
         {viewMode === "doctor" && glp1Protocol && !search.trim() && (
           <Card className="border-primary/20 bg-gradient-to-br from-primary/5 to-accent/5">
             <CardHeader className="pb-3">
-              <CardTitle className="text-lg flex items-center gap-2">
-                <FileText className="h-4 w-4 text-primary" /> GLP-1 Clinical Protocol
-              </CardTitle>
-              <CardDescription>Comprehensive prescribing guidelines for GLP-1 receptor agonists</CardDescription>
+              <div className="flex items-center justify-between">
+                <div>
+                  <CardTitle className="text-lg flex items-center gap-2">
+                    <FileText className="h-4 w-4 text-primary" /> GLP-1 Clinical Protocol
+                  </CardTitle>
+                  <CardDescription>Comprehensive prescribing guidelines for GLP-1 receptor agonists</CardDescription>
+                </div>
+                <Button variant="ghost" size="icon" className="h-7 w-7" onClick={() => openEditDoc(glp1Protocol)}>
+                  <Pencil className="h-3.5 w-3.5 text-muted-foreground" />
+                </Button>
+              </div>
             </CardHeader>
             <CardContent>
               <div className="prose prose-sm max-w-none text-sm whitespace-pre-wrap leading-relaxed">
@@ -418,9 +470,14 @@ export default function KnowledgeBase() {
                                 if (!doc) return null;
                                 return (
                                   <div className="rounded-xl bg-gradient-to-br from-primary/10 via-primary/5 to-accent/10 border border-primary/20 p-4">
-                                    <h4 className="font-semibold text-sm mb-3 text-primary flex items-center gap-2">
-                                      <User className="h-4 w-4" /> Patient Quick-Start Guide
-                                    </h4>
+                                    <div className="flex items-center justify-between mb-3">
+                                      <h4 className="font-semibold text-sm text-primary flex items-center gap-2">
+                                        <User className="h-4 w-4" /> Patient Quick-Start Guide
+                                      </h4>
+                                      <Button variant="ghost" size="icon" className="h-6 w-6" onClick={() => openEditDoc(doc)}>
+                                        <Pencil className="h-3 w-3 text-muted-foreground" />
+                                      </Button>
+                                    </div>
                                     <div className="prose prose-sm max-w-none text-sm whitespace-pre-wrap leading-relaxed text-muted-foreground">
                                       {doc.content}
                                     </div>
@@ -490,6 +547,62 @@ export default function KnowledgeBase() {
             <Button onClick={handleSave} disabled={saving}>
               {saving ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1" />}
               {isNew ? "Add Protocol" : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit / Add Clinical Document Dialog */}
+      <Dialog open={!!editDoc} onOpenChange={(open) => !open && setEditDoc(null)}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{isNewDoc ? "Add Clinical Document" : `Edit: ${editDocForm.title}`}</DialogTitle>
+            <DialogDescription>
+              {isNewDoc ? "Add a new quick-start guide or clinical document." : "Update the document content."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Document Type</Label>
+              <Input
+                value={editDocForm.document_type}
+                onChange={(e) => setEditDocForm((f) => ({ ...f, document_type: e.target.value }))}
+                placeholder="e.g. patient_quickstart_guide, glp1_protocol"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Title</Label>
+              <Input
+                value={editDocForm.title}
+                onChange={(e) => setEditDocForm((f) => ({ ...f, title: e.target.value }))}
+                placeholder="e.g. BPC-157 Injection Quick-Start Guide"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Peptide Name (for quick-start guides)</Label>
+              <Input
+                value={editDocForm.peptide_name}
+                onChange={(e) => setEditDocForm((f) => ({ ...f, peptide_name: e.target.value }))}
+                placeholder="e.g. BPC-157 (Injection)"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Content</Label>
+              <Textarea
+                value={editDocForm.content}
+                onChange={(e) => setEditDocForm((f) => ({ ...f, content: e.target.value }))}
+                className="min-h-[200px] text-sm font-mono"
+                placeholder="Guide content..."
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setEditDoc(null)} disabled={saving}>
+              <X className="h-3.5 w-3.5 mr-1" /> Cancel
+            </Button>
+            <Button onClick={handleSaveDoc} disabled={saving}>
+              {saving ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1" />}
+              {isNewDoc ? "Add Document" : "Save Changes"}
             </Button>
           </DialogFooter>
         </DialogContent>
