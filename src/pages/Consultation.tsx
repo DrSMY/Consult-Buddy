@@ -68,6 +68,14 @@ interface Recommendation {
 
 type LabTier = "basic" | "advanced";
 type WizardStep = "select" | "configure" | "labs" | "supplements";
+type DoseUnit = "ml" | "units";
+
+// 0.1 ml = 10 units (1 ml = 100 units on a standard insulin syringe)
+const mlToUnits = (ml: number): number => Math.round(ml * 100 * 100) / 100;
+const unitsToMl = (units: number): number => Math.round((units / 100) * 1000) / 1000;
+const formatDose = (ml: number, unit: DoseUnit): string =>
+  unit === "units" ? `${mlToUnits(ml)} Units` : `${ml} ml`;
+const formatDoseLabel = (unit: DoseUnit): string => unit === "units" ? "Units" : "ml";
 
 // Parse protocol data into supply calculator presets
 interface ProtocolPreset {
@@ -134,6 +142,8 @@ export default function Consultation() {
   const [protocolPresets, setProtocolPresets] = useState<Map<string, ProtocolPreset>>(new Map());
   // Quick-start guides from clinical_documents
   const [quickStartGuides, setQuickStartGuides] = useState<Map<string, string>>(new Map());
+  // Dose display unit toggle
+  const [doseUnit, setDoseUnit] = useState<DoseUnit>("ml");
 
   useEffect(() => {
     loadConsultation();
@@ -467,7 +477,7 @@ export default function Consultation() {
     const medsLines = selectedRecs.map((p) => {
       let line = `• ${p.name} — ${p.dosage}, ${p.administration}, ${p.duration}`;
       if (p.supply_days != null && p.vial_size_ml && p.dose_per_injection_ml) {
-        line += `\n  Vial: ${p.vial_size_ml}ml | Dose: ${p.dose_per_injection_ml}ml/injection | Frequency: ${p.frequency} | Supply: ${p.supply_days} days (${Math.floor(p.vial_size_ml / p.dose_per_injection_ml)} injections)`;
+        line += `\n  Vial: ${p.vial_size_ml}ml | Dose: ${formatDose(p.dose_per_injection_ml, doseUnit)}/injection | Frequency: ${p.frequency} | Supply: ${p.supply_days} days (${Math.floor(p.vial_size_ml / p.dose_per_injection_ml)} injections)`;
       }
       return line;
     }).join("\n");
@@ -496,7 +506,7 @@ ${recommendations.clinical_summary || ""}`;
       const lines = [`📌 ${p.name}`];
       lines.push(`   Route: ${p.administration}`);
       lines.push(`   Dose: ${p.dosage}`);
-      if (p.dose_per_injection_ml) lines.push(`   Volume per injection: ${p.dose_per_injection_ml} ml`);
+      if (p.dose_per_injection_ml) lines.push(`   Volume per injection: ${formatDose(p.dose_per_injection_ml, doseUnit)} (${formatDose(p.dose_per_injection_ml, doseUnit === "ml" ? "units" : "ml")})`);
       if (p.frequency) {
         const freqLabel = FREQUENCY_OPTIONS.find((f) => f.value === p.frequency)?.label || p.frequency;
         lines.push(`   Frequency: ${freqLabel}`);
@@ -566,7 +576,7 @@ Welcome to your personalised treatment plan. Below you will find detailed instru
       if (freqLabel) doseBlock += `\n- Frequency: ${freqLabel}`;
       doseBlock += `\n- Duration: ${p.duration}`;
       if (p.vial_size_ml) doseBlock += `\n- Vial Size: ${p.vial_size_ml} ml`;
-      if (p.dose_per_injection_ml) doseBlock += `\n- Volume per injection: ${p.dose_per_injection_ml} ml`;
+      if (p.dose_per_injection_ml) doseBlock += `\n- Volume per injection: ${formatDose(p.dose_per_injection_ml, doseUnit)} (${formatDose(p.dose_per_injection_ml, doseUnit === "ml" ? "units" : "ml")})`;
       if (totalInjections) doseBlock += `\n- Total injections per vial: ${totalInjections}`;
       if (p.supply_days != null) doseBlock += `\n- Supply: Your vial will last approximately ${p.supply_days} days`;
 
@@ -635,7 +645,7 @@ Medical Director
 SCOPE Certified Physician`;
 
     return { doctorNote, nurseInstructions, nextSteps, patientGuide };
-  }, [recommendations, selectedPeptides, selectedSupplements, finalLabTests, labTier, labNotes, consultation, quickStartGuides]);
+  }, [recommendations, selectedPeptides, selectedSupplements, finalLabTests, labTier, labNotes, consultation, quickStartGuides, doseUnit]);
 
   const confirmSelection = async () => {
     if (selectedPeptides.size === 0) {
@@ -851,7 +861,16 @@ SCOPE Certified Physician`;
                 {/* Prescribed Peptides */}
                 <Card>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-lg flex items-center gap-2"><CheckCircle className="h-4 w-4 text-accent" /> Prescribed Peptides</CardTitle>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg flex items-center gap-2"><CheckCircle className="h-4 w-4 text-accent" /> Prescribed Peptides</CardTitle>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-muted-foreground">Dose unit:</span>
+                        <div className="flex rounded-md border border-border overflow-hidden">
+                          <button className={`px-2 py-1 text-[10px] font-medium ${doseUnit === "ml" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"}`} onClick={() => setDoseUnit("ml")}>ml</button>
+                          <button className={`px-2 py-1 text-[10px] font-medium ${doseUnit === "units" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"}`} onClick={() => setDoseUnit("units")}>Units</button>
+                        </div>
+                      </div>
+                    </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {recommendations.recommended_peptides.map((p, i) => (
@@ -875,7 +894,7 @@ SCOPE Certified Physician`;
                         </div>
                         {p.vial_size_ml && p.dose_per_injection_ml && p.supply_days != null && (
                           <div className="text-[10px] text-muted-foreground">
-                            {p.vial_size_ml}ml vial • {p.dose_per_injection_ml}ml/injection • {Math.floor(p.vial_size_ml / p.dose_per_injection_ml)} total injections
+                            {p.vial_size_ml}ml vial • {formatDose(p.dose_per_injection_ml, doseUnit)}/injection • {Math.floor(p.vial_size_ml / p.dose_per_injection_ml)} total injections
                           </div>
                         )}
                       </div>
@@ -1126,6 +1145,29 @@ SCOPE Certified Physician`;
                     <CardDescription>Review and edit dosage, duration & vial supply for each selected peptide.</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
+                    {/* Dose Unit Toggle */}
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs font-medium text-muted-foreground">Display dose in:</span>
+                      <div className="flex rounded-lg border border-border overflow-hidden">
+                        <button
+                          className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                            doseUnit === "ml" ? "bg-primary text-primary-foreground" : "bg-card hover:bg-muted/50 text-muted-foreground"
+                          }`}
+                          onClick={() => setDoseUnit("ml")}
+                        >
+                          ml
+                        </button>
+                        <button
+                          className={`px-3 py-1.5 text-xs font-medium transition-colors ${
+                            doseUnit === "units" ? "bg-primary text-primary-foreground" : "bg-card hover:bg-muted/50 text-muted-foreground"
+                          }`}
+                          onClick={() => setDoseUnit("units")}
+                        >
+                          Units
+                        </button>
+                      </div>
+                      <span className="text-[10px] text-muted-foreground">(0.1 ml = 10 Units)</span>
+                    </div>
                     {recommendations.recommended_peptides
                       .filter((p) => selectedPeptides.has(p.name))
                       .map((p, i) => (
@@ -1199,8 +1241,20 @@ SCOPE Certified Physician`;
                                 <Input type="number" step="0.5" min="0" placeholder={protocolPresets.get(p.name)?.vial_size_ml ? `Protocol: ${protocolPresets.get(p.name)!.vial_size_ml}ml` : "e.g. 5"} value={p.vial_size_ml ?? ""} onChange={(e) => updatePeptideField(p.name, "vial_size_ml", e.target.value ? parseFloat(e.target.value) : undefined)} className="mt-1 h-8 text-sm" />
                               </div>
                               <div>
-                                <Label className="text-[10px] text-muted-foreground">Dose per Injection (ml)</Label>
-                                <Input type="number" step="0.01" min="0" placeholder={protocolPresets.get(p.name)?.dose_per_injection_ml ? `Protocol: ${protocolPresets.get(p.name)!.dose_per_injection_ml}ml` : "e.g. 0.1"} value={p.dose_per_injection_ml ?? ""} onChange={(e) => updatePeptideField(p.name, "dose_per_injection_ml", e.target.value ? parseFloat(e.target.value) : undefined)} className="mt-1 h-8 text-sm" />
+                                <Label className="text-[10px] text-muted-foreground">Dose per Injection ({formatDoseLabel(doseUnit)})</Label>
+                                <Input
+                                  type="number"
+                                  step={doseUnit === "units" ? "1" : "0.01"}
+                                  min="0"
+                                  placeholder={protocolPresets.get(p.name)?.dose_per_injection_ml ? `Protocol: ${doseUnit === "units" ? mlToUnits(protocolPresets.get(p.name)!.dose_per_injection_ml!) + " Units" : protocolPresets.get(p.name)!.dose_per_injection_ml + "ml"}` : doseUnit === "units" ? "e.g. 10" : "e.g. 0.1"}
+                                  value={p.dose_per_injection_ml != null ? (doseUnit === "units" ? mlToUnits(p.dose_per_injection_ml) : p.dose_per_injection_ml) : ""}
+                                  onChange={(e) => {
+                                    const val = e.target.value ? parseFloat(e.target.value) : undefined;
+                                    const mlVal = val != null ? (doseUnit === "units" ? unitsToMl(val) : val) : undefined;
+                                    updatePeptideField(p.name, "dose_per_injection_ml", mlVal);
+                                  }}
+                                  className="mt-1 h-8 text-sm"
+                                />
                               </div>
                               <div>
                                 <Label className="text-[10px] text-muted-foreground">Frequency</Label>
@@ -1216,7 +1270,7 @@ SCOPE Certified Physician`;
                                 <p className="text-sm font-medium">
                                   Vial lasts <span className="text-accent font-bold">{p.supply_days} days</span>
                                   {p.vial_size_ml && p.dose_per_injection_ml && (
-                                    <span className="text-muted-foreground font-normal ml-1">({Math.floor(p.vial_size_ml / p.dose_per_injection_ml)} injections from {p.vial_size_ml}ml vial)</span>
+                                    <span className="text-muted-foreground font-normal ml-1">({Math.floor(p.vial_size_ml / p.dose_per_injection_ml)} injections × {formatDose(p.dose_per_injection_ml, doseUnit)} from {p.vial_size_ml}ml vial)</span>
                                   )}
                                 </p>
                               </div>
