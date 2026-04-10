@@ -639,12 +639,13 @@ SCOPE Certified Physician`;
     }
 
     const selectedRecs = recommendations!.recommended_peptides.filter((p) => selectedPeptides.has(p.name));
-    const selectedSupps = recommendations!.recommended_supplements.filter((s) => selectedSupplements.has(s.name));
 
     const updatedRec: any = {
       ...recommendations!,
       recommended_peptides: selectedRecs,
-      recommended_supplements: selectedSupps,
+      // Keep ALL supplements in the list so they remain available on re-edit
+      // Track which ones were selected via a separate field
+      selected_supplement_names: Array.from(selectedSupplements),
       required_blood_tests: derivedBasicTests,
       recommended_blood_tests: derivedAdvancedTests,
       selected_lab_tier: labTier,
