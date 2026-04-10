@@ -477,7 +477,7 @@ export default function Consultation() {
     const medsLines = selectedRecs.map((p) => {
       let line = `• ${p.name} — ${p.dosage}, ${p.administration}, ${p.duration}`;
       if (p.supply_days != null && p.vial_size_ml && p.dose_per_injection_ml) {
-        line += `\n  Vial: ${p.vial_size_ml}ml | Dose: ${p.dose_per_injection_ml}ml/injection | Frequency: ${p.frequency} | Supply: ${p.supply_days} days (${Math.floor(p.vial_size_ml / p.dose_per_injection_ml)} injections)`;
+        line += `\n  Vial: ${p.vial_size_ml}ml | Dose: ${formatDose(p.dose_per_injection_ml, doseUnit)}/injection | Frequency: ${p.frequency} | Supply: ${p.supply_days} days (${Math.floor(p.vial_size_ml / p.dose_per_injection_ml)} injections)`;
       }
       return line;
     }).join("\n");
