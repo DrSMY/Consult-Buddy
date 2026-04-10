@@ -1074,20 +1074,41 @@ ${labLines || "As directed by your doctor"}
 
                           {/* Vial Supply Calculator */}
                           <div className="rounded-lg border border-dashed border-primary/20 bg-primary/[0.03] p-3 space-y-3">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-primary">💊 Vial Supply Calculator</span>
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-primary">💊 Vial Supply Calculator</span>
+                              {protocolPresets.has(p.name) && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 text-[10px] px-2 border-primary/30 text-primary hover:bg-primary/10"
+                                  onClick={() => applyProtocolPreset(p.name)}
+                                >
+                                  <FileText className="h-3 w-3 mr-1" /> Load from Protocol
+                                </Button>
+                              )}
+                            </div>
+
+                            {/* Protocol reference info */}
+                            {protocolPresets.has(p.name) && (
+                              <div className="text-[10px] text-muted-foreground bg-muted/50 rounded-md p-2 space-y-0.5">
+                                <p><span className="font-medium">Protocol strength:</span> {protocolPresets.get(p.name)!.raw_strength}</p>
+                                <p><span className="font-medium">Protocol dosage:</span> {protocolPresets.get(p.name)!.raw_dosage}</p>
+                              </div>
+                            )}
+
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                               <div>
                                 <Label className="text-[10px] text-muted-foreground">Vial Size (ml)</Label>
-                                <Input type="number" step="0.5" min="0" placeholder="e.g. 5" value={p.vial_size_ml ?? ""} onChange={(e) => updatePeptideField(p.name, "vial_size_ml", e.target.value ? parseFloat(e.target.value) : undefined)} className="mt-1 h-8 text-sm" />
+                                <Input type="number" step="0.5" min="0" placeholder={protocolPresets.get(p.name)?.vial_size_ml ? `Protocol: ${protocolPresets.get(p.name)!.vial_size_ml}ml` : "e.g. 5"} value={p.vial_size_ml ?? ""} onChange={(e) => updatePeptideField(p.name, "vial_size_ml", e.target.value ? parseFloat(e.target.value) : undefined)} className="mt-1 h-8 text-sm" />
                               </div>
                               <div>
                                 <Label className="text-[10px] text-muted-foreground">Dose per Injection (ml)</Label>
-                                <Input type="number" step="0.01" min="0" placeholder="e.g. 0.1" value={p.dose_per_injection_ml ?? ""} onChange={(e) => updatePeptideField(p.name, "dose_per_injection_ml", e.target.value ? parseFloat(e.target.value) : undefined)} className="mt-1 h-8 text-sm" />
+                                <Input type="number" step="0.01" min="0" placeholder={protocolPresets.get(p.name)?.dose_per_injection_ml ? `Protocol: ${protocolPresets.get(p.name)!.dose_per_injection_ml}ml` : "e.g. 0.1"} value={p.dose_per_injection_ml ?? ""} onChange={(e) => updatePeptideField(p.name, "dose_per_injection_ml", e.target.value ? parseFloat(e.target.value) : undefined)} className="mt-1 h-8 text-sm" />
                               </div>
                               <div>
                                 <Label className="text-[10px] text-muted-foreground">Frequency</Label>
                                 <select value={p.frequency ?? ""} onChange={(e) => updatePeptideField(p.name, "frequency", e.target.value || undefined)} className="mt-1 h-8 w-full rounded-md border border-input bg-background px-3 text-sm">
-                                  <option value="">Select...</option>
+                                  <option value="">{protocolPresets.get(p.name)?.frequency ? `Protocol: ${FREQUENCY_OPTIONS.find(f => f.value === protocolPresets.get(p.name)!.frequency)?.label || protocolPresets.get(p.name)!.frequency}` : "Select..."}</option>
                                   {FREQUENCY_OPTIONS.map((f) => (<option key={f.value} value={f.value}>{f.label}</option>))}
                                 </select>
                               </div>
