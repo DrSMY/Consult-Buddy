@@ -144,6 +144,34 @@ export default function Consultation() {
     setSelectedSupplements((prev) => { const next = new Set(prev); next.has(name) ? next.delete(name) : next.add(name); return next; });
   };
 
+  const updatePeptideField = (peptideName: string, field: "dosage" | "duration", value: string) => {
+    if (!recommendations) return;
+    const updated: Recommendation = {
+      ...recommendations,
+      recommended_peptides: recommendations.recommended_peptides.map((p) =>
+        p.name === peptideName ? { ...p, [field]: value } : p
+      ),
+    };
+    setRecommendations(updated);
+    supabase.from("consultations").update({ ai_recommendations: updated as any }).eq("id", id);
+  };
+
+  const startInlineEdit = (peptide: string, field: "dosage" | "duration") => {
+    const p = recommendations?.recommended_peptides.find((r) => r.name === peptide);
+    if (p) {
+      setEditingField({ peptide, field });
+      setEditValue(p[field]);
+    }
+  };
+
+  const saveInlineEdit = () => {
+    if (editingField) {
+      updatePeptideField(editingField.peptide, editingField.field, editValue);
+      setEditingField(null);
+      setEditValue("");
+    }
+  };
+
   const getMandatoryTests = (p: PeptideRec) => p.mandatory_blood_tests || [];
   const getRecommendedTests = (p: PeptideRec) => p.recommended_blood_tests || [];
   const getLegacyTests = (p: PeptideRec) => p.required_blood_tests || [];
