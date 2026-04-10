@@ -166,13 +166,24 @@ export default function Consultation() {
     setSelectedSupplements((prev) => { const next = new Set(prev); next.has(name) ? next.delete(name) : next.add(name); return next; });
   };
 
-  const updatePeptideField = (peptideName: string, field: "dosage" | "duration", value: string) => {
+  const updatePeptideField = (peptideName: string, field: keyof PeptideRec, value: any) => {
     if (!recommendations) return;
     const updated: Recommendation = {
       ...recommendations,
-      recommended_peptides: recommendations.recommended_peptides.map((p) =>
-        p.name === peptideName ? { ...p, [field]: value } : p
-      ),
+      recommended_peptides: recommendations.recommended_peptides.map((p) => {
+        if (p.name !== peptideName) return p;
+        const newP = { ...p, [field]: value };
+        // Auto-recalculate supply days when relevant fields change
+        if (field === "vial_size_ml" || field === "dose_per_injection_ml" || field === "frequency") {
+          const supply = calcSupplyDays(
+            field === "vial_size_ml" ? value : newP.vial_size_ml,
+            field === "dose_per_injection_ml" ? value : newP.dose_per_injection_ml,
+            field === "frequency" ? value : newP.frequency,
+          );
+          newP.supply_days = supply ?? undefined;
+        }
+        return newP;
+      }),
     };
     setRecommendations(updated);
     supabase.from("consultations").update({ ai_recommendations: updated as any }).eq("id", id);
