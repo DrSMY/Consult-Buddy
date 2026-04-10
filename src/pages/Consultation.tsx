@@ -645,7 +645,7 @@ Medical Director
 SCOPE Certified Physician`;
 
     return { doctorNote, nurseInstructions, nextSteps, patientGuide };
-  }, [recommendations, selectedPeptides, selectedSupplements, finalLabTests, labTier, labNotes, consultation, quickStartGuides]);
+  }, [recommendations, selectedPeptides, selectedSupplements, finalLabTests, labTier, labNotes, consultation, quickStartGuides, doseUnit]);
 
   const confirmSelection = async () => {
     if (selectedPeptides.size === 0) {
