@@ -506,7 +506,7 @@ ${recommendations.clinical_summary || ""}`;
       const lines = [`📌 ${p.name}`];
       lines.push(`   Route: ${p.administration}`);
       lines.push(`   Dose: ${p.dosage}`);
-      if (p.dose_per_injection_ml) lines.push(`   Volume per injection: ${p.dose_per_injection_ml} ml`);
+      if (p.dose_per_injection_ml) lines.push(`   Volume per injection: ${formatDose(p.dose_per_injection_ml, doseUnit)} (${formatDose(p.dose_per_injection_ml, doseUnit === "ml" ? "units" : "ml")})`);
       if (p.frequency) {
         const freqLabel = FREQUENCY_OPTIONS.find((f) => f.value === p.frequency)?.label || p.frequency;
         lines.push(`   Frequency: ${freqLabel}`);
