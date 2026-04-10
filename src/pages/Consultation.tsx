@@ -567,31 +567,41 @@ Welcome to your personalised treatment plan. Below you will find detailed instru
       if (p.supply_days != null) doseBlock += `\n- Supply: Your vial will last approximately ${p.supply_days} days`;
 
       if (guideContent) {
-        // Strip the generic dose/supply/frequency lines from the DB content
-        // so we can replace them with patient-specific values
+        // Strip ALL generic dose/routine sections from DB content — patient only sees their prescribed values
         let cleaned = guideContent
           .replace(/^- Dose:.*$/gm, "")
           .replace(/^- Supply:.*$/gm, "")
           .replace(/^- Frequency:.*$/gm, "")
           .replace(/^- Timing:.*$/gm, "")
           .replace(/^- Schedule:.*$/gm, "")
+          .replace(/^- Wait .*$/gm, "")
+          .replace(/^- Note:.*$/gm, "")
+          .replace(/^- CRITICAL:.*$/gm, "")
+          .replace(/^- Option [A-Z]:.*$/gm, "")
+          .replace(/^- Cardio Boost:.*$/gm, "")
+          .replace(/### Your Daily Routine/g, "")
+          .replace(/### Daily Routine/g, "")
           .replace(/\n{3,}/g, "\n\n")
           .trim();
 
-        // Insert personalised dose block after the intro paragraph (before first ###)
-        const firstSectionIdx = cleaned.indexOf("###");
-        let personalised: string;
-        if (firstSectionIdx > 0) {
-          const intro = cleaned.slice(0, firstSectionIdx).trim();
-          const rest = cleaned.slice(firstSectionIdx).trim();
-          personalised = `${intro}\n\n### Your Prescribed Routine\n${doseBlock}\n\n${rest}`;
-        } else {
-          personalised = `### Your Prescribed Routine\n${doseBlock}\n\n${cleaned}`;
-        }
+        // Extract only non-dose sections (Medication Handling, Support, What to Expect)
+        const sections = cleaned.split(/(?=###)/);
+        const keptSections = sections.filter((s) => {
+          const header = s.trim().split("\n")[0].toLowerCase();
+          return !header.includes("routine") && !header.includes("dose") && !header.includes("schedule");
+        });
+
+        // Build: intro + prescribed routine + kept guide sections
+        const intro = sections[0]?.includes("###") ? "" : sections[0]?.trim() || "";
+        const guideRest = keptSections.filter((s) => s.trim().startsWith("###")).join("\n\n").trim();
+
+        let personalised = "";
+        if (intro) personalised += `${intro}\n\n`;
+        personalised += `### Your Prescribed Routine\n${doseBlock}`;
+        if (guideRest) personalised += `\n\n${guideRest}`;
 
         return `--- ${p.name.toUpperCase()} ---\n${personalised}`;
       } else {
-        // Fallback for peptides without a quick-start guide
         return `--- ${p.name.toUpperCase()} ---\n### Your Prescribed Routine\n${doseBlock}`;
       }
     }).join("\n\n");
@@ -608,7 +618,7 @@ ${suppLines || "None"}
 ${labLines || "As directed by your doctor"}
 
 --- IMPORTANT REMINDERS ---
-• Take medications as prescribed by your doctor
+• Take your medications exactly as prescribed
 • Store all medications as instructed — most peptides require refrigeration (2-8°C)
 • Complete all recommended lab tests before your next visit
 • Report any unusual side effects immediately
