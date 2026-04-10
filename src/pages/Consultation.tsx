@@ -352,9 +352,13 @@ export default function Consultation() {
     const selectedSupps = recommendations.recommended_supplements.filter((s) => selectedSupplements.has(s.name));
 
     // Medications section
-    const medsLines = selectedRecs.map((p) =>
-      `• ${p.name} — ${p.dosage}, ${p.administration}, ${p.duration}`
-    ).join("\n");
+    const medsLines = selectedRecs.map((p) => {
+      let line = `• ${p.name} — ${p.dosage}, ${p.administration}, ${p.duration}`;
+      if (p.supply_days != null && p.vial_size_ml && p.dose_per_injection_ml) {
+        line += ` | Supply: ${p.vial_size_ml}ml vial (${p.dose_per_injection_ml}ml/dose, ${p.frequency}) = ${p.supply_days} days`;
+      }
+      return line;
+    }).join("\n");
 
     // Supplements
     const suppLines = selectedSupps.map((s) => `• ${s.name} — ${s.dosage} (${s.reason})`).join("\n");
