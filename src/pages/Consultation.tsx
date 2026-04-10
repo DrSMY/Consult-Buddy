@@ -625,7 +625,9 @@ ${labLines || "As directed by your doctor"}
 • Schedule your follow-up appointment as discussed
 
 Warm regards,
-Your DarDoc Clinical Team`;
+Dr Sami M. Yesuf
+Medical Director
+SCOPE Certified Physician`;
 
     return { doctorNote, nurseInstructions, nextSteps, patientGuide };
   }, [recommendations, selectedPeptides, selectedSupplements, finalLabTests, labTier, labNotes, consultation, quickStartGuides]);
