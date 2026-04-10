@@ -66,6 +66,11 @@ export default function Consultation() {
   const [newMedDuration, setNewMedDuration] = useState("");
   const [newMedAdmin, setNewMedAdmin] = useState("");
   const [newMedPriority, setNewMedPriority] = useState<"Primary" | "Supportive">("Primary");
+  // Stepped medication flow: "select" -> "configure" -> done (confirm)
+  const [medStep, setMedStep] = useState<"select" | "configure">("select");
+  // Inline editing for dose/duration per peptide
+  const [editingField, setEditingField] = useState<{ peptide: string; field: "dosage" | "duration" } | null>(null);
+  const [editValue, setEditValue] = useState("");
 
   useEffect(() => {
     loadConsultation();
