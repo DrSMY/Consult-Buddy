@@ -861,7 +861,16 @@ SCOPE Certified Physician`;
                 {/* Prescribed Peptides */}
                 <Card>
                   <CardHeader className="pb-3">
-                    <CardTitle className="text-lg flex items-center gap-2"><CheckCircle className="h-4 w-4 text-accent" /> Prescribed Peptides</CardTitle>
+                    <div className="flex items-center justify-between">
+                      <CardTitle className="text-lg flex items-center gap-2"><CheckCircle className="h-4 w-4 text-accent" /> Prescribed Peptides</CardTitle>
+                      <div className="flex items-center gap-2">
+                        <span className="text-[10px] text-muted-foreground">Dose unit:</span>
+                        <div className="flex rounded-md border border-border overflow-hidden">
+                          <button className={`px-2 py-1 text-[10px] font-medium ${doseUnit === "ml" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"}`} onClick={() => setDoseUnit("ml")}>ml</button>
+                          <button className={`px-2 py-1 text-[10px] font-medium ${doseUnit === "units" ? "bg-primary text-primary-foreground" : "bg-card text-muted-foreground"}`} onClick={() => setDoseUnit("units")}>Units</button>
+                        </div>
+                      </div>
+                    </div>
                   </CardHeader>
                   <CardContent className="space-y-3">
                     {recommendations.recommended_peptides.map((p, i) => (
@@ -885,7 +894,7 @@ SCOPE Certified Physician`;
                         </div>
                         {p.vial_size_ml && p.dose_per_injection_ml && p.supply_days != null && (
                           <div className="text-[10px] text-muted-foreground">
-                            {p.vial_size_ml}ml vial • {p.dose_per_injection_ml}ml/injection • {Math.floor(p.vial_size_ml / p.dose_per_injection_ml)} total injections
+                            {p.vial_size_ml}ml vial • {formatDose(p.dose_per_injection_ml, doseUnit)}/injection • {Math.floor(p.vial_size_ml / p.dose_per_injection_ml)} total injections
                           </div>
                         )}
                       </div>
