@@ -227,7 +227,11 @@ export default function Consultation() {
       if (data.status === "completed") {
         setSelectionConfirmed(true);
         setSelectedPeptides(new Set(rec.recommended_peptides.map((p) => p.name)));
-        setSelectedSupplements(new Set(rec.recommended_supplements.map((s) => s.name)));
+        if (raw.selected_supplement_names) {
+          setSelectedSupplements(new Set(raw.selected_supplement_names));
+        } else {
+          setSelectedSupplements(new Set(rec.recommended_supplements.map((s) => s.name)));
+        }
       }
     } else {
       runAIAnalysis(data);
