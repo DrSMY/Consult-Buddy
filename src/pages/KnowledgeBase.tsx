@@ -551,6 +551,62 @@ export default function KnowledgeBase() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* Edit / Add Clinical Document Dialog */}
+      <Dialog open={!!editDoc} onOpenChange={(open) => !open && setEditDoc(null)}>
+        <DialogContent className="max-w-lg max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle>{isNewDoc ? "Add Clinical Document" : `Edit: ${editDocForm.title}`}</DialogTitle>
+            <DialogDescription>
+              {isNewDoc ? "Add a new quick-start guide or clinical document." : "Update the document content."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Document Type</Label>
+              <Input
+                value={editDocForm.document_type}
+                onChange={(e) => setEditDocForm((f) => ({ ...f, document_type: e.target.value }))}
+                placeholder="e.g. patient_quickstart_guide, glp1_protocol"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Title</Label>
+              <Input
+                value={editDocForm.title}
+                onChange={(e) => setEditDocForm((f) => ({ ...f, title: e.target.value }))}
+                placeholder="e.g. BPC-157 Injection Quick-Start Guide"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Peptide Name (for quick-start guides)</Label>
+              <Input
+                value={editDocForm.peptide_name}
+                onChange={(e) => setEditDocForm((f) => ({ ...f, peptide_name: e.target.value }))}
+                placeholder="e.g. BPC-157 (Injection)"
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs font-medium">Content</Label>
+              <Textarea
+                value={editDocForm.content}
+                onChange={(e) => setEditDocForm((f) => ({ ...f, content: e.target.value }))}
+                className="min-h-[200px] text-sm font-mono"
+                placeholder="Guide content..."
+              />
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setEditDoc(null)} disabled={saving}>
+              <X className="h-3.5 w-3.5 mr-1" /> Cancel
+            </Button>
+            <Button onClick={handleSaveDoc} disabled={saving}>
+              {saving ? <Loader2 className="h-3.5 w-3.5 mr-1 animate-spin" /> : <Save className="h-3.5 w-3.5 mr-1" />}
+              {isNewDoc ? "Add Document" : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
