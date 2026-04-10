@@ -855,11 +855,19 @@ ${labLines || "As directed by your doctor"}
                             </div>
                             <Badge variant={p.priority === "Primary" ? "default" : "secondary"}>{p.priority}</Badge>
                           </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                          <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 text-xs">
                             <div><span className="font-medium">Dosage:</span> {p.dosage}</div>
                             <div><span className="font-medium">Duration:</span> {p.duration}</div>
                             <div><span className="font-medium">Route:</span> {p.administration}</div>
+                            {p.supply_days != null && (
+                              <div><span className="font-medium">Supply:</span> <span className="text-accent font-semibold">{p.supply_days} days</span> ({p.frequency})</div>
+                            )}
                           </div>
+                          {p.vial_size_ml && p.dose_per_injection_ml && p.supply_days != null && (
+                            <div className="text-[10px] text-muted-foreground mt-1">
+                              {p.vial_size_ml}ml vial • {p.dose_per_injection_ml}ml/injection • {Math.floor(p.vial_size_ml / p.dose_per_injection_ml)} total injections
+                            </div>
+                          )}
                         </div>
                       ))}
                     </>
