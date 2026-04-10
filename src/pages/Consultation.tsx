@@ -747,6 +747,64 @@ ${labLines || "As directed by your doctor"}
                               </div>
                             </div>
 
+                            {/* Vial Supply Calculator */}
+                            <div className="rounded-lg border border-dashed border-primary/20 bg-primary/[0.03] p-3 space-y-3">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                                💊 Vial Supply Calculator
+                              </span>
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <div>
+                                  <Label className="text-[10px] text-muted-foreground">Vial Size (ml)</Label>
+                                  <Input
+                                    type="number"
+                                    step="0.5"
+                                    min="0"
+                                    placeholder="e.g. 5"
+                                    value={p.vial_size_ml ?? ""}
+                                    onChange={(e) => updatePeptideField(p.name, "vial_size_ml", e.target.value ? parseFloat(e.target.value) : undefined)}
+                                    className="mt-1 h-8 text-sm"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-[10px] text-muted-foreground">Dose per Injection (ml)</Label>
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    placeholder="e.g. 0.1"
+                                    value={p.dose_per_injection_ml ?? ""}
+                                    onChange={(e) => updatePeptideField(p.name, "dose_per_injection_ml", e.target.value ? parseFloat(e.target.value) : undefined)}
+                                    className="mt-1 h-8 text-sm"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-[10px] text-muted-foreground">Frequency</Label>
+                                  <select
+                                    value={p.frequency ?? ""}
+                                    onChange={(e) => updatePeptideField(p.name, "frequency", e.target.value || undefined)}
+                                    className="mt-1 h-8 w-full rounded-md border border-input bg-background px-3 text-sm"
+                                  >
+                                    <option value="">Select...</option>
+                                    {FREQUENCY_OPTIONS.map((f) => (
+                                      <option key={f.value} value={f.value}>{f.label}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+                              {p.supply_days != null && (
+                                <div className="flex items-center gap-2 rounded-md bg-accent/10 border border-accent/20 px-3 py-2">
+                                  <Activity className="h-4 w-4 text-accent shrink-0" />
+                                  <p className="text-sm font-medium">
+                                    Vial lasts <span className="text-accent font-bold">{p.supply_days} days</span>
+                                    {p.vial_size_ml && p.dose_per_injection_ml && (
+                                      <span className="text-muted-foreground font-normal ml-1">
+                                        ({Math.floor(p.vial_size_ml / p.dose_per_injection_ml)} injections from {p.vial_size_ml}ml vial)
+                                      </span>
+                                    )}
+                                  </p>
+                                </div>
+                              )}
+
                             {/* Blood tests for this peptide */}
                             {(getMandatoryTests(p).length > 0 || getRecommendedTests(p).length > 0 || getLegacyTests(p).length > 0) && (
                               <div className="flex flex-wrap gap-1 pt-1">
