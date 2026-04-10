@@ -87,6 +87,10 @@ export default function KnowledgeBase() {
   const [saving, setSaving] = useState(false);
   const [isNew, setIsNew] = useState(false);
   const [viewMode, setViewMode] = useState<ViewMode>("normal");
+  // Clinical document editing
+  const [editDoc, setEditDoc] = useState<ClinicalDoc | null>(null);
+  const [editDocForm, setEditDocForm] = useState({ title: "", content: "", peptide_name: "", document_type: "" });
+  const [isNewDoc, setIsNewDoc] = useState(false);
 
   const loadProtocols = () => {
     supabase
