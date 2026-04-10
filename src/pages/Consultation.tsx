@@ -29,7 +29,29 @@ interface PeptideRec {
   required_blood_tests?: string[];
   mandatory_blood_tests?: string[];
   recommended_blood_tests?: string[];
+  vial_size_ml?: number;
+  dose_per_injection_ml?: number;
+  frequency?: string; // e.g. "daily", "every other day", "3x per week", "weekly"
+  supply_days?: number; // auto-calculated
 }
+
+const FREQUENCY_OPTIONS = [
+  { label: "Daily", value: "daily", factor: 1 },
+  { label: "Every other day", value: "every other day", factor: 0.5 },
+  { label: "3x per week", value: "3x per week", factor: 3 / 7 },
+  { label: "2x per week", value: "2x per week", factor: 2 / 7 },
+  { label: "Weekly", value: "weekly", factor: 1 / 7 },
+  { label: "Bi-weekly", value: "bi-weekly", factor: 1 / 14 },
+];
+
+const calcSupplyDays = (vialMl?: number, doseMl?: number, frequency?: string): number | null => {
+  if (!vialMl || !doseMl || doseMl <= 0 || !frequency) return null;
+  const freq = FREQUENCY_OPTIONS.find((f) => f.value === frequency);
+  if (!freq) return null;
+  const injectionsPerDay = freq.factor;
+  const totalInjections = vialMl / doseMl;
+  return Math.floor(totalInjections / injectionsPerDay);
+};
 
 interface Recommendation {
   recommended_peptides: PeptideRec[];
@@ -144,13 +166,24 @@ export default function Consultation() {
     setSelectedSupplements((prev) => { const next = new Set(prev); next.has(name) ? next.delete(name) : next.add(name); return next; });
   };
 
-  const updatePeptideField = (peptideName: string, field: "dosage" | "duration", value: string) => {
+  const updatePeptideField = (peptideName: string, field: keyof PeptideRec, value: any) => {
     if (!recommendations) return;
     const updated: Recommendation = {
       ...recommendations,
-      recommended_peptides: recommendations.recommended_peptides.map((p) =>
-        p.name === peptideName ? { ...p, [field]: value } : p
-      ),
+      recommended_peptides: recommendations.recommended_peptides.map((p) => {
+        if (p.name !== peptideName) return p;
+        const newP = { ...p, [field]: value };
+        // Auto-recalculate supply days when relevant fields change
+        if (field === "vial_size_ml" || field === "dose_per_injection_ml" || field === "frequency") {
+          const supply = calcSupplyDays(
+            field === "vial_size_ml" ? value : newP.vial_size_ml,
+            field === "dose_per_injection_ml" ? value : newP.dose_per_injection_ml,
+            field === "frequency" ? value : newP.frequency,
+          );
+          newP.supply_days = supply ?? undefined;
+        }
+        return newP;
+      }),
     };
     setRecommendations(updated);
     supabase.from("consultations").update({ ai_recommendations: updated as any }).eq("id", id);
@@ -319,9 +352,13 @@ export default function Consultation() {
     const selectedSupps = recommendations.recommended_supplements.filter((s) => selectedSupplements.has(s.name));
 
     // Medications section
-    const medsLines = selectedRecs.map((p) =>
-      `• ${p.name} — ${p.dosage}, ${p.administration}, ${p.duration}`
-    ).join("\n");
+    const medsLines = selectedRecs.map((p) => {
+      let line = `• ${p.name} — ${p.dosage}, ${p.administration}, ${p.duration}`;
+      if (p.supply_days != null && p.vial_size_ml && p.dose_per_injection_ml) {
+        line += ` | Supply: ${p.vial_size_ml}ml vial (${p.dose_per_injection_ml}ml/dose, ${p.frequency}) = ${p.supply_days} days`;
+      }
+      return line;
+    }).join("\n");
 
     // Supplements
     const suppLines = selectedSupps.map((s) => `• ${s.name} — ${s.dosage} (${s.reason})`).join("\n");
@@ -714,6 +751,65 @@ ${labLines || "As directed by your doctor"}
                               </div>
                             </div>
 
+                            {/* Vial Supply Calculator */}
+                            <div className="rounded-lg border border-dashed border-primary/20 bg-primary/[0.03] p-3 space-y-3">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-primary">
+                                💊 Vial Supply Calculator
+                              </span>
+                              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                                <div>
+                                  <Label className="text-[10px] text-muted-foreground">Vial Size (ml)</Label>
+                                  <Input
+                                    type="number"
+                                    step="0.5"
+                                    min="0"
+                                    placeholder="e.g. 5"
+                                    value={p.vial_size_ml ?? ""}
+                                    onChange={(e) => updatePeptideField(p.name, "vial_size_ml", e.target.value ? parseFloat(e.target.value) : undefined)}
+                                    className="mt-1 h-8 text-sm"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-[10px] text-muted-foreground">Dose per Injection (ml)</Label>
+                                  <Input
+                                    type="number"
+                                    step="0.01"
+                                    min="0"
+                                    placeholder="e.g. 0.1"
+                                    value={p.dose_per_injection_ml ?? ""}
+                                    onChange={(e) => updatePeptideField(p.name, "dose_per_injection_ml", e.target.value ? parseFloat(e.target.value) : undefined)}
+                                    className="mt-1 h-8 text-sm"
+                                  />
+                                </div>
+                                <div>
+                                  <Label className="text-[10px] text-muted-foreground">Frequency</Label>
+                                  <select
+                                    value={p.frequency ?? ""}
+                                    onChange={(e) => updatePeptideField(p.name, "frequency", e.target.value || undefined)}
+                                    className="mt-1 h-8 w-full rounded-md border border-input bg-background px-3 text-sm"
+                                  >
+                                    <option value="">Select...</option>
+                                    {FREQUENCY_OPTIONS.map((f) => (
+                                      <option key={f.value} value={f.value}>{f.label}</option>
+                                    ))}
+                                  </select>
+                                </div>
+                              </div>
+                              {p.supply_days != null && (
+                                <div className="flex items-center gap-2 rounded-md bg-accent/10 border border-accent/20 px-3 py-2">
+                                  <Activity className="h-4 w-4 text-accent shrink-0" />
+                                  <p className="text-sm font-medium">
+                                    Vial lasts <span className="text-accent font-bold">{p.supply_days} days</span>
+                                    {p.vial_size_ml && p.dose_per_injection_ml && (
+                                      <span className="text-muted-foreground font-normal ml-1">
+                                        ({Math.floor(p.vial_size_ml / p.dose_per_injection_ml)} injections from {p.vial_size_ml}ml vial)
+                                      </span>
+                                    )}
+                                  </p>
+                                </div>
+                              )}
+                            </div>
+
                             {/* Blood tests for this peptide */}
                             {(getMandatoryTests(p).length > 0 || getRecommendedTests(p).length > 0 || getLegacyTests(p).length > 0) && (
                               <div className="flex flex-wrap gap-1 pt-1">
@@ -763,11 +859,19 @@ ${labLines || "As directed by your doctor"}
                             </div>
                             <Badge variant={p.priority === "Primary" ? "default" : "secondary"}>{p.priority}</Badge>
                           </div>
-                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                          <div className="grid grid-cols-1 sm:grid-cols-4 gap-2 text-xs">
                             <div><span className="font-medium">Dosage:</span> {p.dosage}</div>
                             <div><span className="font-medium">Duration:</span> {p.duration}</div>
                             <div><span className="font-medium">Route:</span> {p.administration}</div>
+                            {p.supply_days != null && (
+                              <div><span className="font-medium">Supply:</span> <span className="text-accent font-semibold">{p.supply_days} days</span> ({p.frequency})</div>
+                            )}
                           </div>
+                          {p.vial_size_ml && p.dose_per_injection_ml && p.supply_days != null && (
+                            <div className="text-[10px] text-muted-foreground mt-1">
+                              {p.vial_size_ml}ml vial • {p.dose_per_injection_ml}ml/injection • {Math.floor(p.vial_size_ml / p.dose_per_injection_ml)} total injections
+                            </div>
+                          )}
                         </div>
                       ))}
                     </>
