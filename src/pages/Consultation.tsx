@@ -576,7 +576,7 @@ Welcome to your personalised treatment plan. Below you will find detailed instru
       if (freqLabel) doseBlock += `\n- Frequency: ${freqLabel}`;
       doseBlock += `\n- Duration: ${p.duration}`;
       if (p.vial_size_ml) doseBlock += `\n- Vial Size: ${p.vial_size_ml} ml`;
-      if (p.dose_per_injection_ml) doseBlock += `\n- Volume per injection: ${p.dose_per_injection_ml} ml`;
+      if (p.dose_per_injection_ml) doseBlock += `\n- Volume per injection: ${formatDose(p.dose_per_injection_ml, doseUnit)} (${formatDose(p.dose_per_injection_ml, doseUnit === "ml" ? "units" : "ml")})`;
       if (totalInjections) doseBlock += `\n- Total injections per vial: ${totalInjections}`;
       if (p.supply_days != null) doseBlock += `\n- Supply: Your vial will last approximately ${p.supply_days} days`;
 
