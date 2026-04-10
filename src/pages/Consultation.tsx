@@ -571,7 +571,7 @@ Welcome to your personalised treatment plan. Below you will find detailed instru
       if (p.supply_days != null) doseBlock += `\n- Supply: Your vial will last approximately ${p.supply_days} days`;
 
       if (guideContent) {
-        // Strip ALL generic dose/routine sections from DB content — patient only sees their prescribed values
+        // Strip ALL generic dose/routine/schedule content from DB — patient only sees prescribed values
         let cleaned = guideContent
           .replace(/^- Dose:.*$/gm, "")
           .replace(/^- Supply:.*$/gm, "")
@@ -583,30 +583,31 @@ Welcome to your personalised treatment plan. Below you will find detailed instru
           .replace(/^- CRITICAL:.*$/gm, "")
           .replace(/^- Option [A-Z]:.*$/gm, "")
           .replace(/^- Cardio Boost:.*$/gm, "")
-          .replace(/### Your Daily Routine/g, "")
-          .replace(/### Daily Routine/g, "")
+          .replace(/^- Rotate injection.*$/gim, "")
+          .replace(/^###\s*(Your Daily Routine|Daily Routine|Your Prescribed Routine)\s*$/gm, "")
           .replace(/\n{3,}/g, "\n\n")
           .trim();
 
-        // Extract only non-dose sections (Medication Handling, Support, What to Expect)
+        // Split into sections by ### headers
         const sections = cleaned.split(/(?=###)/);
+        // Keep only non-dose sections (Medication Handling, Support, What to Expect, etc.)
         const keptSections = sections.filter((s) => {
           const header = s.trim().split("\n")[0].toLowerCase();
           return !header.includes("routine") && !header.includes("dose") && !header.includes("schedule");
         });
 
-        // Build: intro + prescribed routine + kept guide sections
+        // First non-### block is the intro (analogy text)
         const intro = sections[0]?.includes("###") ? "" : sections[0]?.trim() || "";
         const guideRest = keptSections.filter((s) => s.trim().startsWith("###")).join("\n\n").trim();
 
         let personalised = "";
         if (intro) personalised += `${intro}\n\n`;
-        personalised += `### Your Prescribed Routine\n${doseBlock}`;
+        personalised += `### Your Prescribed Medication\n${doseBlock}`;
         if (guideRest) personalised += `\n\n${guideRest}`;
 
         return `--- ${p.name.toUpperCase()} ---\n${personalised}`;
       } else {
-        return `--- ${p.name.toUpperCase()} ---\n### Your Prescribed Routine\n${doseBlock}`;
+        return `--- ${p.name.toUpperCase()} ---\n### Your Prescribed Medication\n${doseBlock}`;
       }
     }).join("\n\n");
 
