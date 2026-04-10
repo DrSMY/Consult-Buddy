@@ -554,27 +554,45 @@ Welcome to your personalised treatment plan. Below you will find detailed instru
         }
       }
 
+      const freqLabel = FREQUENCY_OPTIONS.find((f) => f.value === p.frequency)?.label || p.frequency || "";
+      const totalInjections = (p.vial_size_ml && p.dose_per_injection_ml) ? Math.floor(p.vial_size_ml / p.dose_per_injection_ml) : null;
+
+      // Build the personalised dose block that replaces generic DB dose info
+      let doseBlock = `- Dose: ${p.dosage} (${p.administration})`;
+      if (freqLabel) doseBlock += `\n- Frequency: ${freqLabel}`;
+      doseBlock += `\n- Duration: ${p.duration}`;
+      if (p.vial_size_ml) doseBlock += `\n- Vial Size: ${p.vial_size_ml} ml`;
+      if (p.dose_per_injection_ml) doseBlock += `\n- Volume per injection: ${p.dose_per_injection_ml} ml`;
+      if (totalInjections) doseBlock += `\n- Total injections per vial: ${totalInjections}`;
+      if (p.supply_days != null) doseBlock += `\n- Supply: Your vial will last approximately ${p.supply_days} days`;
+
       if (guideContent) {
-        // Personalise the guide with actual prescribed dose/duration/supply
-        let personalised = guideContent;
-        // Override dose info with actual prescribed values
-        const freqLabel = FREQUENCY_OPTIONS.find((f) => f.value === p.frequency)?.label || p.frequency || "";
-        let doseOverride = `\n**Your Prescribed Dose:** ${p.dosage}, ${p.administration}`;
-        if (freqLabel) doseOverride += `, ${freqLabel}`;
-        doseOverride += `, Duration: ${p.duration}`;
-        if (p.supply_days != null && p.vial_size_ml && p.dose_per_injection_ml) {
-          doseOverride += `\n**Vial Supply:** ${p.vial_size_ml}ml vial | ${p.dose_per_injection_ml}ml per injection | ~${p.supply_days} days supply (${Math.floor(p.vial_size_ml / p.dose_per_injection_ml)} injections)`;
+        // Strip the generic dose/supply/frequency lines from the DB content
+        // so we can replace them with patient-specific values
+        let cleaned = guideContent
+          .replace(/^- Dose:.*$/gm, "")
+          .replace(/^- Supply:.*$/gm, "")
+          .replace(/^- Frequency:.*$/gm, "")
+          .replace(/^- Timing:.*$/gm, "")
+          .replace(/^- Schedule:.*$/gm, "")
+          .replace(/\n{3,}/g, "\n\n")
+          .trim();
+
+        // Insert personalised dose block after the intro paragraph (before first ###)
+        const firstSectionIdx = cleaned.indexOf("###");
+        let personalised: string;
+        if (firstSectionIdx > 0) {
+          const intro = cleaned.slice(0, firstSectionIdx).trim();
+          const rest = cleaned.slice(firstSectionIdx).trim();
+          personalised = `${intro}\n\n### Your Prescribed Routine\n${doseBlock}\n\n${rest}`;
+        } else {
+          personalised = `### Your Prescribed Routine\n${doseBlock}\n\n${cleaned}`;
         }
-        personalised = doseOverride + "\n\n" + personalised;
+
         return `--- ${p.name.toUpperCase()} ---\n${personalised}`;
       } else {
         // Fallback for peptides without a quick-start guide
-        let line = `**${p.name}**: ${p.dosage} (${p.administration}), Duration: ${p.duration}`;
-        if (p.supply_days != null && p.frequency) {
-          const freqLabel = FREQUENCY_OPTIONS.find((f) => f.value === p.frequency)?.label || p.frequency;
-          line += `\nTake: ${freqLabel} — Your vial will last approximately ${p.supply_days} days`;
-        }
-        return `--- ${p.name.toUpperCase()} ---\n${line}`;
+        return `--- ${p.name.toUpperCase()} ---\n### Your Prescribed Routine\n${doseBlock}`;
       }
     }).join("\n\n");
 
