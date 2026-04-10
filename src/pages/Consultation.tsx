@@ -1534,6 +1534,17 @@ ${labLines || "As directed by your doctor"}
                     </Card>
                   )}
 
+                  {/* Suggested Peptides from Matrix — visible during wizard */}
+                  {!selectionConfirmed && consultation?.intake_answers?.health_goals && (
+                    <LivePeptideSuggestions
+                      healthGoals={
+                        Array.isArray(consultation.intake_answers.health_goals)
+                          ? consultation.intake_answers.health_goals
+                          : [consultation.intake_answers.health_goals]
+                      }
+                    />
+                  )}
+
                   {/* Prescribed Medications — sidebar summary */}
                   {selectionConfirmed && recommendations && (
                     <Card className="border-primary/20">
