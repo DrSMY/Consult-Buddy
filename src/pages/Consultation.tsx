@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label as FormLabel } from "@/components/ui/label";
 import PeptideDetailSheet from "@/components/PeptideDetailSheet";
 import AppHeader from "@/components/AppHeader";
+import LivePeptideSuggestions from "@/components/LivePeptideSuggestions";
 import { openWhatsApp } from "@/utils/whatsapp";
 import { printPatientGuide } from "@/utils/printGuide";
 
