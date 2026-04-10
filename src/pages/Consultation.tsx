@@ -804,6 +804,7 @@ ${labLines || "As directed by your doctor"}
                                   </p>
                                 </div>
                               )}
+                            </div>
 
                             {/* Blood tests for this peptide */}
                             {(getMandatoryTests(p).length > 0 || getRecommendedTests(p).length > 0 || getLegacyTests(p).length > 0) && (
