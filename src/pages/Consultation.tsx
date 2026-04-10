@@ -16,6 +16,7 @@ import { Input } from "@/components/ui/input";
 import { Label as FormLabel } from "@/components/ui/label";
 import PeptideDetailSheet from "@/components/PeptideDetailSheet";
 import AppHeader from "@/components/AppHeader";
+import LivePeptideSuggestions from "@/components/LivePeptideSuggestions";
 import { openWhatsApp } from "@/utils/whatsapp";
 import { printPatientGuide } from "@/utils/printGuide";
 
@@ -1531,6 +1532,17 @@ ${labLines || "As directed by your doctor"}
                         {allergiesNotes && <p className="text-[11px] text-muted-foreground mt-2 italic">{allergiesNotes}</p>}
                       </CardContent>
                     </Card>
+                  )}
+
+                  {/* Suggested Peptides from Matrix — visible during wizard */}
+                  {!selectionConfirmed && consultation?.intake_answers?.health_goals && (
+                    <LivePeptideSuggestions
+                      healthGoals={
+                        Array.isArray(consultation.intake_answers.health_goals)
+                          ? consultation.intake_answers.health_goals
+                          : [consultation.intake_answers.health_goals]
+                      }
+                    />
                   )}
 
                   {/* Prescribed Medications — sidebar summary */}
