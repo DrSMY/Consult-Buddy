@@ -1232,8 +1232,21 @@ SCOPE Certified Physician`;
                                 <Input type="number" step="0.5" min="0" placeholder={protocolPresets.get(p.name)?.vial_size_ml ? `Protocol: ${protocolPresets.get(p.name)!.vial_size_ml}ml` : "e.g. 5"} value={p.vial_size_ml ?? ""} onChange={(e) => updatePeptideField(p.name, "vial_size_ml", e.target.value ? parseFloat(e.target.value) : undefined)} className="mt-1 h-8 text-sm" />
                               </div>
                               <div>
-                                <Label className="text-[10px] text-muted-foreground">Dose per Injection (ml)</Label>
-                                <Input type="number" step="0.01" min="0" placeholder={protocolPresets.get(p.name)?.dose_per_injection_ml ? `Protocol: ${protocolPresets.get(p.name)!.dose_per_injection_ml}ml` : "e.g. 0.1"} value={p.dose_per_injection_ml ?? ""} onChange={(e) => updatePeptideField(p.name, "dose_per_injection_ml", e.target.value ? parseFloat(e.target.value) : undefined)} className="mt-1 h-8 text-sm" />
+                                <Label className="text-[10px] text-muted-foreground">Dose per Injection ({formatDoseLabel(doseUnit)})</Label>
+                                <Input
+                                  type="number"
+                                  step={doseUnit === "units" ? "1" : "0.01"}
+                                  min="0"
+                                  placeholder={protocolPresets.get(p.name)?.dose_per_injection_ml ? `Protocol: ${doseUnit === "units" ? mlToUnits(protocolPresets.get(p.name)!.dose_per_injection_ml!) + " Units" : protocolPresets.get(p.name)!.dose_per_injection_ml + "ml"}` : doseUnit === "units" ? "e.g. 10" : "e.g. 0.1"}
+                                  value={p.dose_per_injection_ml != null ? (doseUnit === "units" ? mlToUnits(p.dose_per_injection_ml) : p.dose_per_injection_ml) : ""}
+                                  onChange={(e) => {
+                                    const val = e.target.value ? parseFloat(e.target.value) : undefined;
+                                    const mlVal = val != null ? (doseUnit === "units" ? unitsToMl(val) : val) : undefined;
+                                    updatePeptideField(p.name, "dose_per_injection_ml", mlVal);
+                                  }}
+                                  className="mt-1 h-8 text-sm"
+                                />
+                              </div>
                               </div>
                               <div>
                                 <Label className="text-[10px] text-muted-foreground">Frequency</Label>
