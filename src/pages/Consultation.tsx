@@ -68,6 +68,39 @@ interface Recommendation {
 type LabTier = "basic" | "advanced";
 type WizardStep = "select" | "configure" | "labs" | "supplements";
 
+// Parse protocol data into supply calculator presets
+interface ProtocolPreset {
+  name: string;
+  vial_size_ml: number | null;
+  dose_per_injection_ml: number | null;
+  frequency: string | null;
+  raw_strength: string;
+  raw_dosage: string;
+}
+
+const parseVialSize = (strength: string): number | null => {
+  // Match patterns like "5 ml vial", "5ml Vial", "2 ml vial", "15ml bottle"
+  const m = strength.match(/(\d+(?:\.\d+)?)\s*ml\s*(?:vial|bottle)/i);
+  return m ? parseFloat(m[1]) : null;
+};
+
+const parseDoseVolume = (dosage: string): number | null => {
+  // Match patterns like "0.10ml", "0.15 ml", "0.2-0.4 ml" (take first), "0.25 ml"
+  const m = dosage.match(/(\d+(?:\.\d+)?)\s*ml/i);
+  return m ? parseFloat(m[1]) : null;
+};
+
+const parseFrequency = (dosage: string): string | null => {
+  const d = dosage.toLowerCase();
+  if (d.includes("daily") || d.includes("every day") || d.includes("once daily")) return "daily";
+  if (d.includes("every other day")) return "every other day";
+  if (d.includes("3x") || d.includes("3 times") || d.includes("three times")) return "3x per week";
+  if (d.includes("twice a week") || d.includes("2x") || d.includes("twice weekly")) return "2x per week";
+  if (d.includes("once a week") || d.includes("once weekly") || d.includes("1x/week")) return "weekly";
+  if (d.includes("5 days") || d.includes("5 out of 7")) return "daily"; // 5/7 is close to daily
+  return null;
+};
+
 export default function Consultation() {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -92,15 +125,56 @@ export default function Consultation() {
   const [wizardStep, setWizardStep] = useState<WizardStep>("select");
   const [editingField, setEditingField] = useState<{ peptide: string; field: "dosage" | "duration" } | null>(null);
   const [editValue, setEditValue] = useState("");
-  // Lab test add/remove
   const [removedLabTests, setRemovedLabTests] = useState<Set<string>>(new Set());
   const [customLabTests, setCustomLabTests] = useState<string[]>([]);
   const [addLabOpen, setAddLabOpen] = useState(false);
   const [newLabName, setNewLabName] = useState("");
+  // Protocol presets from DB
+  const [protocolPresets, setProtocolPresets] = useState<Map<string, ProtocolPreset>>(new Map());
 
   useEffect(() => {
     loadConsultation();
+    loadProtocolPresets();
   }, [id]);
+
+  const loadProtocolPresets = async () => {
+    const { data } = await supabase.from("peptide_protocols").select("name, strength_volume, dosage_instructions");
+    if (data) {
+      const map = new Map<string, ProtocolPreset>();
+      data.forEach((row: any) => {
+        map.set(row.name, {
+          name: row.name,
+          vial_size_ml: parseVialSize(row.strength_volume || ""),
+          dose_per_injection_ml: parseDoseVolume(row.dosage_instructions || ""),
+          frequency: parseFrequency(row.dosage_instructions || ""),
+          raw_strength: row.strength_volume || "",
+          raw_dosage: row.dosage_instructions || "",
+        });
+      });
+      setProtocolPresets(map);
+    }
+  };
+
+  const applyProtocolPreset = (peptideName: string) => {
+    const preset = protocolPresets.get(peptideName);
+    if (!preset || !recommendations) return;
+    const updated: Recommendation = {
+      ...recommendations,
+      recommended_peptides: recommendations.recommended_peptides.map((p) => {
+        if (p.name !== peptideName) return p;
+        const newP = { ...p };
+        if (preset.vial_size_ml) newP.vial_size_ml = preset.vial_size_ml;
+        if (preset.dose_per_injection_ml) newP.dose_per_injection_ml = preset.dose_per_injection_ml;
+        if (preset.frequency) newP.frequency = preset.frequency;
+        const supply = calcSupplyDays(newP.vial_size_ml, newP.dose_per_injection_ml, newP.frequency);
+        newP.supply_days = supply ?? undefined;
+        return newP;
+      }),
+    };
+    setRecommendations(updated);
+    supabase.from("consultations").update({ ai_recommendations: updated as any }).eq("id", id);
+    toast({ title: `Protocol loaded for ${peptideName}` });
+  };
 
   const loadConsultation = async () => {
     const { data, error } = await supabase.from("consultations").select("*").eq("id", id).single();
@@ -1000,20 +1074,41 @@ ${labLines || "As directed by your doctor"}
 
                           {/* Vial Supply Calculator */}
                           <div className="rounded-lg border border-dashed border-primary/20 bg-primary/[0.03] p-3 space-y-3">
-                            <span className="text-[10px] font-bold uppercase tracking-wider text-primary">💊 Vial Supply Calculator</span>
+                            <div className="flex items-center justify-between">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-primary">💊 Vial Supply Calculator</span>
+                              {protocolPresets.has(p.name) && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  className="h-7 text-[10px] px-2 border-primary/30 text-primary hover:bg-primary/10"
+                                  onClick={() => applyProtocolPreset(p.name)}
+                                >
+                                  <FileText className="h-3 w-3 mr-1" /> Load from Protocol
+                                </Button>
+                              )}
+                            </div>
+
+                            {/* Protocol reference info */}
+                            {protocolPresets.has(p.name) && (
+                              <div className="text-[10px] text-muted-foreground bg-muted/50 rounded-md p-2 space-y-0.5">
+                                <p><span className="font-medium">Protocol strength:</span> {protocolPresets.get(p.name)!.raw_strength}</p>
+                                <p><span className="font-medium">Protocol dosage:</span> {protocolPresets.get(p.name)!.raw_dosage}</p>
+                              </div>
+                            )}
+
                             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                               <div>
                                 <Label className="text-[10px] text-muted-foreground">Vial Size (ml)</Label>
-                                <Input type="number" step="0.5" min="0" placeholder="e.g. 5" value={p.vial_size_ml ?? ""} onChange={(e) => updatePeptideField(p.name, "vial_size_ml", e.target.value ? parseFloat(e.target.value) : undefined)} className="mt-1 h-8 text-sm" />
+                                <Input type="number" step="0.5" min="0" placeholder={protocolPresets.get(p.name)?.vial_size_ml ? `Protocol: ${protocolPresets.get(p.name)!.vial_size_ml}ml` : "e.g. 5"} value={p.vial_size_ml ?? ""} onChange={(e) => updatePeptideField(p.name, "vial_size_ml", e.target.value ? parseFloat(e.target.value) : undefined)} className="mt-1 h-8 text-sm" />
                               </div>
                               <div>
                                 <Label className="text-[10px] text-muted-foreground">Dose per Injection (ml)</Label>
-                                <Input type="number" step="0.01" min="0" placeholder="e.g. 0.1" value={p.dose_per_injection_ml ?? ""} onChange={(e) => updatePeptideField(p.name, "dose_per_injection_ml", e.target.value ? parseFloat(e.target.value) : undefined)} className="mt-1 h-8 text-sm" />
+                                <Input type="number" step="0.01" min="0" placeholder={protocolPresets.get(p.name)?.dose_per_injection_ml ? `Protocol: ${protocolPresets.get(p.name)!.dose_per_injection_ml}ml` : "e.g. 0.1"} value={p.dose_per_injection_ml ?? ""} onChange={(e) => updatePeptideField(p.name, "dose_per_injection_ml", e.target.value ? parseFloat(e.target.value) : undefined)} className="mt-1 h-8 text-sm" />
                               </div>
                               <div>
                                 <Label className="text-[10px] text-muted-foreground">Frequency</Label>
                                 <select value={p.frequency ?? ""} onChange={(e) => updatePeptideField(p.name, "frequency", e.target.value || undefined)} className="mt-1 h-8 w-full rounded-md border border-input bg-background px-3 text-sm">
-                                  <option value="">Select...</option>
+                                  <option value="">{protocolPresets.get(p.name)?.frequency ? `Protocol: ${FREQUENCY_OPTIONS.find(f => f.value === protocolPresets.get(p.name)!.frequency)?.label || protocolPresets.get(p.name)!.frequency}` : "Select..."}</option>
                                   {FREQUENCY_OPTIONS.map((f) => (<option key={f.value} value={f.value}>{f.label}</option>))}
                                 </select>
                               </div>
