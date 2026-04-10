@@ -132,11 +132,28 @@ export default function Consultation() {
   const [newLabName, setNewLabName] = useState("");
   // Protocol presets from DB
   const [protocolPresets, setProtocolPresets] = useState<Map<string, ProtocolPreset>>(new Map());
+  // Quick-start guides from clinical_documents
+  const [quickStartGuides, setQuickStartGuides] = useState<Map<string, string>>(new Map());
 
   useEffect(() => {
     loadConsultation();
     loadProtocolPresets();
+    loadQuickStartGuides();
   }, [id]);
+
+  const loadQuickStartGuides = async () => {
+    const { data } = await supabase
+      .from("clinical_documents")
+      .select("peptide_name, content")
+      .eq("document_type", "patient_quickstart_guide");
+    if (data) {
+      const map = new Map<string, string>();
+      data.forEach((row: any) => {
+        if (row.peptide_name) map.set(row.peptide_name, row.content);
+      });
+      setQuickStartGuides(map);
+    }
+  };
 
   const loadProtocolPresets = async () => {
     const { data } = await supabase.from("peptide_protocols").select("name, strength_volume, dosage_instructions");
