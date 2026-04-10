@@ -15,6 +15,7 @@ import { ArrowLeft, ArrowRight, Mic, MicOff, Check, Ruler, Weight as WeightIcon,
 import { openWhatsApp } from "@/utils/whatsapp";
 import type { IntakeQuestion } from "@/data/intakeQuestions";
 import AppHeader from "@/components/AppHeader";
+import LivePeptideSuggestions from "@/components/LivePeptideSuggestions";
 
 // Mandatory question IDs that must be answered
 const MANDATORY_QUESTIONS = new Set(["gender", "age", "height", "weight", "health_goals"]);
@@ -429,7 +430,9 @@ export default function PatientIntake() {
     <div className="min-h-screen gradient-surface">
       <AppHeader title="Patient Intake" subtitle="Peptides Program" showBack />
 
-      <main className="container mx-auto max-w-2xl px-4 py-6">
+      <main className="container mx-auto max-w-5xl px-4 py-6">
+      <div className="flex flex-col lg:flex-row gap-6">
+      <div className="flex-1 min-w-0">
         <div className="mb-6">
           <div className="flex items-center justify-between mb-2">
             <span className="text-sm font-medium text-muted-foreground">
@@ -610,6 +613,13 @@ export default function PatientIntake() {
             </Button>
           )}
         </div>
+        </div>
+
+        {/* Live Peptide Suggestions Sidebar */}
+        <aside className="w-full lg:w-72 shrink-0 lg:sticky lg:top-6 lg:self-start">
+          <LivePeptideSuggestions healthGoals={(answers["health_goals"] as string[]) || []} />
+        </aside>
+      </div>
       </main>
     </div>
   );
