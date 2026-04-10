@@ -424,6 +424,7 @@ ${labLines || "As directed by your doctor"}
       if (saved.lab_notes) setLabNotes(saved.lab_notes);
     }
     setSelectionConfirmed(false);
+    setMedStep("select");
     toast({ title: "Selection unlocked for editing" });
   };
 
