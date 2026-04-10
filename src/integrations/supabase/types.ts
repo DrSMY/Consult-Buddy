@@ -14,6 +14,36 @@ export type Database = {
   }
   public: {
     Tables: {
+      clinical_documents: {
+        Row: {
+          content: string
+          created_at: string
+          document_type: string
+          id: string
+          metadata: Json | null
+          peptide_name: string | null
+          title: string
+        }
+        Insert: {
+          content: string
+          created_at?: string
+          document_type: string
+          id?: string
+          metadata?: Json | null
+          peptide_name?: string | null
+          title: string
+        }
+        Update: {
+          content?: string
+          created_at?: string
+          document_type?: string
+          id?: string
+          metadata?: Json | null
+          peptide_name?: string | null
+          title?: string
+        }
+        Relationships: []
+      }
       consultations: {
         Row: {
           ai_recommendations: Json | null
