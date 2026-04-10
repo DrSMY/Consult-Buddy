@@ -266,6 +266,9 @@ export default function KnowledgeBase() {
   return (
     <div className="min-h-screen gradient-surface">
       <AppHeader title="Knowledge Base" subtitle={`${protocols.length} protocols`} showBack>
+        <Button size="sm" variant="outline" className="text-xs" onClick={openNewDoc}>
+          <Plus className="h-3.5 w-3.5 mr-1" /> Add Document
+        </Button>
         <Button size="sm" variant="outline" className="text-xs" onClick={openNew}>
           <Plus className="h-3.5 w-3.5 mr-1" /> Add Protocol
         </Button>
