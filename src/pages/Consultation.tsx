@@ -1247,7 +1247,6 @@ SCOPE Certified Physician`;
                                   className="mt-1 h-8 text-sm"
                                 />
                               </div>
-                              </div>
                               <div>
                                 <Label className="text-[10px] text-muted-foreground">Frequency</Label>
                                 <select value={p.frequency ?? ""} onChange={(e) => updatePeptideField(p.name, "frequency", e.target.value || undefined)} className="mt-1 h-8 w-full rounded-md border border-input bg-background px-3 text-sm">
