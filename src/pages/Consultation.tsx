@@ -539,17 +539,49 @@ ${labLines || "None required"}${labNotes ? `\nNotes: ${labNotes}` : ""}
 • Schedule follow-up appointment as per treatment duration
 • Monitor for any side effects and report immediately`;
 
-    const patientGuide = `PATIENT CARE GUIDE — ${consultation?.patient_name || "Patient"}
+    // Build rich patient guide using quick-start guides from database
+    const patientGuideHeader = `Dear ${consultation?.patient_name || "Patient"},
 
---- YOUR PRESCRIBED MEDICATIONS ---
-${selectedRecs.map((p) => {
-      let line = `• ${p.name}: ${p.dosage} (${p.administration}), Duration: ${p.duration}`;
-      if (p.supply_days != null && p.frequency) {
-        const freqLabel = FREQUENCY_OPTIONS.find((f) => f.value === p.frequency)?.label || p.frequency;
-        line += `\n  Take: ${freqLabel} — Your vial will last approximately ${p.supply_days} days`;
+Welcome to your personalised treatment plan. Below you will find detailed instructions for each of your prescribed medications, along with supplement and lab test guidance.`;
+
+    const patientMedSections = selectedRecs.map((p) => {
+      // Try to find quick-start guide by matching peptide name
+      let guideContent = "";
+      for (const [key, content] of quickStartGuides.entries()) {
+        if (key.toLowerCase().includes(p.name.toLowerCase()) || p.name.toLowerCase().includes(key.split(" (")[0].toLowerCase())) {
+          guideContent = content;
+          break;
+        }
       }
-      return line;
-    }).join("\n") || "As discussed with your doctor"}
+
+      if (guideContent) {
+        // Personalise the guide with actual prescribed dose/duration/supply
+        let personalised = guideContent;
+        // Override dose info with actual prescribed values
+        const freqLabel = FREQUENCY_OPTIONS.find((f) => f.value === p.frequency)?.label || p.frequency || "";
+        let doseOverride = `\n**Your Prescribed Dose:** ${p.dosage}, ${p.administration}`;
+        if (freqLabel) doseOverride += `, ${freqLabel}`;
+        doseOverride += `, Duration: ${p.duration}`;
+        if (p.supply_days != null && p.vial_size_ml && p.dose_per_injection_ml) {
+          doseOverride += `\n**Vial Supply:** ${p.vial_size_ml}ml vial | ${p.dose_per_injection_ml}ml per injection | ~${p.supply_days} days supply (${Math.floor(p.vial_size_ml / p.dose_per_injection_ml)} injections)`;
+        }
+        personalised = doseOverride + "\n\n" + personalised;
+        return `--- ${p.name.toUpperCase()} ---\n${personalised}`;
+      } else {
+        // Fallback for peptides without a quick-start guide
+        let line = `**${p.name}**: ${p.dosage} (${p.administration}), Duration: ${p.duration}`;
+        if (p.supply_days != null && p.frequency) {
+          const freqLabel = FREQUENCY_OPTIONS.find((f) => f.value === p.frequency)?.label || p.frequency;
+          line += `\nTake: ${freqLabel} — Your vial will last approximately ${p.supply_days} days`;
+        }
+        return `--- ${p.name.toUpperCase()} ---\n${line}`;
+      }
+    }).join("\n\n");
+
+    const patientGuide = `--- PATIENT CARE GUIDE ---
+${patientGuideHeader}
+
+${patientMedSections}
 
 --- RECOMMENDED SUPPLEMENTS ---
 ${suppLines || "None"}
@@ -559,8 +591,13 @@ ${labLines || "As directed by your doctor"}
 
 --- IMPORTANT REMINDERS ---
 • Take medications as prescribed by your doctor
+• Store all medications as instructed — most peptides require refrigeration (2-8°C)
 • Complete all recommended lab tests before your next visit
-• Report any unusual side effects immediately`;
+• Report any unusual side effects immediately
+• Schedule your follow-up appointment as discussed
+
+Warm regards,
+Your DarDoc Clinical Team`;
 
     return { doctorNote, nurseInstructions, nextSteps, patientGuide };
   }, [recommendations, selectedPeptides, selectedSupplements, finalLabTests, labTier, labNotes, consultation]);
