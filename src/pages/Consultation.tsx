@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { AlertTriangle, CheckCircle, FileText, ClipboardList, User, Copy, Loader2, FlaskConical, Info, ShieldCheck, Microscope, StickyNote, MessageCircle, Ruler, Weight, Scale, Activity, Printer, Plus } from "lucide-react";
+import { AlertTriangle, CheckCircle, FileText, ClipboardList, User, Copy, Loader2, FlaskConical, Info, ShieldCheck, Microscope, StickyNote, MessageCircle, Ruler, Weight, Scale, Activity, Printer, Plus, Pencil, ArrowRight } from "lucide-react";
 import PatientGuideDisplay from "@/components/PatientGuideDisplay";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -562,79 +562,214 @@ ${labLines || "As directed by your doctor"}
                 </Card>
               )}
 
-              {/* Peptide Selection */}
+              {/* Peptide Selection — Stepped Flow */}
               <Card>
                 <CardHeader className="pb-3">
                   <CardTitle className="text-lg flex items-center gap-2">
                     <CheckCircle className="h-4 w-4 text-accent" />
-                    {selectionConfirmed ? "Prescribed Peptides" : "Select Peptides to Prescribe"}
+                    {selectionConfirmed
+                      ? "Prescribed Peptides"
+                      : medStep === "select"
+                      ? "Step 1: Choose Medications"
+                      : "Step 2: Configure Dose & Duration"}
                   </CardTitle>
                   {!selectionConfirmed && (
-                    <CardDescription>Check the peptides you want to prescribe. Lab tests will update based on your selection.</CardDescription>
+                    <CardDescription>
+                      {medStep === "select"
+                        ? "Tap to select which peptides to prescribe. Press ⓘ for full details."
+                        : "Review and edit dosage & duration for each selected peptide. Tap the pencil to edit."}
+                    </CardDescription>
                   )}
                 </CardHeader>
-                <CardContent className="space-y-4">
-                  {recommendations.recommended_peptides.map((p, i) => (
-                    <div
-                      key={i}
-                      className={`border rounded-lg p-4 space-y-2 transition-colors ${
-                        !selectionConfirmed && selectedPeptides.has(p.name) ? "border-primary bg-primary/5" : ""
-                      }`}
-                    >
-                      <div className="flex items-center gap-3">
-                        {!selectionConfirmed && (
-                          <Checkbox checked={selectedPeptides.has(p.name)} onCheckedChange={() => togglePeptide(p.name)} />
-                        )}
-                        <div className="flex-1 flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <h4 className="font-semibold">{p.name}</h4>
-                            <button
-                              onClick={(e) => { e.stopPropagation(); setDetailPeptide(p.name); }}
-                              className="inline-flex items-center gap-1 rounded-full border border-primary/30 bg-primary/10 px-2 py-0.5 text-xs font-medium text-primary hover:bg-primary/20 hover:border-primary/50 transition-colors"
-                            >
-                              <Info className="h-3 w-3" />Details
-                            </button>
+                <CardContent className="space-y-3">
+                  {/* STEP 1: Select medications by name only */}
+                  {!selectionConfirmed && medStep === "select" && (
+                    <>
+                      {recommendations.recommended_peptides.map((p, i) => (
+                        <div
+                          key={i}
+                          onClick={() => togglePeptide(p.name)}
+                          className={`flex items-center gap-3 border rounded-lg px-4 py-3 cursor-pointer transition-all ${
+                            selectedPeptides.has(p.name)
+                              ? "border-primary bg-primary/5 ring-1 ring-primary/20"
+                              : "hover:bg-muted/50"
+                          }`}
+                        >
+                          <Checkbox
+                            checked={selectedPeptides.has(p.name)}
+                            onCheckedChange={() => togglePeptide(p.name)}
+                            onClick={(e) => e.stopPropagation()}
+                          />
+                          <div className="flex-1 flex items-center justify-between min-w-0">
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-semibold text-sm">{p.name}</h4>
+                              <button
+                                onClick={(e) => { e.stopPropagation(); setDetailPeptide(p.name); }}
+                                className="inline-flex items-center justify-center rounded-full h-6 w-6 border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 transition-colors shrink-0"
+                              >
+                                <Info className="h-3 w-3" />
+                              </button>
+                            </div>
+                            <Badge variant={p.priority === "Primary" ? "default" : "secondary"} className="text-[10px] shrink-0">
+                              {p.priority}
+                            </Badge>
                           </div>
-                          <Badge variant={p.priority === "Primary" ? "default" : "secondary"}>{p.priority}</Badge>
                         </div>
-                      </div>
-                      <p className="text-sm text-muted-foreground">{p.rationale}</p>
-                      <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
-                        <div><span className="font-medium">Dosage:</span> {p.dosage}</div>
-                        <div><span className="font-medium">Duration:</span> {p.duration}</div>
-                        <div><span className="font-medium">Route:</span> {p.administration}</div>
-                      </div>
-                      {!selectionConfirmed && (getMandatoryTests(p).length > 0 || getRecommendedTests(p).length > 0 || getLegacyTests(p).length > 0) && (
-                        <div className="flex flex-wrap gap-1 pt-1">
-                          {getMandatoryTests(p).map((t, j) => (
-                            <Badge key={`m-${j}`} variant="outline" className="text-[10px] border-primary/40 bg-primary/5">
-                              <ShieldCheck className="h-2.5 w-2.5 mr-0.5" />{t}
-                            </Badge>
-                          ))}
-                          {getRecommendedTests(p).map((t, j) => (
-                            <Badge key={`r-${j}`} variant="outline" className="text-[10px]">
-                              <Microscope className="h-2.5 w-2.5 mr-0.5" />{t}
-                            </Badge>
-                          ))}
-                          {getMandatoryTests(p).length === 0 && getRecommendedTests(p).length === 0 && getLegacyTests(p).map((t, j) => (
-                            <Badge key={`l-${j}`} variant="outline" className="text-[10px]">{t}</Badge>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  ))}
+                      ))}
 
-                  {!selectionConfirmed && (
-                    <div className="flex gap-2">
-                      <Button onClick={() => setAddMedOpen(true)} variant="outline" className="flex-1" size="lg">
-                        <Plus className="h-4 w-4 mr-2" />
-                        Add Medication
-                      </Button>
-                      <Button onClick={confirmSelection} className="flex-1" size="lg">
-                        <CheckCircle className="h-4 w-4 mr-2" />
-                        Confirm ({selectedPeptides.size})
-                      </Button>
-                    </div>
+                      <div className="flex gap-2 pt-2">
+                        <Button onClick={() => setAddMedOpen(true)} variant="outline" className="flex-1" size="lg">
+                          <Plus className="h-4 w-4 mr-2" /> Add Medication
+                        </Button>
+                        <Button
+                          onClick={() => setMedStep("configure")}
+                          disabled={selectedPeptides.size === 0}
+                          className="flex-1"
+                          size="lg"
+                        >
+                          Next: Configure ({selectedPeptides.size}) <ArrowRight className="h-4 w-4 ml-2" />
+                        </Button>
+                      </div>
+                    </>
+                  )}
+
+                  {/* STEP 2: Configure dose & duration for selected peptides */}
+                  {!selectionConfirmed && medStep === "configure" && (
+                    <>
+                      {recommendations.recommended_peptides
+                        .filter((p) => selectedPeptides.has(p.name))
+                        .map((p, i) => (
+                          <div key={i} className="border rounded-lg p-4 space-y-3 bg-primary/[0.02]">
+                            <div className="flex items-center justify-between">
+                              <div className="flex items-center gap-2">
+                                <h4 className="font-semibold">{p.name}</h4>
+                                <button
+                                  onClick={() => setDetailPeptide(p.name)}
+                                  className="inline-flex items-center justify-center rounded-full h-6 w-6 border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                                >
+                                  <Info className="h-3 w-3" />
+                                </button>
+                              </div>
+                              <Badge variant={p.priority === "Primary" ? "default" : "secondary"} className="text-[10px]">
+                                {p.priority}
+                              </Badge>
+                            </div>
+
+                            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                              {/* Dosage — editable */}
+                              <div className="rounded-lg bg-muted/50 p-3">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Dosage</span>
+                                {editingField?.peptide === p.name && editingField.field === "dosage" ? (
+                                  <Input
+                                    autoFocus
+                                    value={editValue}
+                                    onChange={(e) => setEditValue(e.target.value)}
+                                    onBlur={saveInlineEdit}
+                                    onKeyDown={(e) => e.key === "Enter" && saveInlineEdit()}
+                                    className="mt-1 h-7 text-sm"
+                                  />
+                                ) : (
+                                  <div className="flex items-center gap-1 mt-0.5">
+                                    <p className="text-sm font-medium flex-1">{p.dosage}</p>
+                                    <button
+                                      onClick={() => startInlineEdit(p.name, "dosage")}
+                                      className="text-muted-foreground hover:text-primary transition-colors"
+                                    >
+                                      <Pencil className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Duration — editable */}
+                              <div className="rounded-lg bg-muted/50 p-3">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Duration</span>
+                                {editingField?.peptide === p.name && editingField.field === "duration" ? (
+                                  <Input
+                                    autoFocus
+                                    value={editValue}
+                                    onChange={(e) => setEditValue(e.target.value)}
+                                    onBlur={saveInlineEdit}
+                                    onKeyDown={(e) => e.key === "Enter" && saveInlineEdit()}
+                                    className="mt-1 h-7 text-sm"
+                                  />
+                                ) : (
+                                  <div className="flex items-center gap-1 mt-0.5">
+                                    <p className="text-sm font-medium flex-1">{p.duration}</p>
+                                    <button
+                                      onClick={() => startInlineEdit(p.name, "duration")}
+                                      className="text-muted-foreground hover:text-primary transition-colors"
+                                    >
+                                      <Pencil className="h-3 w-3" />
+                                    </button>
+                                  </div>
+                                )}
+                              </div>
+
+                              {/* Route — read-only */}
+                              <div className="rounded-lg bg-muted/50 p-3">
+                                <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Route</span>
+                                <p className="text-sm font-medium mt-0.5">{p.administration}</p>
+                              </div>
+                            </div>
+
+                            {/* Blood tests for this peptide */}
+                            {(getMandatoryTests(p).length > 0 || getRecommendedTests(p).length > 0 || getLegacyTests(p).length > 0) && (
+                              <div className="flex flex-wrap gap-1 pt-1">
+                                {getMandatoryTests(p).map((t, j) => (
+                                  <Badge key={`m-${j}`} variant="outline" className="text-[10px] border-primary/40 bg-primary/5">
+                                    <ShieldCheck className="h-2.5 w-2.5 mr-0.5" />{t}
+                                  </Badge>
+                                ))}
+                                {getRecommendedTests(p).map((t, j) => (
+                                  <Badge key={`r-${j}`} variant="outline" className="text-[10px]">
+                                    <Microscope className="h-2.5 w-2.5 mr-0.5" />{t}
+                                  </Badge>
+                                ))}
+                                {getMandatoryTests(p).length === 0 && getRecommendedTests(p).length === 0 && getLegacyTests(p).map((t, j) => (
+                                  <Badge key={`l-${j}`} variant="outline" className="text-[10px]">{t}</Badge>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+                        ))}
+
+                      <div className="flex gap-2 pt-2">
+                        <Button variant="outline" onClick={() => setMedStep("select")} className="flex-1" size="lg">
+                          Back to Selection
+                        </Button>
+                        <Button onClick={confirmSelection} className="flex-1" size="lg">
+                          <CheckCircle className="h-4 w-4 mr-2" /> Confirm ({selectedPeptides.size})
+                        </Button>
+                      </div>
+                    </>
+                  )}
+
+                  {/* Confirmed/completed view */}
+                  {selectionConfirmed && (
+                    <>
+                      {recommendations.recommended_peptides.map((p, i) => (
+                        <div key={i} className="border rounded-lg p-4 space-y-2">
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-2">
+                              <h4 className="font-semibold">{p.name}</h4>
+                              <button
+                                onClick={() => setDetailPeptide(p.name)}
+                                className="inline-flex items-center justify-center rounded-full h-6 w-6 border border-primary/30 bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+                              >
+                                <Info className="h-3 w-3" />
+                              </button>
+                            </div>
+                            <Badge variant={p.priority === "Primary" ? "default" : "secondary"}>{p.priority}</Badge>
+                          </div>
+                          <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 text-xs">
+                            <div><span className="font-medium">Dosage:</span> {p.dosage}</div>
+                            <div><span className="font-medium">Duration:</span> {p.duration}</div>
+                            <div><span className="font-medium">Route:</span> {p.administration}</div>
+                          </div>
+                        </div>
+                      ))}
+                    </>
                   )}
                 </CardContent>
               </Card>
