@@ -253,6 +253,7 @@ export default function KnowledgeBase() {
     setSaving(false);
     setEditDoc(null);
     loadClinicalDocs();
+  };
 
   if (loading) {
     return (
