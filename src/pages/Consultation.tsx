@@ -1145,29 +1145,6 @@ SCOPE Certified Physician`;
                     <CardDescription>Review and edit dosage, duration & vial supply for each selected peptide.</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {/* Dose Unit Toggle */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-muted-foreground">Display dose in:</span>
-                      <div className="flex rounded-lg border border-border overflow-hidden">
-                        <button
-                          className={`px-3 py-1.5 text-xs font-medium transition-colors ${
-                            doseUnit === "ml" ? "bg-primary text-primary-foreground" : "bg-card hover:bg-muted/50 text-muted-foreground"
-                          }`}
-                          onClick={() => setDoseUnit("ml")}
-                        >
-                          ml
-                        </button>
-                        <button
-                          className={`px-3 py-1.5 text-xs font-medium transition-colors ${
-                            doseUnit === "units" ? "bg-primary text-primary-foreground" : "bg-card hover:bg-muted/50 text-muted-foreground"
-                          }`}
-                          onClick={() => setDoseUnit("units")}
-                        >
-                          Units
-                        </button>
-                      </div>
-                      <span className="text-[10px] text-muted-foreground">(0.1 ml = 10 Units)</span>
-                    </div>
                     {recommendations.recommended_peptides
                       .filter((p) => selectedPeptides.has(p.name))
                       .map((p, i) => (
@@ -1241,7 +1218,29 @@ SCOPE Certified Physician`;
                                 <Input type="number" step="0.5" min="0" placeholder={protocolPresets.get(p.name)?.vial_size_ml ? `Protocol: ${protocolPresets.get(p.name)!.vial_size_ml}ml` : "e.g. 5"} value={p.vial_size_ml ?? ""} onChange={(e) => updatePeptideField(p.name, "vial_size_ml", e.target.value ? parseFloat(e.target.value) : undefined)} className="mt-1 h-8 text-sm" />
                               </div>
                               <div>
-                                <Label className="text-[10px] text-muted-foreground">Dose per Injection ({formatDoseLabel(doseUnit)})</Label>
+                                <div className="flex items-center justify-between mb-1">
+                                  <Label className="text-[10px] text-muted-foreground">Dose per Injection ({formatDoseLabel(doseUnit)})</Label>
+                                  <div className="flex items-center gap-1.5">
+                                    <div className="flex rounded-md border border-border overflow-hidden">
+                                      <button
+                                        className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${
+                                          doseUnit === "ml" ? "bg-primary text-primary-foreground" : "bg-card hover:bg-muted/50 text-muted-foreground"
+                                        }`}
+                                        onClick={() => setDoseUnit("ml")}
+                                      >
+                                        ml
+                                      </button>
+                                      <button
+                                        className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${
+                                          doseUnit === "units" ? "bg-primary text-primary-foreground" : "bg-card hover:bg-muted/50 text-muted-foreground"
+                                        }`}
+                                        onClick={() => setDoseUnit("units")}
+                                      >
+                                        Units
+                                      </button>
+                                    </div>
+                                  </div>
+                                </div>
                                 <Input
                                   type="number"
                                   step={doseUnit === "units" ? "1" : "0.01"}
