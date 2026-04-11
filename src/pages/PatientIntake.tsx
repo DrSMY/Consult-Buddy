@@ -445,11 +445,11 @@ export default function PatientIntake() {
 
         {/* Smart Fill */}
         {currentStep === 0 && (
-          <Card className="mb-4 border-primary/20 bg-primary/5">
+          <Card className="mb-4 border-primary/30 bg-gradient-to-r from-primary/10 to-accent/5 shadow-sm">
             <CardContent className="pt-4 pb-3">
               <div className="flex items-center gap-2 mb-2">
                 <Wand2 className="h-4 w-4 text-primary" />
-                <span className="text-sm font-semibold text-primary">Smart Fill</span>
+                <span className="text-sm font-bold text-primary">✨ AI Smart Fill</span>
               </div>
               <div className="flex gap-2">
                 <Input
