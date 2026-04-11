@@ -80,6 +80,27 @@ export default function PeptideDetailSheet({ peptideName, open, onOpenChange }: 
                   </div>
                 )}
 
+                {/* Talking Points — at the top for quick patient communication */}
+                <div className="rounded-xl bg-gradient-to-br from-primary/10 via-primary/5 to-accent/10 border border-primary/20 p-4">
+                  <h4 className="font-semibold text-sm mb-3 text-primary flex items-center gap-2">
+                    💡 Talking Points for Patients
+                  </h4>
+                  <ul className="space-y-2.5 text-sm">
+                    {protocol.how_it_works && (
+                      <TalkingPoint label="Mechanism" text={`${protocol.how_it_works.split('.')[0]}.`} />
+                    )}
+                    {protocol.target_benefits && (
+                      <TalkingPoint label="Benefits" text={protocol.target_benefits} />
+                    )}
+                    {protocol.treatment_duration && (
+                      <TalkingPoint label="Timeline" text={protocol.treatment_duration} />
+                    )}
+                    {protocol.common_side_effects && (
+                      <TalkingPoint label="Side Effects" text={protocol.common_side_effects} />
+                    )}
+                  </ul>
+                </div>
+
                 {protocol.how_it_works && (
                   <Section icon={Activity} title="How It Works" content={protocol.how_it_works} variant="teal" />
                 )}
@@ -135,26 +156,6 @@ export default function PeptideDetailSheet({ peptideName, open, onOpenChange }: 
                 {protocol.recommended_supplements && (
                   <Section icon={Pill} title="Recommended Supplements" content={protocol.recommended_supplements} variant="amber" />
                 )}
-
-                <div className="rounded-xl bg-gradient-to-br from-primary/10 via-primary/5 to-accent/10 border border-primary/20 p-4 mt-2">
-                  <h4 className="font-semibold text-sm mb-3 text-primary flex items-center gap-2">
-                    💡 Talking Points for Patients
-                  </h4>
-                  <ul className="space-y-2.5 text-sm">
-                    {protocol.how_it_works && (
-                      <TalkingPoint label="Mechanism" text={`${protocol.how_it_works.split('.')[0]}.`} />
-                    )}
-                    {protocol.target_benefits && (
-                      <TalkingPoint label="Benefits" text={protocol.target_benefits} />
-                    )}
-                    {protocol.treatment_duration && (
-                      <TalkingPoint label="Timeline" text={protocol.treatment_duration} />
-                    )}
-                    {protocol.common_side_effects && (
-                      <TalkingPoint label="Side Effects" text={protocol.common_side_effects} />
-                    )}
-                  </ul>
-                </div>
               </>
             )}
           </div>
