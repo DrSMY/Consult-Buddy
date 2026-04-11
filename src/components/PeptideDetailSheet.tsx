@@ -128,16 +128,16 @@ export default function PeptideDetailSheet({ peptideName, open, onOpenChange }: 
                 </div>
 
                 {protocol.contraindications && (
-                  <div className="rounded-xl p-4 bg-destructive/10 border border-destructive/20">
-                    <div className="flex items-center gap-2 mb-2">
-                      <div className="flex h-6 w-6 items-center justify-center rounded-full bg-destructive/20">
+                  <div className="rounded-xl p-4 bg-gradient-to-br from-destructive/10 to-destructive/5 border border-destructive/20 shadow-[0_4px_16px_-2px_hsl(0_80%_50%/0.12)] border-l-[3px] border-l-destructive/50">
+                    <div className="flex items-center gap-2.5 mb-2.5">
+                      <div className="flex h-7 w-7 items-center justify-center rounded-lg bg-destructive/15">
                         <ShieldAlert className="h-3.5 w-3.5 text-destructive" />
                       </div>
-                      <span className="font-semibold text-xs uppercase tracking-wide text-destructive">
+                      <span className="font-semibold text-xs uppercase tracking-wider text-destructive">
                         Contraindications
                       </span>
                     </div>
-                    <p className="whitespace-pre-wrap text-destructive/80">{protocol.contraindications}</p>
+                    <p className="whitespace-pre-wrap text-destructive/80 pl-[38px]">{protocol.contraindications}</p>
                   </div>
                 )}
 
