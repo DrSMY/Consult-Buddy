@@ -1145,29 +1145,6 @@ SCOPE Certified Physician`;
                     <CardDescription>Review and edit dosage, duration & vial supply for each selected peptide.</CardDescription>
                   </CardHeader>
                   <CardContent className="space-y-4">
-                    {/* Dose Unit Toggle */}
-                    <div className="flex items-center gap-2">
-                      <span className="text-xs font-medium text-muted-foreground">Display dose in:</span>
-                      <div className="flex rounded-lg border border-border overflow-hidden">
-                        <button
-                          className={`px-3 py-1.5 text-xs font-medium transition-colors ${
-                            doseUnit === "ml" ? "bg-primary text-primary-foreground" : "bg-card hover:bg-muted/50 text-muted-foreground"
-                          }`}
-                          onClick={() => setDoseUnit("ml")}
-                        >
-                          ml
-                        </button>
-                        <button
-                          className={`px-3 py-1.5 text-xs font-medium transition-colors ${
-                            doseUnit === "units" ? "bg-primary text-primary-foreground" : "bg-card hover:bg-muted/50 text-muted-foreground"
-                          }`}
-                          onClick={() => setDoseUnit("units")}
-                        >
-                          Units
-                        </button>
-                      </div>
-                      <span className="text-[10px] text-muted-foreground">(0.1 ml = 10 Units)</span>
-                    </div>
                     {recommendations.recommended_peptides
                       .filter((p) => selectedPeptides.has(p.name))
                       .map((p, i) => (
