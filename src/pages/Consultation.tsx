@@ -356,6 +356,8 @@ export default function Consultation() {
           dosage: dosageText,
           administration: opt.route || p.administration,
           duration: opt.cycle || p.duration,
+          protocol_summary: opt.summary,
+          protocol_type: opt.protocolType,
         };
         if (vialMl) newP.vial_size_ml = vialMl;
         if (doseMl) newP.dose_per_injection_ml = doseMl;
