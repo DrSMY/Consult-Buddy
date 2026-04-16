@@ -40,17 +40,17 @@ export default function LivePeptideSuggestions({ healthGoals }: Props) {
         const results: PeptideMatch[] = [];
         for (const row of data) {
           const protocol = (row as any).peptide_protocols;
-          if (protocol && !seen.has(protocol.name)) {
-            seen.add(protocol.name);
-            results.push({
-              name: protocol.name,
-              priority: row.priority,
-              categories: protocol.categories,
-              best_use_for: protocol.best_use_for,
-            });
-          }
+          if (!protocol || seen.has(protocol.name)) continue;
+          // Only suggest peptides that exist in the doctor's selectable protocol catalog
+          if (getProtocolOptions(protocol.name).length === 0) continue;
+          seen.add(protocol.name);
+          results.push({
+            name: protocol.name,
+            priority: row.priority,
+            categories: protocol.categories,
+            best_use_for: protocol.best_use_for,
+          });
         }
-        // Sort: Primary first
         results.sort((a, b) => (a.priority === "Primary" ? -1 : 1) - (b.priority === "Primary" ? -1 : 1));
         setMatches(results);
       }
