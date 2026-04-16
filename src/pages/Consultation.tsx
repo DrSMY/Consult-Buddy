@@ -565,6 +565,40 @@ export default function Consultation() {
     return map;
   }, [recommendations, selectedPeptides]);
 
+  // Auto-merge peptide-specific supplements (from peptide_protocols.recommended_supplements)
+  // into the consultation supplements list whenever the doctor selects peptides.
+  // Newly added supplements are auto-selected so they appear in Doctor Note / Patient Guide.
+  useEffect(() => {
+    if (!recommendations || protocolPresets.size === 0) return;
+    const existingNames = new Set(recommendations.recommended_supplements.map((s) => s.name.toLowerCase().trim()));
+    const additions: { name: string; dosage: string; reason: string }[] = [];
+    const newSelections: string[] = [];
+    recommendations.recommended_peptides
+      .filter((p) => selectedPeptides.has(p.name))
+      .forEach((p) => {
+        const preset = protocolPresets.get(p.name);
+        if (!preset) return;
+        const parsed = parseSupplementsString(preset.recommended_supplements, p.name);
+        parsed.forEach((s) => {
+          const key = s.name.toLowerCase().trim();
+          if (!existingNames.has(key) && !additions.some((a) => a.name.toLowerCase().trim() === key)) {
+            additions.push(s);
+            newSelections.push(s.name);
+          }
+        });
+      });
+    if (additions.length > 0) {
+      const updated: Recommendation = {
+        ...recommendations,
+        recommended_supplements: [...recommendations.recommended_supplements, ...additions],
+      };
+      setRecommendations(updated);
+      setSelectedSupplements((prev) => new Set([...prev, ...newSelections]));
+      // persist silently
+      supabase.from("consultations").update({ ai_recommendations: updated as any }).eq("id", id);
+    }
+  }, [selectedPeptides, protocolPresets]);
+
   // Build action plan text
   const buildActionPlan = useMemo(() => {
     if (!recommendations) return { doctorNote: "", nurseInstructions: "", nextSteps: "", patientGuide: "" };
