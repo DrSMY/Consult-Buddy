@@ -1200,6 +1200,54 @@ SCOPE Certified Physician`;
                           <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
                             <div className="rounded-lg bg-muted/50 p-3">
                               <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Dosage</span>
+                              {(() => {
+                                // Parse text dose options like "5mg or 10mg", "250 mcg / 500 mcg",
+                                // "0.25, 0.5 or 1 mg", "10-20 units" from the AI/protocol dosage string.
+                                const source = `${p.dosage} ${protocolPresets.get(p.name)?.raw_dosage || ""}`;
+                                const unitRe = /(\d+(?:\.\d+)?)\s*(mg|mcg|µg|ug|iu|units?|u|ml|sprays?|drops?|caps?(?:ules?)?|tabs?(?:lets?)?)/gi;
+                                const found: { value: number; unit: string; raw: string }[] = [];
+                                let mm: RegExpExecArray | null;
+                                while ((mm = unitRe.exec(source)) !== null) {
+                                  found.push({ value: parseFloat(mm[1]), unit: mm[2].toLowerCase(), raw: `${mm[1]} ${mm[2]}` });
+                                }
+                                // Also expand explicit ranges "X-Y unit" into both endpoints
+                                const rangeRe = /(\d+(?:\.\d+)?)\s*[-–to]+\s*(\d+(?:\.\d+)?)\s*(mg|mcg|µg|ug|iu|units?|u|ml)/gi;
+                                let rm: RegExpExecArray | null;
+                                while ((rm = rangeRe.exec(source)) !== null) {
+                                  found.push({ value: parseFloat(rm[1]), unit: rm[3].toLowerCase(), raw: `${rm[1]} ${rm[3]}` });
+                                  found.push({ value: parseFloat(rm[2]), unit: rm[3].toLowerCase(), raw: `${rm[2]} ${rm[3]}` });
+                                }
+                                // Dedupe by raw label
+                                const seen = new Set<string>();
+                                const opts = found.filter((o) => {
+                                  const k = o.raw.toLowerCase();
+                                  if (seen.has(k)) return false;
+                                  seen.add(k);
+                                  return true;
+                                });
+                                if (opts.length < 2) return null;
+                                return (
+                                  <div className="mt-1 mb-1.5 flex flex-wrap gap-1">
+                                    {opts.map((o) => {
+                                      const isActive = p.dosage.trim().toLowerCase() === o.raw.toLowerCase();
+                                      return (
+                                        <button
+                                          key={o.raw}
+                                          type="button"
+                                          onClick={() => updatePeptideField(p.name, "dosage", o.raw)}
+                                          className={`px-2 py-0.5 rounded-md border text-[10px] font-medium transition-colors ${
+                                            isActive
+                                              ? "bg-primary text-primary-foreground border-primary"
+                                              : "bg-card text-foreground border-border hover:bg-muted/50"
+                                          }`}
+                                        >
+                                          {o.raw}
+                                        </button>
+                                      );
+                                    })}
+                                  </div>
+                                );
+                              })()}
                               {editingField?.peptide === p.name && editingField.field === "dosage" ? (
                                 <Input autoFocus value={editValue} onChange={(e) => setEditValue(e.target.value)} onBlur={saveInlineEdit} onKeyDown={(e) => e.key === "Enter" && saveInlineEdit()} className="mt-1 h-7 text-sm" />
                               ) : (
