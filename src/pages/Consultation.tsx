@@ -548,10 +548,11 @@ export default function Consultation() {
     const selectedSupps = recommendations.recommended_supplements.filter((s) => selectedSupplements.has(s.name));
 
     const medsLines = selectedRecs.map((p) => {
-      let line = `• ${p.name} — ${p.dosage}, ${p.administration}, ${p.duration}`;
+      let line = `• ${p.name}${p.protocol_type ? ` [${p.protocol_type}]` : ""} — ${p.dosage}, ${p.administration}, ${p.duration}`;
       if (p.supply_days != null && p.vial_size_ml && p.dose_per_injection_ml) {
         line += `\n  Vial: ${p.vial_size_ml}ml | Dose: ${formatDose(p.dose_per_injection_ml, doseUnit)}/injection | Frequency: ${p.frequency} | Supply: ${p.supply_days} days (${Math.floor(p.vial_size_ml / p.dose_per_injection_ml)} injections)`;
       }
+      if (p.protocol_summary) line += `\n  Protocol: ${p.protocol_summary}`;
       return line;
     }).join("\n");
 
