@@ -117,6 +117,26 @@ const parseDoseVolume = (dosage: string): number | null => {
   return m ? parseFloat(m[1]) : null;
 };
 
+// Extract all distinct dose options from a protocol dosage instruction string.
+// Handles ranges ("0.2-0.4 ml" -> [0.2, 0.4]), comma/slash separated lists,
+// and "or" separated values. Returns sorted unique ml values.
+const parseDoseOptions = (dosage: string): number[] => {
+  if (!dosage) return [];
+  const set = new Set<number>();
+  // Find all "X ml", "X-Y ml", "X to Y ml", "X / Y ml" segments
+  const segmentRegex = /(\d+(?:\.\d+)?)\s*(?:[-–to/]+\s*(\d+(?:\.\d+)?)\s*)?ml/gi;
+  let m: RegExpExecArray | null;
+  while ((m = segmentRegex.exec(dosage)) !== null) {
+    const a = parseFloat(m[1]);
+    if (!isNaN(a)) set.add(a);
+    if (m[2]) {
+      const b = parseFloat(m[2]);
+      if (!isNaN(b)) set.add(b);
+    }
+  }
+  return Array.from(set).sort((x, y) => x - y);
+};
+
 const parseFrequency = (dosage: string): string | null => {
   const d = dosage.toLowerCase();
   if (d.includes("daily") || d.includes("every day") || d.includes("once daily")) return "daily";
