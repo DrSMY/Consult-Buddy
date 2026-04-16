@@ -35,6 +35,8 @@ interface PeptideRec {
   dose_per_injection_ml?: number;
   frequency?: string;
   supply_days?: number;
+  protocol_summary?: string;
+  protocol_type?: string;
 }
 
 const FREQUENCY_OPTIONS = [
