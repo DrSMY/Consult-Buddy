@@ -1268,6 +1268,32 @@ SCOPE Certified Physician`;
                                     ))}
                                   </select>
                                 </div>
+                                {(() => {
+                                  const opts = parseDoseOptions(protocolPresets.get(p.name)?.raw_dosage || "");
+                                  if (opts.length < 2) return null;
+                                  return (
+                                    <div className="mt-1 mb-1.5 flex flex-wrap gap-1">
+                                      {opts.map((mlVal) => {
+                                        const isActive = p.dose_per_injection_ml === mlVal;
+                                        const display = doseUnit === "units" ? `${mlToUnits(mlVal)} U` : doseUnit === "ml" ? `${mlVal} ml` : `${mlVal} ${formatDoseLabel(doseUnit)}`;
+                                        return (
+                                          <button
+                                            key={mlVal}
+                                            type="button"
+                                            onClick={() => updatePeptideField(p.name, "dose_per_injection_ml", mlVal)}
+                                            className={`px-2 py-0.5 rounded-md border text-[10px] font-medium transition-colors ${
+                                              isActive
+                                                ? "bg-primary text-primary-foreground border-primary"
+                                                : "bg-card text-foreground border-border hover:bg-muted/50"
+                                            }`}
+                                          >
+                                            {display}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  );
+                                })()}
                                 <Input
                                   type="number"
                                   step={doseUnit === "units" || doseUnit === "spray" || doseUnit === "drops" || doseUnit === "capsule" || doseUnit === "tablet" ? "1" : "0.01"}
