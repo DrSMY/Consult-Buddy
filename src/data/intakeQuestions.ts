@@ -29,8 +29,6 @@ export const intakeQuestions: IntakeQuestion[] = [
   { id: "age", section: "Demographics & Baseline", question: "Age", type: "number", unit: "years" },
   { id: "height", section: "Demographics & Baseline", question: "Height", type: "number", unit: "cm" },
   { id: "weight", section: "Demographics & Baseline", question: "Weight", type: "number", unit: "kg" },
-  { id: "body_shape", section: "Demographics & Baseline", question: "Body shape (select closest match)", type: "select", options: ["Lean", "Athletic", "Average", "Overweight", "Central/Abdominal fat dominant"] },
-  { id: "activity_level", section: "Demographics & Baseline", question: "Activity level", type: "select", options: ["Sedentary", "Light activity", "Regular training (3-4x/week)", "Intense training (5+ times/week)"] },
 
   // SECTION 2: Health Status
   { id: "health_conditions", section: "Health Status & Medical Background", question: "Do you have any known health conditions?", type: "multiselect", hasGate: true, gateLabel: "Do you have any known health conditions?", hasOther: true, hasNotes: true, options: ["High blood pressure", "High cholesterol", "Prediabetes or diabetes", "Thyroid disorder", "Hormonal imbalance (e.g., low testosterone, PCOS)", "Autoimmune or inflammatory condition", "Chronic joint, muscle, or back pain", "Sleep disorder (insomnia, sleep apnea, etc.)", "Mental health condition (stress, anxiety, depression)"] },
@@ -49,6 +47,8 @@ export const intakeQuestions: IntakeQuestion[] = [
   { id: "inflammation", section: "Objective-Specific Questions", question: "Do you experience persistent inflammation, aches, or stiffness?", type: "select", options: ["No", "Occasionally", "Often", "Constantly"], conditionalOn: { questionId: "health_goals", value: "Healthy aging & longevity" } },
 
   // Build muscle
+  { id: "body_shape_muscle", section: "Objective-Specific Questions", question: "Body shape (select closest match)", type: "select", options: ["Lean", "Athletic", "Average", "Overweight", "Central/Abdominal fat dominant"], conditionalOn: { questionId: "health_goals", value: "Build muscle & recover better" } },
+  { id: "activity_level_muscle", section: "Objective-Specific Questions", question: "Activity level", type: "select", options: ["Sedentary", "Light activity", "Regular training (3-4x/week)", "Intense training (5+ times/week)"], conditionalOn: { questionId: "health_goals", value: "Build muscle & recover better" } },
   { id: "training_frequency", section: "Objective-Specific Questions", question: "How often do you train or exercise?", type: "select", options: ["0-1x/week", "2-3x/week", "4-5x/week", "6+ times/week"], conditionalOn: { questionId: "health_goals", value: "Build muscle & recover better" } },
   { id: "muscle_plateau", section: "Objective-Specific Questions", question: "Do you feel your muscle gains or strength have plateaued?", type: "select", options: ["No", "Slightly", "Yes", "Declining"], conditionalOn: { questionId: "health_goals", value: "Build muscle & recover better" } },
   { id: "workout_recovery", section: "Objective-Specific Questions", question: "How well do you recover after workouts?", type: "select", options: ["Very well", "Acceptable", "Poorly", "Need several days"], conditionalOn: { questionId: "health_goals", value: "Build muscle & recover better" } },
@@ -61,6 +61,8 @@ export const intakeQuestions: IntakeQuestion[] = [
   { id: "conventional_treatments", section: "Objective-Specific Questions", question: "Have conventional treatments helped?", type: "select", options: ["Yes", "Partially", "No"], conditionalOn: { questionId: "health_goals", value: "Heal injuries & reduce pain" } },
 
   // Metabolism
+  { id: "body_shape_metabolism", section: "Objective-Specific Questions", question: "Body shape (select closest match)", type: "select", options: ["Lean", "Athletic", "Average", "Overweight", "Central/Abdominal fat dominant"], conditionalOn: { questionId: "health_goals", value: "Improve metabolism & reduce belly fat" } },
+  { id: "activity_level_metabolism", section: "Objective-Specific Questions", question: "Activity level", type: "select", options: ["Sedentary", "Light activity", "Regular training (3-4x/week)", "Intense training (5+ times/week)"], conditionalOn: { questionId: "health_goals", value: "Improve metabolism & reduce belly fat" } },
   { id: "fat_storage", section: "Objective-Specific Questions", question: "Where do you tend to store fat the most?", type: "select", options: ["Evenly", "Hips/thighs", "Abdomen/belly", "Mostly visceral/belly"], conditionalOn: { questionId: "health_goals", value: "Improve metabolism & reduce belly fat" } },
   { id: "fat_loss_struggle", section: "Objective-Specific Questions", question: "Have you struggled to lose fat despite diet or exercise?", type: "select", options: ["No", "Occasionally", "Yes", "Long-term struggle"], conditionalOn: { questionId: "health_goals", value: "Improve metabolism & reduce belly fat" } },
   { id: "energy_crashes", section: "Objective-Specific Questions", question: "Do you experience energy crashes or sugar cravings?", type: "select", options: ["Rarely", "Sometimes", "Often", "Daily"], conditionalOn: { questionId: "health_goals", value: "Improve metabolism & reduce belly fat" } },
