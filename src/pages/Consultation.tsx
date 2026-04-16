@@ -39,6 +39,8 @@ interface PeptideRec {
 const FREQUENCY_OPTIONS = [
   { label: "Daily", value: "daily", factor: 1 },
   { label: "Every other day", value: "every other day", factor: 0.5 },
+  { label: "5 days per week", value: "5 days per week", factor: 5 / 7 },
+  { label: "3 times per week", value: "3 times per week", factor: 3 / 7 },
   { label: "3x per week", value: "3x per week", factor: 3 / 7 },
   { label: "2x per week", value: "2x per week", factor: 2 / 7 },
   { label: "Weekly", value: "weekly", factor: 1 / 7 },
@@ -68,14 +70,30 @@ interface Recommendation {
 
 type LabTier = "basic" | "advanced";
 type WizardStep = "select" | "configure" | "labs" | "supplements";
-type DoseUnit = "ml" | "units";
+type DoseUnit = "ml" | "units" | "spray" | "drops" | "capsule" | "tablet" | "mg" | "mcg";
+
+const DOSE_UNIT_OPTIONS: { value: DoseUnit; label: string }[] = [
+  { value: "ml", label: "ml" },
+  { value: "units", label: "Units" },
+  { value: "spray", label: "Spray" },
+  { value: "drops", label: "Drops" },
+  { value: "capsule", label: "Capsule" },
+  { value: "tablet", label: "Tablet" },
+  { value: "mg", label: "mg" },
+  { value: "mcg", label: "mcg" },
+];
 
 // 0.1 ml = 10 units (1 ml = 100 units on a standard insulin syringe)
 const mlToUnits = (ml: number): number => Math.round(ml * 100 * 100) / 100;
 const unitsToMl = (units: number): number => Math.round((units / 100) * 1000) / 1000;
-const formatDose = (ml: number, unit: DoseUnit): string =>
-  unit === "units" ? `${mlToUnits(ml)} Units` : `${ml} ml`;
-const formatDoseLabel = (unit: DoseUnit): string => unit === "units" ? "Units" : "ml";
+const formatDose = (ml: number, unit: DoseUnit): string => {
+  if (unit === "units") return `${mlToUnits(ml)} Units`;
+  if (unit === "ml") return `${ml} ml`;
+  const opt = DOSE_UNIT_OPTIONS.find((o) => o.value === unit);
+  return `${ml} ${opt?.label ?? unit}`;
+};
+const formatDoseLabel = (unit: DoseUnit): string =>
+  DOSE_UNIT_OPTIONS.find((o) => o.value === unit)?.label ?? unit;
 
 // Parse protocol data into supply calculator presets
 interface ProtocolPreset {
@@ -1220,32 +1238,21 @@ SCOPE Certified Physician`;
                               <div>
                                 <div className="flex items-center justify-between mb-1">
                                   <Label className="text-[10px] text-muted-foreground">Dose per Injection ({formatDoseLabel(doseUnit)})</Label>
-                                  <div className="flex items-center gap-1.5">
-                                    <div className="flex rounded-md border border-border overflow-hidden">
-                                      <button
-                                        className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${
-                                          doseUnit === "ml" ? "bg-primary text-primary-foreground" : "bg-card hover:bg-muted/50 text-muted-foreground"
-                                        }`}
-                                        onClick={() => setDoseUnit("ml")}
-                                      >
-                                        ml
-                                      </button>
-                                      <button
-                                        className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${
-                                          doseUnit === "units" ? "bg-primary text-primary-foreground" : "bg-card hover:bg-muted/50 text-muted-foreground"
-                                        }`}
-                                        onClick={() => setDoseUnit("units")}
-                                      >
-                                        Units
-                                      </button>
-                                    </div>
-                                  </div>
+                                  <select
+                                    value={doseUnit}
+                                    onChange={(e) => setDoseUnit(e.target.value as DoseUnit)}
+                                    className="h-6 rounded-md border border-border bg-card px-1.5 text-[10px] font-medium text-foreground"
+                                  >
+                                    {DOSE_UNIT_OPTIONS.map((o) => (
+                                      <option key={o.value} value={o.value}>{o.label}</option>
+                                    ))}
+                                  </select>
                                 </div>
                                 <Input
                                   type="number"
-                                  step={doseUnit === "units" ? "1" : "0.01"}
+                                  step={doseUnit === "units" || doseUnit === "spray" || doseUnit === "drops" || doseUnit === "capsule" || doseUnit === "tablet" ? "1" : "0.01"}
                                   min="0"
-                                  placeholder={protocolPresets.get(p.name)?.dose_per_injection_ml ? `Protocol: ${doseUnit === "units" ? mlToUnits(protocolPresets.get(p.name)!.dose_per_injection_ml!) + " Units" : protocolPresets.get(p.name)!.dose_per_injection_ml + "ml"}` : doseUnit === "units" ? "e.g. 10" : "e.g. 0.1"}
+                                  placeholder={protocolPresets.get(p.name)?.dose_per_injection_ml ? `Protocol: ${doseUnit === "units" ? mlToUnits(protocolPresets.get(p.name)!.dose_per_injection_ml!) + " Units" : protocolPresets.get(p.name)!.dose_per_injection_ml + (doseUnit === "ml" ? "ml" : ` ${formatDoseLabel(doseUnit)}`)}` : doseUnit === "units" ? "e.g. 10" : doseUnit === "ml" ? "e.g. 0.1" : "e.g. 1"}
                                   value={p.dose_per_injection_ml != null ? (doseUnit === "units" ? mlToUnits(p.dose_per_injection_ml) : p.dose_per_injection_ml) : ""}
                                   onChange={(e) => {
                                     const val = e.target.value ? parseFloat(e.target.value) : undefined;
