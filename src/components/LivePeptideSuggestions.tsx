@@ -4,6 +4,7 @@ import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Info, Sparkles, Loader2 } from "lucide-react";
 import PeptideDetailSheet from "@/components/PeptideDetailSheet";
+import { getProtocolOptions } from "@/data/peptideProtocolOptions";
 
 interface PeptideMatch {
   name: string;
