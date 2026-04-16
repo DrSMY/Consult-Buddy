@@ -232,7 +232,7 @@ export default function Consultation() {
   };
 
   const loadProtocolPresets = async () => {
-    const { data } = await supabase.from("peptide_protocols").select("name, strength_volume, dosage_instructions");
+    const { data } = await supabase.from("peptide_protocols").select("name, strength_volume, dosage_instructions, recommended_supplements, key_blood_tests");
     if (data) {
       const map = new Map<string, ProtocolPreset>();
       data.forEach((row: any) => {
@@ -243,6 +243,8 @@ export default function Consultation() {
           frequency: parseFrequency(row.dosage_instructions || ""),
           raw_strength: row.strength_volume || "",
           raw_dosage: row.dosage_instructions || "",
+          recommended_supplements: row.recommended_supplements || "",
+          key_blood_tests: row.key_blood_tests || "",
         });
       });
       setProtocolPresets(map);
