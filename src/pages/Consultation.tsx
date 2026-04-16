@@ -19,6 +19,7 @@ import AppHeader from "@/components/AppHeader";
 import LivePeptideSuggestions from "@/components/LivePeptideSuggestions";
 import { openWhatsApp } from "@/utils/whatsapp";
 import { printPatientGuide } from "@/utils/printGuide";
+import { getProtocolOptions, extractMl, extractVialMl, inferFrequency, type ProtocolOption } from "@/data/peptideProtocolOptions";
 
 interface PeptideRec {
   name: string;
@@ -329,6 +330,36 @@ export default function Consultation() {
           );
           newP.supply_days = supply ?? undefined;
         }
+        return newP;
+      }),
+    };
+    setRecommendations(updated);
+    supabase.from("consultations").update({ ai_recommendations: updated as any }).eq("id", id);
+  };
+
+  // Apply a full protocol option from the spreadsheet to a peptide:
+  // sets dosage text + auto-fills vial calculator (vial size, dose ml, frequency, route).
+  const applyProtocolOption = (peptideName: string, opt: ProtocolOption) => {
+    if (!recommendations) return;
+    const vialMl = extractVialMl(opt.strength);
+    const doseMl = extractMl(opt.doseVolume);
+    const freq = inferFrequency(opt.time);
+    const dosageText = `${opt.doseAmount} (${opt.doseVolume}) — ${opt.time}`;
+    const updated: Recommendation = {
+      ...recommendations,
+      recommended_peptides: recommendations.recommended_peptides.map((p) => {
+        if (p.name !== peptideName) return p;
+        const newP: PeptideRec = {
+          ...p,
+          dosage: dosageText,
+          administration: opt.route || p.administration,
+          duration: opt.cycle || p.duration,
+        };
+        if (vialMl) newP.vial_size_ml = vialMl;
+        if (doseMl) newP.dose_per_injection_ml = doseMl;
+        if (freq) newP.frequency = freq;
+        const supply = calcSupplyDays(newP.vial_size_ml, newP.dose_per_injection_ml, newP.frequency);
+        newP.supply_days = supply ?? undefined;
         return newP;
       }),
     };
@@ -1201,69 +1232,54 @@ SCOPE Certified Physician`;
                             <div className="rounded-lg bg-muted/50 p-3">
                               <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Dosage</span>
                               {(() => {
-                                // Build dose option cards. Each card pairs a strength (mg/mcg/iu/units)
-                                // with the matching volume (ml) when the protocol writes them adjacently
-                                // e.g. "5mg (0.5ml) or 10mg (1ml)" → two cards.
-                                const source = `${p.dosage} ${protocolPresets.get(p.name)?.raw_dosage || ""}`;
-                                type DoseCard = { label: string; sub?: string; raw: string };
-                                const cards: DoseCard[] = [];
-                                const seen = new Set<string>();
-                                const push = (c: DoseCard) => {
-                                  const k = c.raw.toLowerCase();
-                                  if (seen.has(k)) return;
-                                  seen.add(k);
-                                  cards.push(c);
-                                };
-                                // Pattern A: "5mg (0.5ml)" or "5 mg / 0.5 ml" — strength + ml together
-                                const pairRe = /(\d+(?:\.\d+)?)\s*(mg|mcg|µg|ug|iu|units?|u)\s*[\(\/\-]?\s*(\d+(?:\.\d+)?)\s*ml/gi;
-                                let pm: RegExpExecArray | null;
-                                while ((pm = pairRe.exec(source)) !== null) {
-                                  const strength = `${pm[1]} ${pm[2].toLowerCase()}`;
-                                  const vol = `${pm[3]} ml`;
-                                  push({ label: strength, sub: vol, raw: `${strength} (${vol})` });
-                                }
-                                // Pattern B: standalone strengths/volumes when no pair matched any
-                                if (cards.length < 2) {
-                                  const unitRe = /(\d+(?:\.\d+)?)\s*(mg|mcg|µg|ug|iu|units?|u|ml|sprays?|drops?|caps?(?:ules?)?|tabs?(?:lets?)?)/gi;
-                                  let mm: RegExpExecArray | null;
-                                  while ((mm = unitRe.exec(source)) !== null) {
-                                    const raw = `${mm[1]} ${mm[2].toLowerCase()}`;
-                                    push({ label: raw, raw });
-                                  }
-                                  // Expand ranges
-                                  const rangeRe = /(\d+(?:\.\d+)?)\s*[-–to]+\s*(\d+(?:\.\d+)?)\s*(mg|mcg|µg|ug|iu|units?|u|ml)/gi;
-                                  let rm: RegExpExecArray | null;
-                                  while ((rm = rangeRe.exec(source)) !== null) {
-                                    const u = rm[3].toLowerCase();
-                                    push({ label: `${rm[1]} ${u}`, raw: `${rm[1]} ${u}` });
-                                    push({ label: `${rm[2]} ${u}`, raw: `${rm[2]} ${u}` });
-                                  }
-                                }
-                                if (cards.length < 2) return null;
+                                // Spreadsheet-driven protocol options (NEW_PEPTIDE_PROTOCOL.xlsx → Protocols sheet).
+                                // Each card represents one full protocol row: strength + dose + schedule + cycle.
+                                // Selecting a card auto-fills the Vial Calculator below.
+                                const opts = getProtocolOptions(p.name);
+                                if (opts.length === 0) return null;
                                 return (
-                                  <div className="mt-1.5 mb-2 grid grid-cols-2 sm:grid-cols-3 gap-1.5">
-                                    {cards.map((c) => {
-                                      const isActive = p.dosage.trim().toLowerCase().includes(c.label.toLowerCase());
-                                      return (
-                                        <button
-                                          key={c.raw}
-                                          type="button"
-                                          onClick={() => updatePeptideField(p.name, "dosage", c.raw)}
-                                          className={`flex flex-col items-center justify-center rounded-md border px-2 py-1.5 text-center transition-all ${
-                                            isActive
-                                              ? "bg-primary text-primary-foreground border-primary shadow-sm"
-                                              : "bg-card text-foreground border-border hover:bg-muted/50 hover:border-primary/40"
-                                          }`}
-                                        >
-                                          <span className="text-xs font-semibold leading-tight">{c.label}</span>
-                                          {c.sub && (
-                                            <span className={`text-[10px] leading-tight ${isActive ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
-                                              {c.sub}
-                                            </span>
-                                          )}
-                                        </button>
-                                      );
-                                    })}
+                                  <div className="mt-1.5 mb-2 space-y-1.5">
+                                    <div className="text-[9px] font-semibold uppercase tracking-wider text-primary/70">
+                                      Protocol options ({opts.length})
+                                    </div>
+                                    <div className="grid grid-cols-1 gap-1.5">
+                                      {opts.map((opt, idx) => {
+                                        const tag = `${opt.doseAmount} ${opt.doseVolume}`.toLowerCase();
+                                        const isActive = p.dosage.toLowerCase().includes(opt.doseAmount.toLowerCase()) &&
+                                          p.dosage.toLowerCase().includes(opt.doseVolume.split("(")[0].trim().toLowerCase());
+                                        return (
+                                          <button
+                                            key={idx}
+                                            type="button"
+                                            onClick={() => applyProtocolOption(p.name, opt)}
+                                            className={`text-left rounded-md border px-2.5 py-2 transition-all ${
+                                              isActive
+                                                ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                                                : "bg-card text-foreground border-border hover:bg-muted/50 hover:border-primary/40"
+                                            }`}
+                                          >
+                                            <div className="flex items-center justify-between gap-2">
+                                              <span className="text-xs font-semibold leading-tight">
+                                                {opt.doseAmount} • {opt.doseVolume}
+                                              </span>
+                                              {opt.protocolType && (
+                                                <span className={`text-[9px] px-1.5 py-0.5 rounded font-medium shrink-0 ${
+                                                  isActive ? "bg-primary-foreground/20 text-primary-foreground" : "bg-muted text-muted-foreground"
+                                                }`}>
+                                                  {opt.protocolType}
+                                                </span>
+                                              )}
+                                            </div>
+                                            <div className={`text-[10px] mt-0.5 leading-snug ${isActive ? "text-primary-foreground/85" : "text-muted-foreground"}`}>
+                                              {opt.time} · {opt.duration} · {opt.cycle}
+                                            </div>
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                    <div className="text-[9px] text-muted-foreground italic">
+                                      Source: NEW_PEPTIDE_PROTOCOL.xlsx
+                                    </div>
                                   </div>
                                 );
                               })()}
