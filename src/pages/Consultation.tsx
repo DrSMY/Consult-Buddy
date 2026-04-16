@@ -1238,32 +1238,21 @@ SCOPE Certified Physician`;
                               <div>
                                 <div className="flex items-center justify-between mb-1">
                                   <Label className="text-[10px] text-muted-foreground">Dose per Injection ({formatDoseLabel(doseUnit)})</Label>
-                                  <div className="flex items-center gap-1.5">
-                                    <div className="flex rounded-md border border-border overflow-hidden">
-                                      <button
-                                        className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${
-                                          doseUnit === "ml" ? "bg-primary text-primary-foreground" : "bg-card hover:bg-muted/50 text-muted-foreground"
-                                        }`}
-                                        onClick={() => setDoseUnit("ml")}
-                                      >
-                                        ml
-                                      </button>
-                                      <button
-                                        className={`px-2 py-0.5 text-[10px] font-medium transition-colors ${
-                                          doseUnit === "units" ? "bg-primary text-primary-foreground" : "bg-card hover:bg-muted/50 text-muted-foreground"
-                                        }`}
-                                        onClick={() => setDoseUnit("units")}
-                                      >
-                                        Units
-                                      </button>
-                                    </div>
-                                  </div>
+                                  <select
+                                    value={doseUnit}
+                                    onChange={(e) => setDoseUnit(e.target.value as DoseUnit)}
+                                    className="h-6 rounded-md border border-border bg-card px-1.5 text-[10px] font-medium text-foreground"
+                                  >
+                                    {DOSE_UNIT_OPTIONS.map((o) => (
+                                      <option key={o.value} value={o.value}>{o.label}</option>
+                                    ))}
+                                  </select>
                                 </div>
                                 <Input
                                   type="number"
-                                  step={doseUnit === "units" ? "1" : "0.01"}
+                                  step={doseUnit === "units" || doseUnit === "spray" || doseUnit === "drops" || doseUnit === "capsule" || doseUnit === "tablet" ? "1" : "0.01"}
                                   min="0"
-                                  placeholder={protocolPresets.get(p.name)?.dose_per_injection_ml ? `Protocol: ${doseUnit === "units" ? mlToUnits(protocolPresets.get(p.name)!.dose_per_injection_ml!) + " Units" : protocolPresets.get(p.name)!.dose_per_injection_ml + "ml"}` : doseUnit === "units" ? "e.g. 10" : "e.g. 0.1"}
+                                  placeholder={protocolPresets.get(p.name)?.dose_per_injection_ml ? `Protocol: ${doseUnit === "units" ? mlToUnits(protocolPresets.get(p.name)!.dose_per_injection_ml!) + " Units" : protocolPresets.get(p.name)!.dose_per_injection_ml + (doseUnit === "ml" ? "ml" : ` ${formatDoseLabel(doseUnit)}`)}` : doseUnit === "units" ? "e.g. 10" : doseUnit === "ml" ? "e.g. 0.1" : "e.g. 1"}
                                   value={p.dose_per_injection_ml != null ? (doseUnit === "units" ? mlToUnits(p.dose_per_injection_ml) : p.dose_per_injection_ml) : ""}
                                   onChange={(e) => {
                                     const val = e.target.value ? parseFloat(e.target.value) : undefined;
