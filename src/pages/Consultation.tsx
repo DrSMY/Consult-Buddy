@@ -19,6 +19,7 @@ import AppHeader from "@/components/AppHeader";
 import LivePeptideSuggestions from "@/components/LivePeptideSuggestions";
 import { openWhatsApp } from "@/utils/whatsapp";
 import { printPatientGuide } from "@/utils/printGuide";
+import { getProtocolOptions, extractMl, extractVialMl, inferFrequency, type ProtocolOption } from "@/data/peptideProtocolOptions";
 
 interface PeptideRec {
   name: string;
@@ -329,6 +330,36 @@ export default function Consultation() {
           );
           newP.supply_days = supply ?? undefined;
         }
+        return newP;
+      }),
+    };
+    setRecommendations(updated);
+    supabase.from("consultations").update({ ai_recommendations: updated as any }).eq("id", id);
+  };
+
+  // Apply a full protocol option from the spreadsheet to a peptide:
+  // sets dosage text + auto-fills vial calculator (vial size, dose ml, frequency, route).
+  const applyProtocolOption = (peptideName: string, opt: ProtocolOption) => {
+    if (!recommendations) return;
+    const vialMl = extractVialMl(opt.strength);
+    const doseMl = extractMl(opt.doseVolume);
+    const freq = inferFrequency(opt.time);
+    const dosageText = `${opt.doseAmount} (${opt.doseVolume}) — ${opt.time}`;
+    const updated: Recommendation = {
+      ...recommendations,
+      recommended_peptides: recommendations.recommended_peptides.map((p) => {
+        if (p.name !== peptideName) return p;
+        const newP: PeptideRec = {
+          ...p,
+          dosage: dosageText,
+          administration: opt.route || p.administration,
+          duration: opt.cycle || p.duration,
+        };
+        if (vialMl) newP.vial_size_ml = vialMl;
+        if (doseMl) newP.dose_per_injection_ml = doseMl;
+        if (freq) newP.frequency = freq;
+        const supply = calcSupplyDays(newP.vial_size_ml, newP.dose_per_injection_ml, newP.frequency);
+        newP.supply_days = supply ?? undefined;
         return newP;
       }),
     };
