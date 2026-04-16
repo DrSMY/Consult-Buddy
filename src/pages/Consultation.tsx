@@ -35,6 +35,8 @@ interface PeptideRec {
   dose_per_injection_ml?: number;
   frequency?: string;
   supply_days?: number;
+  protocol_summary?: string;
+  protocol_type?: string;
 }
 
 const FREQUENCY_OPTIONS = [
@@ -354,6 +356,8 @@ export default function Consultation() {
           dosage: dosageText,
           administration: opt.route || p.administration,
           duration: opt.cycle || p.duration,
+          protocol_summary: opt.summary,
+          protocol_type: opt.protocolType,
         };
         if (vialMl) newP.vial_size_ml = vialMl;
         if (doseMl) newP.dose_per_injection_ml = doseMl;
@@ -544,10 +548,11 @@ export default function Consultation() {
     const selectedSupps = recommendations.recommended_supplements.filter((s) => selectedSupplements.has(s.name));
 
     const medsLines = selectedRecs.map((p) => {
-      let line = `• ${p.name} — ${p.dosage}, ${p.administration}, ${p.duration}`;
+      let line = `• ${p.name}${p.protocol_type ? ` [${p.protocol_type}]` : ""} — ${p.dosage}, ${p.administration}, ${p.duration}`;
       if (p.supply_days != null && p.vial_size_ml && p.dose_per_injection_ml) {
         line += `\n  Vial: ${p.vial_size_ml}ml | Dose: ${formatDose(p.dose_per_injection_ml, doseUnit)}/injection | Frequency: ${p.frequency} | Supply: ${p.supply_days} days (${Math.floor(p.vial_size_ml / p.dose_per_injection_ml)} injections)`;
       }
+      if (p.protocol_summary) line += `\n  Protocol: ${p.protocol_summary}`;
       return line;
     }).join("\n");
 
@@ -613,7 +618,7 @@ ${suppLines || "None"}`;
     const nextSteps = `NEXT STEPS — ${consultation?.patient_name || "Patient"}
 
 Prescribed Medications:
-${selectedRecs.map((p) => `• ${p.name} — ${p.dosage}, ${p.duration}`).join("\n") || "None"}
+${selectedRecs.map((p) => `• ${p.name}${p.protocol_type ? ` [${p.protocol_type}]` : ""} — ${p.dosage}, ${p.duration}`).join("\n") || "None"}
 
 --- REQUIRED BLOOD WORK (${labLabel}) ---
 ${labLines || "None required"}${labNotes ? `\nNotes: ${labNotes}` : ""}
@@ -648,6 +653,7 @@ Welcome to your personalised treatment plan. Below you will find detailed instru
       if (p.dose_per_injection_ml) doseBlock += `\n- Volume per injection: ${formatDose(p.dose_per_injection_ml, doseUnit)} (${formatDose(p.dose_per_injection_ml, doseUnit === "ml" ? "units" : "ml")})`;
       if (totalInjections) doseBlock += `\n- Total injections per vial: ${totalInjections}`;
       if (p.supply_days != null) doseBlock += `\n- Supply: Your vial will last approximately ${p.supply_days} days`;
+      if (p.protocol_type) doseBlock += `\n- Protocol: ${p.protocol_type}`;
 
       if (guideContent) {
         // Strip ALL generic dose/routine/schedule content from DB — patient only sees prescribed values
