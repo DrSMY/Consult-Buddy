@@ -1201,47 +1201,66 @@ SCOPE Certified Physician`;
                             <div className="rounded-lg bg-muted/50 p-3">
                               <span className="text-[10px] font-bold uppercase tracking-wider text-muted-foreground">Dosage</span>
                               {(() => {
-                                // Parse text dose options like "5mg or 10mg", "250 mcg / 500 mcg",
-                                // "0.25, 0.5 or 1 mg", "10-20 units" from the AI/protocol dosage string.
+                                // Build dose option cards. Each card pairs a strength (mg/mcg/iu/units)
+                                // with the matching volume (ml) when the protocol writes them adjacently
+                                // e.g. "5mg (0.5ml) or 10mg (1ml)" → two cards.
                                 const source = `${p.dosage} ${protocolPresets.get(p.name)?.raw_dosage || ""}`;
-                                const unitRe = /(\d+(?:\.\d+)?)\s*(mg|mcg|µg|ug|iu|units?|u|ml|sprays?|drops?|caps?(?:ules?)?|tabs?(?:lets?)?)/gi;
-                                const found: { value: number; unit: string; raw: string }[] = [];
-                                let mm: RegExpExecArray | null;
-                                while ((mm = unitRe.exec(source)) !== null) {
-                                  found.push({ value: parseFloat(mm[1]), unit: mm[2].toLowerCase(), raw: `${mm[1]} ${mm[2]}` });
-                                }
-                                // Also expand explicit ranges "X-Y unit" into both endpoints
-                                const rangeRe = /(\d+(?:\.\d+)?)\s*[-–to]+\s*(\d+(?:\.\d+)?)\s*(mg|mcg|µg|ug|iu|units?|u|ml)/gi;
-                                let rm: RegExpExecArray | null;
-                                while ((rm = rangeRe.exec(source)) !== null) {
-                                  found.push({ value: parseFloat(rm[1]), unit: rm[3].toLowerCase(), raw: `${rm[1]} ${rm[3]}` });
-                                  found.push({ value: parseFloat(rm[2]), unit: rm[3].toLowerCase(), raw: `${rm[2]} ${rm[3]}` });
-                                }
-                                // Dedupe by raw label
+                                type DoseCard = { label: string; sub?: string; raw: string };
+                                const cards: DoseCard[] = [];
                                 const seen = new Set<string>();
-                                const opts = found.filter((o) => {
-                                  const k = o.raw.toLowerCase();
-                                  if (seen.has(k)) return false;
+                                const push = (c: DoseCard) => {
+                                  const k = c.raw.toLowerCase();
+                                  if (seen.has(k)) return;
                                   seen.add(k);
-                                  return true;
-                                });
-                                if (opts.length < 2) return null;
+                                  cards.push(c);
+                                };
+                                // Pattern A: "5mg (0.5ml)" or "5 mg / 0.5 ml" — strength + ml together
+                                const pairRe = /(\d+(?:\.\d+)?)\s*(mg|mcg|µg|ug|iu|units?|u)\s*[\(\/\-]?\s*(\d+(?:\.\d+)?)\s*ml/gi;
+                                let pm: RegExpExecArray | null;
+                                while ((pm = pairRe.exec(source)) !== null) {
+                                  const strength = `${pm[1]} ${pm[2].toLowerCase()}`;
+                                  const vol = `${pm[3]} ml`;
+                                  push({ label: strength, sub: vol, raw: `${strength} (${vol})` });
+                                }
+                                // Pattern B: standalone strengths/volumes when no pair matched any
+                                if (cards.length < 2) {
+                                  const unitRe = /(\d+(?:\.\d+)?)\s*(mg|mcg|µg|ug|iu|units?|u|ml|sprays?|drops?|caps?(?:ules?)?|tabs?(?:lets?)?)/gi;
+                                  let mm: RegExpExecArray | null;
+                                  while ((mm = unitRe.exec(source)) !== null) {
+                                    const raw = `${mm[1]} ${mm[2].toLowerCase()}`;
+                                    push({ label: raw, raw });
+                                  }
+                                  // Expand ranges
+                                  const rangeRe = /(\d+(?:\.\d+)?)\s*[-–to]+\s*(\d+(?:\.\d+)?)\s*(mg|mcg|µg|ug|iu|units?|u|ml)/gi;
+                                  let rm: RegExpExecArray | null;
+                                  while ((rm = rangeRe.exec(source)) !== null) {
+                                    const u = rm[3].toLowerCase();
+                                    push({ label: `${rm[1]} ${u}`, raw: `${rm[1]} ${u}` });
+                                    push({ label: `${rm[2]} ${u}`, raw: `${rm[2]} ${u}` });
+                                  }
+                                }
+                                if (cards.length < 2) return null;
                                 return (
-                                  <div className="mt-1 mb-1.5 flex flex-wrap gap-1">
-                                    {opts.map((o) => {
-                                      const isActive = p.dosage.trim().toLowerCase() === o.raw.toLowerCase();
+                                  <div className="mt-1.5 mb-2 grid grid-cols-2 sm:grid-cols-3 gap-1.5">
+                                    {cards.map((c) => {
+                                      const isActive = p.dosage.trim().toLowerCase().includes(c.label.toLowerCase());
                                       return (
                                         <button
-                                          key={o.raw}
+                                          key={c.raw}
                                           type="button"
-                                          onClick={() => updatePeptideField(p.name, "dosage", o.raw)}
-                                          className={`px-2 py-0.5 rounded-md border text-[10px] font-medium transition-colors ${
+                                          onClick={() => updatePeptideField(p.name, "dosage", c.raw)}
+                                          className={`flex flex-col items-center justify-center rounded-md border px-2 py-1.5 text-center transition-all ${
                                             isActive
-                                              ? "bg-primary text-primary-foreground border-primary"
-                                              : "bg-card text-foreground border-border hover:bg-muted/50"
+                                              ? "bg-primary text-primary-foreground border-primary shadow-sm"
+                                              : "bg-card text-foreground border-border hover:bg-muted/50 hover:border-primary/40"
                                           }`}
                                         >
-                                          {o.raw}
+                                          <span className="text-xs font-semibold leading-tight">{c.label}</span>
+                                          {c.sub && (
+                                            <span className={`text-[10px] leading-tight ${isActive ? "text-primary-foreground/80" : "text-muted-foreground"}`}>
+                                              {c.sub}
+                                            </span>
+                                          )}
                                         </button>
                                       );
                                     })}
