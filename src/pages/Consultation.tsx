@@ -39,6 +39,8 @@ interface PeptideRec {
 const FREQUENCY_OPTIONS = [
   { label: "Daily", value: "daily", factor: 1 },
   { label: "Every other day", value: "every other day", factor: 0.5 },
+  { label: "5 days per week", value: "5 days per week", factor: 5 / 7 },
+  { label: "3 times per week", value: "3 times per week", factor: 3 / 7 },
   { label: "3x per week", value: "3x per week", factor: 3 / 7 },
   { label: "2x per week", value: "2x per week", factor: 2 / 7 },
   { label: "Weekly", value: "weekly", factor: 1 / 7 },
@@ -68,14 +70,30 @@ interface Recommendation {
 
 type LabTier = "basic" | "advanced";
 type WizardStep = "select" | "configure" | "labs" | "supplements";
-type DoseUnit = "ml" | "units";
+type DoseUnit = "ml" | "units" | "spray" | "drops" | "capsule" | "tablet" | "mg" | "mcg";
+
+const DOSE_UNIT_OPTIONS: { value: DoseUnit; label: string }[] = [
+  { value: "ml", label: "ml" },
+  { value: "units", label: "Units" },
+  { value: "spray", label: "Spray" },
+  { value: "drops", label: "Drops" },
+  { value: "capsule", label: "Capsule" },
+  { value: "tablet", label: "Tablet" },
+  { value: "mg", label: "mg" },
+  { value: "mcg", label: "mcg" },
+];
 
 // 0.1 ml = 10 units (1 ml = 100 units on a standard insulin syringe)
 const mlToUnits = (ml: number): number => Math.round(ml * 100 * 100) / 100;
 const unitsToMl = (units: number): number => Math.round((units / 100) * 1000) / 1000;
-const formatDose = (ml: number, unit: DoseUnit): string =>
-  unit === "units" ? `${mlToUnits(ml)} Units` : `${ml} ml`;
-const formatDoseLabel = (unit: DoseUnit): string => unit === "units" ? "Units" : "ml";
+const formatDose = (ml: number, unit: DoseUnit): string => {
+  if (unit === "units") return `${mlToUnits(ml)} Units`;
+  if (unit === "ml") return `${ml} ml`;
+  const opt = DOSE_UNIT_OPTIONS.find((o) => o.value === unit);
+  return `${ml} ${opt?.label ?? unit}`;
+};
+const formatDoseLabel = (unit: DoseUnit): string =>
+  DOSE_UNIT_OPTIONS.find((o) => o.value === unit)?.label ?? unit;
 
 // Parse protocol data into supply calculator presets
 interface ProtocolPreset {
