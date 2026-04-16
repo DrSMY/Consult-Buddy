@@ -618,7 +618,7 @@ ${suppLines || "None"}`;
     const nextSteps = `NEXT STEPS — ${consultation?.patient_name || "Patient"}
 
 Prescribed Medications:
-${selectedRecs.map((p) => `• ${p.name} — ${p.dosage}, ${p.duration}`).join("\n") || "None"}
+${selectedRecs.map((p) => `• ${p.name}${p.protocol_type ? ` [${p.protocol_type}]` : ""} — ${p.dosage}, ${p.duration}`).join("\n") || "None"}
 
 --- REQUIRED BLOOD WORK (${labLabel}) ---
 ${labLines || "None required"}${labNotes ? `\nNotes: ${labNotes}` : ""}
