@@ -117,6 +117,26 @@ const parseDoseVolume = (dosage: string): number | null => {
   return m ? parseFloat(m[1]) : null;
 };
 
+// Extract all distinct dose options from a protocol dosage instruction string.
+// Handles ranges ("0.2-0.4 ml" -> [0.2, 0.4]), comma/slash separated lists,
+// and "or" separated values. Returns sorted unique ml values.
+const parseDoseOptions = (dosage: string): number[] => {
+  if (!dosage) return [];
+  const set = new Set<number>();
+  // Find all "X ml", "X-Y ml", "X to Y ml", "X / Y ml" segments
+  const segmentRegex = /(\d+(?:\.\d+)?)\s*(?:[-–to/]+\s*(\d+(?:\.\d+)?)\s*)?ml/gi;
+  let m: RegExpExecArray | null;
+  while ((m = segmentRegex.exec(dosage)) !== null) {
+    const a = parseFloat(m[1]);
+    if (!isNaN(a)) set.add(a);
+    if (m[2]) {
+      const b = parseFloat(m[2]);
+      if (!isNaN(b)) set.add(b);
+    }
+  }
+  return Array.from(set).sort((x, y) => x - y);
+};
+
 const parseFrequency = (dosage: string): string | null => {
   const d = dosage.toLowerCase();
   if (d.includes("daily") || d.includes("every day") || d.includes("once daily")) return "daily";
@@ -1248,6 +1268,32 @@ SCOPE Certified Physician`;
                                     ))}
                                   </select>
                                 </div>
+                                {(() => {
+                                  const opts = parseDoseOptions(protocolPresets.get(p.name)?.raw_dosage || "");
+                                  if (opts.length < 2) return null;
+                                  return (
+                                    <div className="mt-1 mb-1.5 flex flex-wrap gap-1">
+                                      {opts.map((mlVal) => {
+                                        const isActive = p.dose_per_injection_ml === mlVal;
+                                        const display = doseUnit === "units" ? `${mlToUnits(mlVal)} U` : doseUnit === "ml" ? `${mlVal} ml` : `${mlVal} ${formatDoseLabel(doseUnit)}`;
+                                        return (
+                                          <button
+                                            key={mlVal}
+                                            type="button"
+                                            onClick={() => updatePeptideField(p.name, "dose_per_injection_ml", mlVal)}
+                                            className={`px-2 py-0.5 rounded-md border text-[10px] font-medium transition-colors ${
+                                              isActive
+                                                ? "bg-primary text-primary-foreground border-primary"
+                                                : "bg-card text-foreground border-border hover:bg-muted/50"
+                                            }`}
+                                          >
+                                            {display}
+                                          </button>
+                                        );
+                                      })}
+                                    </div>
+                                  );
+                                })()}
                                 <Input
                                   type="number"
                                   step={doseUnit === "units" || doseUnit === "spray" || doseUnit === "drops" || doseUnit === "capsule" || doseUnit === "tablet" ? "1" : "0.01"}
