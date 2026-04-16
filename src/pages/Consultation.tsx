@@ -104,7 +104,34 @@ interface ProtocolPreset {
   frequency: string | null;
   raw_strength: string;
   raw_dosage: string;
+  recommended_supplements: string;
+  key_blood_tests: string;
 }
+
+// Parse supplement strings like "Magnesium 400mg, Vitamin D 5000 IU; Zinc 30mg"
+// into structured supplement objects. Returns [] for empty/null.
+const parseSupplementsString = (raw: string, peptideName: string): { name: string; dosage: string; reason: string }[] => {
+  if (!raw || !raw.trim()) return [];
+  // Split by common delimiters (comma, semicolon, newline, bullet)
+  const parts = raw.split(/[,;\n•]+/).map((s) => s.trim()).filter(Boolean);
+  return parts.map((part) => {
+    // Try to split "Name - dose" or "Name dose" patterns
+    const dashSplit = part.split(/\s+[—–-]\s+/);
+    if (dashSplit.length >= 2) {
+      return { name: dashSplit[0].trim(), dosage: dashSplit.slice(1).join(" - ").trim(), reason: `Recommended for ${peptideName}` };
+    }
+    // Match trailing dose pattern like "Magnesium 400mg" → name="Magnesium", dose="400mg"
+    const m = part.match(/^(.+?)\s+(\d.+)$/);
+    if (m) return { name: m[1].trim(), dosage: m[2].trim(), reason: `Recommended for ${peptideName}` };
+    return { name: part, dosage: "As directed", reason: `Recommended for ${peptideName}` };
+  });
+};
+
+// Parse blood test strings into a clean array
+const parseTestsString = (raw: string): string[] => {
+  if (!raw || !raw.trim()) return [];
+  return raw.split(/[,;\n•]+/).map((s) => s.trim()).filter(Boolean);
+};
 
 const parseVialSize = (strength: string): number | null => {
   // Match patterns like "5 ml vial", "5ml Vial", "2 ml vial", "15ml bottle"
