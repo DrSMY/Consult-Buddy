@@ -425,6 +425,20 @@ export const PEPTIDE_ALIASES: Record<string, string> = {
   "Semax (Nasal)": "Semax Nasal",
   "Selank (Nasal)": "Selank Nasal",
   "GHK-Cu Injection": "GHK-Cu",
+  "GHK-Cu (Injection)": "GHK-Cu",
+  "GHK-Cu (Topical/Scalp)": "GHK-Cu Scalp Foam",
+  "BPC-157 (Injection)": "BPC-157",
+  "CJC/Ipamorelin (Combo)": "CJC/Ipamorelin Blend",
+  "CJC/Ipamorelin Combo": "CJC/Ipamorelin Blend",
+  "PT-141 (Injection)": "PT-141",
+  "PT-141 (Nasal Spray)": "PT-141 Nasal",
+  "Semax (Injection)": "Semax",
+  "Selank (Injection)": "Selank",
+  "KPV (Injection)": "KPV",
+  "KPV (Capsules)": "KPV",
+  "KPV + BPC-157 (Capsules)": "KPV + BPC-157",
+  "Dihexa (2.5mg)": "Dihexa Capsules",
+  "Dihexa (20mg)": "Dihexa Capsules",
 };
 
 export function getProtocolOptions(name: string): ProtocolOption[] {
