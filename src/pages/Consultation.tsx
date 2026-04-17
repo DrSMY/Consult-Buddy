@@ -703,23 +703,22 @@ Welcome to your personalised treatment plan. Below you will find detailed instru
       return blocks.join("\n\n");
     }).join("\n\n");
 
-    const patientGuide = `--- PATIENT CARE GUIDE ---
-${patientGuideHeader}
+    const patientGuide = `${patientGuideHeader}
 
 ${patientMedSections}
 
---- RECOMMENDED SUPPLEMENTS ---
+:::: RECOMMENDED SUPPLEMENTS ::::
 ${suppLines || "None"}
 
---- REQUIRED LAB TESTS (${labLabel}) ---
+:::: REQUIRED LAB TESTS (${labLabel}) ::::
 ${labLines || "As directed by your doctor"}
 
---- IMPORTANT REMINDERS ---
-• Take your medications exactly as prescribed
-• Store all medications as instructed — most peptides require refrigeration (2-8°C)
-• Complete all recommended lab tests before your next visit
-• Report any unusual side effects immediately
-• Schedule your follow-up appointment as discussed
+:::: IMPORTANT REMINDERS ::::
+- Take your medications exactly as prescribed
+- Store all medications as instructed — most peptides require refrigeration (2–8°C)
+- Complete all recommended lab tests before your next visit
+- Report any unusual side effects immediately
+- Schedule your follow-up appointment as discussed
 
 Warm regards,
 Dr Sami M. Yesuf
