@@ -640,73 +640,85 @@ Welcome to your personalised treatment plan. Below you will find detailed instru
       const freqLabel = FREQUENCY_OPTIONS.find((f) => f.value === p.frequency)?.label || p.frequency || "";
       const totalInjections = (p.vial_size_ml && p.dose_per_injection_ml) ? Math.floor(p.vial_size_ml / p.dose_per_injection_ml) : null;
 
-      // Build the personalised dose block that replaces generic DB dose info
-      let doseBlock = `- Dose: ${p.dosage} (${p.administration})`;
-      if (freqLabel) doseBlock += `\n- Frequency: ${freqLabel}`;
-      doseBlock += `\n- Duration: ${p.duration}`;
-      if (p.vial_size_ml) doseBlock += `\n- Vial Size: ${p.vial_size_ml} ml`;
-      if (p.dose_per_injection_ml) doseBlock += `\n- Volume per injection: ${formatDose(p.dose_per_injection_ml, doseUnit)} (${formatDose(p.dose_per_injection_ml, doseUnit === "ml" ? "units" : "ml")})`;
-      if (totalInjections) doseBlock += `\n- Total injections per vial: ${totalInjections}`;
-      if (p.supply_days != null) doseBlock += `\n- Supply: Your vial will last approximately ${p.supply_days} days`;
+      // Personalised dose lines (replaces generic DB dose info)
+      const doseLines: string[] = [];
+      doseLines.push(`- Your Dose: ${p.dosage}`);
+      if (p.administration) doseLines.push(`- Route: ${p.administration}`);
+      if (freqLabel) doseLines.push(`- Frequency: ${freqLabel}`);
+      if (p.duration) doseLines.push(`- Duration: ${p.duration}`);
+      if (p.vial_size_ml) doseLines.push(`- Vial Size: ${p.vial_size_ml} ml`);
+      if (p.dose_per_injection_ml) doseLines.push(`- Volume per Injection: ${formatDose(p.dose_per_injection_ml, doseUnit)} (${formatDose(p.dose_per_injection_ml, doseUnit === "ml" ? "units" : "ml")})`);
+      if (totalInjections) doseLines.push(`- Total Injections per Vial: ${totalInjections}`);
+      if (p.supply_days != null) doseLines.push(`- Supply: Your vial will last approximately ${p.supply_days} days`);
+      const doseBlock = doseLines.join("\n");
 
+      // Parse the DB guide into: intro paragraph + named ### sections
+      let introText = "";
+      const sectionMap = new Map<string, string>(); // header (upper) -> body
       if (guideContent) {
-        // Strip ALL generic dose/routine/schedule content from DB — patient only sees prescribed values
-        let cleaned = guideContent
-          .replace(/^- Dose:.*$/gm, "")
-          .replace(/^- Supply:.*$/gm, "")
-          .replace(/^- Frequency:.*$/gm, "")
-          .replace(/^- Timing:.*$/gm, "")
-          .replace(/^- Schedule:.*$/gm, "")
-          .replace(/^- Wait .*$/gm, "")
-          .replace(/^- Note:.*$/gm, "")
-          .replace(/^- CRITICAL:.*$/gm, "")
-          .replace(/^- Option [A-Z]:.*$/gm, "")
-          .replace(/^- Cardio Boost:.*$/gm, "")
-          .replace(/^- Rotate injection.*$/gim, "")
-          .replace(/^###\s*(Your Daily Routine|Daily Routine|Your Prescribed Routine)\s*$/gm, "")
-          .replace(/\n{3,}/g, "\n\n")
-          .trim();
-
-        // Split into sections by ### headers
-        const sections = cleaned.split(/(?=###)/);
-        // Keep only non-dose sections (Medication Handling, Support, What to Expect, etc.)
-        const keptSections = sections.filter((s) => {
-          const header = s.trim().split("\n")[0].toLowerCase();
-          return !header.includes("routine") && !header.includes("dose") && !header.includes("schedule");
-        });
-
-        // First non-### block is the intro (analogy text)
-        const intro = sections[0]?.includes("###") ? "" : sections[0]?.trim() || "";
-        const guideRest = keptSections.filter((s) => s.trim().startsWith("###")).join("\n\n").trim();
-
-        let personalised = "";
-        if (intro) personalised += `${intro}\n\n`;
-        personalised += `### Your Prescribed Medication\n${doseBlock}`;
-        if (guideRest) personalised += `\n\n${guideRest}`;
-
-        return `--- ${p.name.toUpperCase()} ---\n${personalised}`;
-      } else {
-        return `--- ${p.name.toUpperCase()} ---\n### Your Prescribed Medication\n${doseBlock}`;
+        const parts = guideContent.split(/(?=^###\s)/m);
+        if (parts.length > 0 && !parts[0].trim().startsWith("###")) {
+          introText = parts[0].trim();
+        }
+        for (const part of parts) {
+          const t = part.trim();
+          if (!t.startsWith("###")) continue;
+          const firstNl = t.indexOf("\n");
+          const header = (firstNl === -1 ? t.slice(3) : t.slice(3, firstNl)).trim();
+          const body = (firstNl === -1 ? "" : t.slice(firstNl + 1)).trim();
+          if (header) sectionMap.set(header.toUpperCase(), body);
+        }
       }
+
+      // Resolve the dynamic "Support Your X" header from the DB (fallback: generic)
+      let supportHeader = "SUPPORT YOUR TREATMENT";
+      let supportBody = "";
+      for (const [hdr, body] of sectionMap.entries()) {
+        if (hdr.startsWith("SUPPORT YOUR")) {
+          supportHeader = hdr;
+          supportBody = body;
+          break;
+        }
+      }
+
+      const handlingBody = sectionMap.get("HOW TO HANDLE YOUR MEDICATION") || "";
+      const expectBody = sectionMap.get("WHAT TO EXPECT") || "";
+
+      // Merge DB "Your Dose Routine" extras (timing/optimization) into the personalised dose block
+      const dbRoutine = sectionMap.get("YOUR DOSE ROUTINE") || "";
+      const routineExtras = dbRoutine
+        .split("\n")
+        .filter((l) => /^-\s/.test(l) && !/^-\s*(Your Dose|Dose|Frequency|Route|Duration|Vial)/i.test(l))
+        .join("\n");
+      const fullDoseBlock = routineExtras ? `${doseBlock}\n${routineExtras}` : doseBlock;
+
+      // Build :::: TITLE :::: section blocks
+      const blocks: string[] = [];
+      blocks.push(`:::: ${p.name.toUpperCase()} — INTRODUCTION ::::\n${introText || `Welcome to your ${p.name} protocol.`}`);
+      blocks.push(`:::: YOUR DOSE ROUTINE ::::\n${fullDoseBlock}`);
+      if (handlingBody) blocks.push(`:::: HOW TO HANDLE YOUR MEDICATION ::::\n${handlingBody}`);
+      if (supportBody) blocks.push(`:::: ${supportHeader} ::::\n${supportBody}`);
+      if (expectBody) blocks.push(`:::: WHAT TO EXPECT ::::\n${expectBody}`);
+
+      return blocks.join("\n\n");
     }).join("\n\n");
 
-    const patientGuide = `--- PATIENT CARE GUIDE ---
-${patientGuideHeader}
+    const patientGuide = `${patientGuideHeader}
 
 ${patientMedSections}
 
---- RECOMMENDED SUPPLEMENTS ---
+:::: RECOMMENDED SUPPLEMENTS ::::
 ${suppLines || "None"}
 
---- REQUIRED LAB TESTS (${labLabel}) ---
+:::: REQUIRED LAB TESTS (${labLabel}) ::::
 ${labLines || "As directed by your doctor"}
 
---- IMPORTANT REMINDERS ---
-• Take your medications exactly as prescribed
-• Store all medications as instructed — most peptides require refrigeration (2-8°C)
-• Complete all recommended lab tests before your next visit
-• Report any unusual side effects immediately
-• Schedule your follow-up appointment as discussed
+:::: IMPORTANT REMINDERS ::::
+- Take your medications exactly as prescribed
+- Store all medications as instructed — most peptides require refrigeration (2–8°C)
+- Complete all recommended lab tests before your next visit
+- Report any unusual side effects immediately
+- Schedule your follow-up appointment as discussed
 
 Warm regards,
 Dr Sami M. Yesuf
