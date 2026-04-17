@@ -425,6 +425,10 @@ export const PEPTIDE_ALIASES: Record<string, string> = {
   "Semax (Nasal)": "Semax Nasal",
   "Selank (Nasal)": "Selank Nasal",
   "GHK-Cu Injection": "GHK-Cu",
+  "GHK-Cu (Injection)": "GHK-Cu",
+  "BPC-157 (Injection)": "BPC-157",
+  "CJC/Ipamorelin (Combo)": "CJC/Ipamorelin Blend",
+  "CJC/Ipamorelin Combo": "CJC/Ipamorelin Blend",
 };
 
 export function getProtocolOptions(name: string): ProtocolOption[] {
