@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { AlertTriangle, CheckCircle, FileText, ClipboardList, User, Copy, Loader2, FlaskConical, Info, ShieldCheck, Microscope, StickyNote, MessageCircle, Ruler, Weight, Scale, Activity, Printer, Plus, Pencil, ArrowRight, ArrowLeft, Stethoscope, Trash2, Pill } from "lucide-react";
+import { AlertTriangle, CheckCircle, FileText, ClipboardList, User, Copy, Loader2, FlaskConical, Info, ShieldCheck, Microscope, StickyNote, MessageCircle, Ruler, Weight, Scale, Activity, Printer, Plus, Pencil, ArrowRight, ArrowLeft, Stethoscope, Trash2, Pill, History as HistoryIcon } from "lucide-react";
 import PatientGuideDisplay from "@/components/PatientGuideDisplay";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
@@ -841,6 +841,74 @@ SCOPE Certified Physician`;
       <main className="container mx-auto max-w-6xl px-4 py-6">
         <div className="flex flex-col lg:flex-row gap-6">
         <div className="flex-1 min-w-0">
+        {/* Follow-up Visit Context */}
+        {consultation?.intake_answers?.flowType === "followup" && (() => {
+          const prev = consultation.intake_answers.previousProtocol || {};
+          const fu = consultation.intake_answers.followupData || {};
+          const peptides = Array.isArray(prev.peptides) ? prev.peptides : [];
+          const prevGoals = Array.isArray(prev.previousHealthGoals) ? prev.previousHealthGoals : [];
+          return (
+            <Card className="mb-6 border-violet-200 dark:border-violet-800/40 bg-violet-50/40 dark:bg-violet-900/10">
+              <CardHeader className="pb-3">
+                <CardTitle className="text-base flex items-center gap-2">
+                  <HistoryIcon className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                  Follow-up Visit
+                  {prev.previousDate && (
+                    <Badge variant="outline" className="ml-auto text-[10px]">
+                      Last visit · {new Date(prev.previousDate).toLocaleDateString()}
+                    </Badge>
+                  )}
+                </CardTitle>
+                <CardDescription>Context carried over from the patient's previous consultation.</CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-3">
+                {peptides.length > 0 && (
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-bold mb-1.5">Previous Protocol</p>
+                    <div className="space-y-1.5">
+                      {peptides.map((p: any, i: number) => (
+                        <div key={i} className="flex items-center gap-2 text-xs bg-background/70 rounded-md border px-2.5 py-1.5">
+                          <Pill className="h-3 w-3 text-violet-600 dark:text-violet-400 shrink-0" />
+                          <span className="font-semibold">{p.name}</span>
+                          {p.dosage && <span className="text-muted-foreground">· {p.dosage}</span>}
+                          {p.frequency && <span className="text-muted-foreground">· {p.frequency}</span>}
+                          {p.duration && <span className="text-muted-foreground">· {p.duration}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {prevGoals.length > 0 && (
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-bold mb-1.5">Previous Health Goals</p>
+                    <div className="flex flex-wrap gap-1.5">
+                      {prevGoals.map((g: string, i: number) => (
+                        <Badge key={i} variant="secondary" className="text-[10px]">{g}</Badge>
+                      ))}
+                    </div>
+                  </div>
+                )}
+                {fu.sideEffects && (
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-bold mb-1 flex items-center gap-1">
+                      <AlertTriangle className="h-3 w-3" /> Side Effects Reported
+                    </p>
+                    <p className="text-sm whitespace-pre-wrap bg-background/70 rounded-md border p-2.5">{fu.sideEffects}</p>
+                  </div>
+                )}
+                {fu.notes && (
+                  <div>
+                    <p className="text-[11px] uppercase tracking-wide text-muted-foreground font-bold mb-1 flex items-center gap-1">
+                      <StickyNote className="h-3 w-3" /> Follow-up Notes
+                    </p>
+                    <p className="text-sm whitespace-pre-wrap bg-background/70 rounded-md border p-2.5">{fu.notes}</p>
+                  </div>
+                )}
+              </CardContent>
+            </Card>
+          );
+        })()}
+
         {analyzing && (
           <Card className="mb-6 border-primary/20 bg-primary/5">
             <CardContent className="flex items-center gap-3 py-6">

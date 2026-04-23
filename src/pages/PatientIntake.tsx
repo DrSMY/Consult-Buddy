@@ -11,7 +11,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { intakeQuestions, getVisibleQuestions, intakeSections } from "@/data/intakeQuestions";
-import { ArrowLeft, ArrowRight, Mic, MicOff, Check, Ruler, Weight as WeightIcon, Wand2, RefreshCw, MessageCircle } from "lucide-react";
+import { ArrowLeft, ArrowRight, Mic, MicOff, Check, Ruler, Weight as WeightIcon, Wand2, RefreshCw, MessageCircle, UserPlus, History, Search, AlertTriangle, Loader2, Pill, StickyNote } from "lucide-react";
 import { openWhatsApp } from "@/utils/whatsapp";
 import type { IntakeQuestion } from "@/data/intakeQuestions";
 import AppHeader from "@/components/AppHeader";
@@ -35,6 +35,14 @@ export default function PatientIntake() {
     }
   }, [roles, loading]);
 
+  const [flowType, setFlowType] = useState<"new" | "followup" | null>(null);
+  const [previousConsultations, setPreviousConsultations] = useState<any[]>([]);
+  const [followupSearch, setFollowupSearch] = useState("");
+  const [loadingFollowups, setLoadingFollowups] = useState(false);
+  const [selectedPrevConsultation, setSelectedPrevConsultation] = useState<any>(null);
+  const [followupNotes, setFollowupNotes] = useState("");
+  const [followupSideEffects, setFollowupSideEffects] = useState("");
+
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
   const [gateAnswers, setGateAnswers] = useState<Record<string, "yes" | "no" | null>>({});
   const [otherText, setOtherText] = useState<Record<string, string>>({});
@@ -50,6 +58,50 @@ export default function PatientIntake() {
   const [smartInput, setSmartInput] = useState("");
   const [isParsing, setIsParsing] = useState(false);
   const recognitionRef = useRef<any>(null);
+
+  // Load previous peptide consultations for follow-up
+  useEffect(() => {
+    if (flowType !== "followup" || !user) return;
+    setLoadingFollowups(true);
+    supabase
+      .from("consultations")
+      .select("*")
+      .eq("program", programId || "peptides")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .then(({ data }) => {
+        setPreviousConsultations(data || []);
+        setLoadingFollowups(false);
+      });
+  }, [flowType, user, programId]);
+
+  const filteredPrevConsultations = previousConsultations.filter(c =>
+    !followupSearch || c.patient_name?.toLowerCase().includes(followupSearch.toLowerCase())
+  );
+
+  const handleSelectPreviousPatient = (consultation: any) => {
+    setSelectedPrevConsultation(consultation);
+    const intake = (consultation.intake_answers as Record<string, any>) || {};
+    setPatientName(consultation.patient_name || "");
+    const prefilled: Record<string, string | string[]> = {};
+    const prefilledOther: Record<string, string> = {};
+    const prefilledNotes: Record<string, string> = {};
+    const prefilledGates: Record<string, "yes" | "no" | null> = {};
+    for (const [k, v] of Object.entries(intake)) {
+      if (["flowType", "followupData", "previousConsultationId", "previousProtocol"].includes(k)) continue;
+      if (k.endsWith("_other")) prefilledOther[k.replace(/_other$/, "")] = String(v ?? "");
+      else if (k.endsWith("_notes")) prefilledNotes[k.replace(/_notes$/, "")] = String(v ?? "");
+      else prefilled[k] = v as any;
+    }
+    for (const k of Object.keys(prefilled)) {
+      if (Array.isArray(prefilled[k]) && (prefilled[k] as string[]).length > 0) prefilledGates[k] = "yes";
+    }
+    setAnswers(prefilled);
+    setOtherText(prefilledOther);
+    setNotes(prefilledNotes);
+    setGateAnswers(prefilledGates);
+    setCurrentStep(0);
+  };
 
   const visibleQuestions = getVisibleQuestions(answers);
   const sections = [...new Set(visibleQuestions.map((q) => q.section))];
@@ -205,6 +257,29 @@ export default function PatientIntake() {
     }
     for (const [id, note] of Object.entries(notes)) {
       if (note.trim()) finalAnswers[`${id}_notes`] = note.trim();
+    }
+
+    // Persist follow-up metadata so the consultation page can render previous context
+    if (flowType === "followup" && selectedPrevConsultation?.id) {
+      const prevIntake = (selectedPrevConsultation.intake_answers as Record<string, any>) || {};
+      const prevRecs = (selectedPrevConsultation.ai_recommendations as Record<string, any>) || {};
+      finalAnswers.flowType = "followup";
+      finalAnswers.previousConsultationId = selectedPrevConsultation.id;
+      finalAnswers.previousProtocol = {
+        peptides: Array.isArray(prevRecs?.recommended_peptides)
+          ? prevRecs.recommended_peptides.map((p: any) => ({
+              name: p.name, dosage: p.dosage, frequency: p.frequency, duration: p.duration,
+            }))
+          : [],
+        previousHealthGoals: prevIntake.health_goals || [],
+        previousDate: selectedPrevConsultation.created_at,
+      };
+      finalAnswers.followupData = {
+        sideEffects: followupSideEffects.trim(),
+        notes: followupNotes.trim(),
+      };
+    } else {
+      finalAnswers.flowType = "new";
     }
 
     const { data, error } = await supabase
@@ -426,9 +501,141 @@ export default function PatientIntake() {
     );
   };
 
+  // ---- ENCOUNTER SELECTOR ----
+  if (flowType === null) {
+    return (
+      <div className="min-h-screen gradient-surface">
+        <AppHeader title="Peptide Therapy" subtitle="Select encounter type" showBack />
+        <main className="container mx-auto max-w-3xl px-4 py-12 animate-fade-in">
+          <div className="text-center mb-10">
+            <h2 className="text-2xl font-bold">Select Encounter Type</h2>
+            <p className="text-muted-foreground mt-2">Choose how to proceed with this patient.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <Card
+              className="cursor-pointer group hover:shadow-lg hover:border-primary/40 hover:-translate-y-0.5 transition-all"
+              onClick={() => setFlowType("new")}
+            >
+              <CardContent className="p-8 flex flex-col items-center text-center gap-4">
+                <div className="h-14 w-14 rounded-xl gradient-primary flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <UserPlus className="h-7 w-7 text-primary-foreground" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold">New Patient</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Full intake: demographics, medical history, and AI peptide analysis.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card
+              className="cursor-pointer group hover:shadow-lg hover:border-primary/40 hover:-translate-y-0.5 transition-all"
+              onClick={() => setFlowType("followup")}
+            >
+              <CardContent className="p-8 flex flex-col items-center text-center gap-4">
+                <div className="h-14 w-14 rounded-xl bg-secondary flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <History className="h-7 w-7 text-secondary-foreground" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold">Patient Follow-up</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Review previous protocol, log side-effects, refresh goals, and re-prescribe.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // ---- FOLLOW-UP PATIENT SEARCH ----
+  if (flowType === "followup" && !selectedPrevConsultation) {
+    return (
+      <div className="min-h-screen gradient-surface">
+        <AppHeader title="Peptide Follow-up" subtitle="Select previous patient" showBack />
+        <main className="container mx-auto max-w-3xl px-4 py-8 animate-fade-in">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold">Follow-up Visit</h2>
+            <p className="text-muted-foreground mt-1">Select a previous peptide patient to continue their journey.</p>
+          </div>
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by patient name..."
+              value={followupSearch}
+              onChange={e => setFollowupSearch(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Button variant="outline" className="w-full mb-4" onClick={() => setFlowType("new")}>
+            <UserPlus className="h-4 w-4 mr-1" /> Switch to New Patient instead
+          </Button>
+          {loadingFollowups ? (
+            <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+          ) : filteredPrevConsultations.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center text-muted-foreground">
+                <AlertTriangle className="h-8 w-8 mx-auto mb-3 opacity-40" />
+                <p className="font-medium">No previous peptide patients found</p>
+                <p className="text-sm mt-1">Start a new patient encounter instead.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-2">
+              {filteredPrevConsultations.map(c => {
+                const recs = (c.ai_recommendations as Record<string, any>) || {};
+                const peptides = Array.isArray(recs.recommended_peptides) ? recs.recommended_peptides : [];
+                const goals = Array.isArray(c.intake_answers?.health_goals) ? c.intake_answers.health_goals : [];
+                return (
+                  <Card
+                    key={c.id}
+                    className="cursor-pointer hover:border-primary/40 hover:shadow-md transition-all"
+                    onClick={() => handleSelectPreviousPatient(c)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold truncate">{c.patient_name}</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {new Date(c.created_at).toLocaleDateString()} • {peptides.length} peptide(s) prescribed
+                          </p>
+                          {peptides.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1.5">
+                              {peptides.slice(0, 3).map((p: any, i: number) => (
+                                <Badge key={i} variant="secondary" className="text-[10px]">
+                                  <Pill className="h-2.5 w-2.5 mr-1" />{p.name}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                          {goals.length > 0 && (
+                            <p className="text-[11px] text-muted-foreground mt-1.5 truncate">
+                              Goals: {goals.join(", ")}
+                            </p>
+                          )}
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen gradient-surface">
-      <AppHeader title="Patient Intake" subtitle="Peptides Program" showBack />
+      <AppHeader
+        title={flowType === "followup" ? "Peptide Follow-up" : "Patient Intake"}
+        subtitle={flowType === "followup" && selectedPrevConsultation?.patient_name ? `Follow-up · ${selectedPrevConsultation.patient_name}` : "Peptides Program"}
+        showBack
+      />
 
       <main className="container mx-auto max-w-5xl px-4 py-6">
       <div className="flex flex-col lg:flex-row gap-6">
@@ -494,6 +701,74 @@ export default function PatientIntake() {
               >
                 <MessageCircle className="h-3.5 w-3.5 mr-1" /> Send
               </Button>
+            </CardContent>
+          </Card>
+        )}
+
+        {/* Follow-up Tracking — visible on step 0 in follow-up mode */}
+        {currentStep === 0 && flowType === "followup" && selectedPrevConsultation && (
+          <Card className="mb-4 border-violet-200 dark:border-violet-800/40 bg-violet-50/40 dark:bg-violet-900/10">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <History className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                Previous Visit
+                <Badge variant="outline" className="ml-auto text-[10px]">
+                  {new Date(selectedPrevConsultation.created_at).toLocaleDateString()}
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {(() => {
+                const recs = (selectedPrevConsultation.ai_recommendations as Record<string, any>) || {};
+                const peptides = Array.isArray(recs.recommended_peptides) ? recs.recommended_peptides : [];
+                if (peptides.length === 0) {
+                  return <p className="text-xs text-muted-foreground italic">No prescribed protocol recorded on previous visit.</p>;
+                }
+                return (
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] uppercase tracking-wide text-muted-foreground font-bold">Previous Protocol</Label>
+                    <div className="space-y-1.5">
+                      {peptides.map((p: any, i: number) => (
+                        <div key={i} className="flex items-center gap-2 text-xs bg-background/70 rounded-md border px-2.5 py-1.5">
+                          <Pill className="h-3 w-3 text-violet-600 dark:text-violet-400 shrink-0" />
+                          <span className="font-semibold">{p.name}</span>
+                          {p.dosage && <span className="text-muted-foreground">· {p.dosage}</span>}
+                          {p.frequency && <span className="text-muted-foreground">· {p.frequency}</span>}
+                          {p.duration && <span className="text-muted-foreground">· {p.duration}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div className="grid grid-cols-1 gap-3 pt-1">
+                <div>
+                  <Label className="text-[11px] uppercase tracking-wide text-muted-foreground font-bold flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" /> Side Effects Reported
+                  </Label>
+                  <Textarea
+                    value={followupSideEffects}
+                    onChange={e => setFollowupSideEffects(e.target.value)}
+                    placeholder="e.g. mild nausea first 3 days, then resolved..."
+                    className="mt-1 min-h-[60px] text-sm"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[11px] uppercase tracking-wide text-muted-foreground font-bold flex items-center gap-1">
+                    <StickyNote className="h-3 w-3" /> Follow-up Notes
+                  </Label>
+                  <Textarea
+                    value={followupNotes}
+                    onChange={e => setFollowupNotes(e.target.value)}
+                    placeholder="Patient response, adherence, lifestyle changes, lab updates..."
+                    className="mt-1 min-h-[60px] text-sm"
+                  />
+                </div>
+              </div>
+              <p className="text-[11px] text-muted-foreground pt-1 border-t">
+                Update primary health goals below if priorities have shifted, then continue to refresh medication & dose recommendations.
+              </p>
             </CardContent>
           </Card>
         )}
