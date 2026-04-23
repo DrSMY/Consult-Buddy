@@ -501,9 +501,141 @@ export default function PatientIntake() {
     );
   };
 
+  // ---- ENCOUNTER SELECTOR ----
+  if (flowType === null) {
+    return (
+      <div className="min-h-screen gradient-surface">
+        <AppHeader title="Peptide Therapy" subtitle="Select encounter type" showBack />
+        <main className="container mx-auto max-w-3xl px-4 py-12 animate-fade-in">
+          <div className="text-center mb-10">
+            <h2 className="text-2xl font-bold">Select Encounter Type</h2>
+            <p className="text-muted-foreground mt-2">Choose how to proceed with this patient.</p>
+          </div>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+            <Card
+              className="cursor-pointer group hover:shadow-lg hover:border-primary/40 hover:-translate-y-0.5 transition-all"
+              onClick={() => setFlowType("new")}
+            >
+              <CardContent className="p-8 flex flex-col items-center text-center gap-4">
+                <div className="h-14 w-14 rounded-xl gradient-primary flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <UserPlus className="h-7 w-7 text-primary-foreground" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold">New Patient</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Full intake: demographics, medical history, and AI peptide analysis.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+            <Card
+              className="cursor-pointer group hover:shadow-lg hover:border-primary/40 hover:-translate-y-0.5 transition-all"
+              onClick={() => setFlowType("followup")}
+            >
+              <CardContent className="p-8 flex flex-col items-center text-center gap-4">
+                <div className="h-14 w-14 rounded-xl bg-secondary flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <History className="h-7 w-7 text-secondary-foreground" />
+                </div>
+                <div>
+                  <h3 className="text-lg font-bold">Patient Follow-up</h3>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Review previous protocol, log side-effects, refresh goals, and re-prescribe.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
+          </div>
+        </main>
+      </div>
+    );
+  }
+
+  // ---- FOLLOW-UP PATIENT SEARCH ----
+  if (flowType === "followup" && !selectedPrevConsultation) {
+    return (
+      <div className="min-h-screen gradient-surface">
+        <AppHeader title="Peptide Follow-up" subtitle="Select previous patient" showBack />
+        <main className="container mx-auto max-w-3xl px-4 py-8 animate-fade-in">
+          <div className="text-center mb-6">
+            <h2 className="text-2xl font-bold">Follow-up Visit</h2>
+            <p className="text-muted-foreground mt-1">Select a previous peptide patient to continue their journey.</p>
+          </div>
+          <div className="relative mb-4">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by patient name..."
+              value={followupSearch}
+              onChange={e => setFollowupSearch(e.target.value)}
+              className="pl-10"
+            />
+          </div>
+          <Button variant="outline" className="w-full mb-4" onClick={() => setFlowType("new")}>
+            <UserPlus className="h-4 w-4 mr-1" /> Switch to New Patient instead
+          </Button>
+          {loadingFollowups ? (
+            <div className="flex justify-center py-12"><Loader2 className="h-6 w-6 animate-spin text-primary" /></div>
+          ) : filteredPrevConsultations.length === 0 ? (
+            <Card>
+              <CardContent className="py-12 text-center text-muted-foreground">
+                <AlertTriangle className="h-8 w-8 mx-auto mb-3 opacity-40" />
+                <p className="font-medium">No previous peptide patients found</p>
+                <p className="text-sm mt-1">Start a new patient encounter instead.</p>
+              </CardContent>
+            </Card>
+          ) : (
+            <div className="space-y-2">
+              {filteredPrevConsultations.map(c => {
+                const recs = (c.ai_recommendations as Record<string, any>) || {};
+                const peptides = Array.isArray(recs.recommended_peptides) ? recs.recommended_peptides : [];
+                const goals = Array.isArray(c.intake_answers?.health_goals) ? c.intake_answers.health_goals : [];
+                return (
+                  <Card
+                    key={c.id}
+                    className="cursor-pointer hover:border-primary/40 hover:shadow-md transition-all"
+                    onClick={() => handleSelectPreviousPatient(c)}
+                  >
+                    <CardContent className="p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0 flex-1">
+                          <p className="font-semibold truncate">{c.patient_name}</p>
+                          <p className="text-[11px] text-muted-foreground">
+                            {new Date(c.created_at).toLocaleDateString()} • {peptides.length} peptide(s) prescribed
+                          </p>
+                          {peptides.length > 0 && (
+                            <div className="flex flex-wrap gap-1 mt-1.5">
+                              {peptides.slice(0, 3).map((p: any, i: number) => (
+                                <Badge key={i} variant="secondary" className="text-[10px]">
+                                  <Pill className="h-2.5 w-2.5 mr-1" />{p.name}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                          {goals.length > 0 && (
+                            <p className="text-[11px] text-muted-foreground mt-1.5 truncate">
+                              Goals: {goals.join(", ")}
+                            </p>
+                          )}
+                        </div>
+                        <ArrowRight className="h-4 w-4 text-muted-foreground shrink-0 mt-1" />
+                      </div>
+                    </CardContent>
+                  </Card>
+                );
+              })}
+            </div>
+          )}
+        </main>
+      </div>
+    );
+  }
+
   return (
     <div className="min-h-screen gradient-surface">
-      <AppHeader title="Patient Intake" subtitle="Peptides Program" showBack />
+      <AppHeader
+        title={flowType === "followup" ? "Peptide Follow-up" : "Patient Intake"}
+        subtitle={flowType === "followup" && selectedPrevConsultation?.patient_name ? `Follow-up · ${selectedPrevConsultation.patient_name}` : "Peptides Program"}
+        showBack
+      />
 
       <main className="container mx-auto max-w-5xl px-4 py-6">
       <div className="flex flex-col lg:flex-row gap-6">
