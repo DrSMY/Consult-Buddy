@@ -35,6 +35,14 @@ export default function PatientIntake() {
     }
   }, [roles, loading]);
 
+  const [flowType, setFlowType] = useState<"new" | "followup" | null>(null);
+  const [previousConsultations, setPreviousConsultations] = useState<any[]>([]);
+  const [followupSearch, setFollowupSearch] = useState("");
+  const [loadingFollowups, setLoadingFollowups] = useState(false);
+  const [selectedPrevConsultation, setSelectedPrevConsultation] = useState<any>(null);
+  const [followupNotes, setFollowupNotes] = useState("");
+  const [followupSideEffects, setFollowupSideEffects] = useState("");
+
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
   const [gateAnswers, setGateAnswers] = useState<Record<string, "yes" | "no" | null>>({});
   const [otherText, setOtherText] = useState<Record<string, string>>({});
@@ -50,6 +58,50 @@ export default function PatientIntake() {
   const [smartInput, setSmartInput] = useState("");
   const [isParsing, setIsParsing] = useState(false);
   const recognitionRef = useRef<any>(null);
+
+  // Load previous peptide consultations for follow-up
+  useEffect(() => {
+    if (flowType !== "followup" || !user) return;
+    setLoadingFollowups(true);
+    supabase
+      .from("consultations")
+      .select("*")
+      .eq("program", programId || "peptides")
+      .eq("user_id", user.id)
+      .order("created_at", { ascending: false })
+      .then(({ data }) => {
+        setPreviousConsultations(data || []);
+        setLoadingFollowups(false);
+      });
+  }, [flowType, user, programId]);
+
+  const filteredPrevConsultations = previousConsultations.filter(c =>
+    !followupSearch || c.patient_name?.toLowerCase().includes(followupSearch.toLowerCase())
+  );
+
+  const handleSelectPreviousPatient = (consultation: any) => {
+    setSelectedPrevConsultation(consultation);
+    const intake = (consultation.intake_answers as Record<string, any>) || {};
+    setPatientName(consultation.patient_name || "");
+    const prefilled: Record<string, string | string[]> = {};
+    const prefilledOther: Record<string, string> = {};
+    const prefilledNotes: Record<string, string> = {};
+    const prefilledGates: Record<string, "yes" | "no" | null> = {};
+    for (const [k, v] of Object.entries(intake)) {
+      if (["flowType", "followupData", "previousConsultationId", "previousProtocol"].includes(k)) continue;
+      if (k.endsWith("_other")) prefilledOther[k.replace(/_other$/, "")] = String(v ?? "");
+      else if (k.endsWith("_notes")) prefilledNotes[k.replace(/_notes$/, "")] = String(v ?? "");
+      else prefilled[k] = v as any;
+    }
+    for (const k of Object.keys(prefilled)) {
+      if (Array.isArray(prefilled[k]) && (prefilled[k] as string[]).length > 0) prefilledGates[k] = "yes";
+    }
+    setAnswers(prefilled);
+    setOtherText(prefilledOther);
+    setNotes(prefilledNotes);
+    setGateAnswers(prefilledGates);
+    setCurrentStep(0);
+  };
 
   const visibleQuestions = getVisibleQuestions(answers);
   const sections = [...new Set(visibleQuestions.map((q) => q.section))];
