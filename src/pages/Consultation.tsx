@@ -851,7 +851,7 @@ SCOPE Certified Physician`;
             <Card className="mb-6 border-violet-200 dark:border-violet-800/40 bg-violet-50/40 dark:bg-violet-900/10">
               <CardHeader className="pb-3">
                 <CardTitle className="text-base flex items-center gap-2">
-                  <History className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                  <HistoryIcon className="h-4 w-4 text-violet-600 dark:text-violet-400" />
                   Follow-up Visit
                   {prev.previousDate && (
                     <Badge variant="outline" className="ml-auto text-[10px]">
