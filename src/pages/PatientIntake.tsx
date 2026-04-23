@@ -16,6 +16,8 @@ import { openWhatsApp } from "@/utils/whatsapp";
 import type { IntakeQuestion } from "@/data/intakeQuestions";
 import AppHeader from "@/components/AppHeader";
 import LivePeptideSuggestions from "@/components/LivePeptideSuggestions";
+import PatientSummaryCard from "@/components/PatientSummaryCard";
+import { CalendarDays, Clock } from "lucide-react";
 
 // Mandatory question IDs that must be answered
 const MANDATORY_QUESTIONS = new Set(["gender", "age", "height", "weight", "health_goals"]);
@@ -805,6 +807,27 @@ export default function PatientIntake() {
                   </Button>
                 </div>
               </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <Label className="flex items-center gap-1"><CalendarDays className="h-3.5 w-3.5" /> Booking Ref</Label>
+                  <Input
+                    value={(answers["booking_ref"] as string) || ""}
+                    onChange={(e) => setAnswer("booking_ref", e.target.value)}
+                    placeholder="#12345"
+                    className="mt-1"
+                  />
+                </div>
+                <div>
+                  <Label className="flex items-center gap-1"><Clock className="h-3.5 w-3.5" /> Appointment Time</Label>
+                  <Input
+                    type="time"
+                    value={(answers["booking_time"] as string) || ""}
+                    onChange={(e) => setAnswer("booking_time", e.target.value)}
+                    className="mt-1"
+                  />
+                </div>
+              </div>
+
               <div>
                 <Label>Mobile Number</Label>
                 <Input
@@ -890,8 +913,17 @@ export default function PatientIntake() {
         </div>
         </div>
 
-        {/* Live Peptide Suggestions Sidebar */}
-        <aside className="w-full lg:w-72 shrink-0 lg:sticky lg:top-6 lg:self-start">
+        {/* Sidebar: Patient Summary + Live Peptide Suggestions */}
+        <aside className="w-full lg:w-72 shrink-0 lg:sticky lg:top-6 lg:self-start space-y-4">
+          {(patientName || answers["age"] || answers["height"] || answers["weight"] || answers["gender"]) && (
+            <PatientSummaryCard
+              patientName={patientName || "New Patient"}
+              intake={{
+                ...answers,
+                health_goals: answers["health_goals"] || [],
+              }}
+            />
+          )}
           <LivePeptideSuggestions healthGoals={(answers["health_goals"] as string[]) || []} />
         </aside>
       </div>
