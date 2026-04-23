@@ -705,6 +705,74 @@ export default function PatientIntake() {
           </Card>
         )}
 
+        {/* Follow-up Tracking — visible on step 0 in follow-up mode */}
+        {currentStep === 0 && flowType === "followup" && selectedPrevConsultation && (
+          <Card className="mb-4 border-violet-200 dark:border-violet-800/40 bg-violet-50/40 dark:bg-violet-900/10">
+            <CardHeader className="pb-3">
+              <CardTitle className="text-base flex items-center gap-2">
+                <History className="h-4 w-4 text-violet-600 dark:text-violet-400" />
+                Previous Visit
+                <Badge variant="outline" className="ml-auto text-[10px]">
+                  {new Date(selectedPrevConsultation.created_at).toLocaleDateString()}
+                </Badge>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {(() => {
+                const recs = (selectedPrevConsultation.ai_recommendations as Record<string, any>) || {};
+                const peptides = Array.isArray(recs.recommended_peptides) ? recs.recommended_peptides : [];
+                if (peptides.length === 0) {
+                  return <p className="text-xs text-muted-foreground italic">No prescribed protocol recorded on previous visit.</p>;
+                }
+                return (
+                  <div className="space-y-1.5">
+                    <Label className="text-[11px] uppercase tracking-wide text-muted-foreground font-bold">Previous Protocol</Label>
+                    <div className="space-y-1.5">
+                      {peptides.map((p: any, i: number) => (
+                        <div key={i} className="flex items-center gap-2 text-xs bg-background/70 rounded-md border px-2.5 py-1.5">
+                          <Pill className="h-3 w-3 text-violet-600 dark:text-violet-400 shrink-0" />
+                          <span className="font-semibold">{p.name}</span>
+                          {p.dosage && <span className="text-muted-foreground">· {p.dosage}</span>}
+                          {p.frequency && <span className="text-muted-foreground">· {p.frequency}</span>}
+                          {p.duration && <span className="text-muted-foreground">· {p.duration}</span>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })()}
+
+              <div className="grid grid-cols-1 gap-3 pt-1">
+                <div>
+                  <Label className="text-[11px] uppercase tracking-wide text-muted-foreground font-bold flex items-center gap-1">
+                    <AlertTriangle className="h-3 w-3" /> Side Effects Reported
+                  </Label>
+                  <Textarea
+                    value={followupSideEffects}
+                    onChange={e => setFollowupSideEffects(e.target.value)}
+                    placeholder="e.g. mild nausea first 3 days, then resolved..."
+                    className="mt-1 min-h-[60px] text-sm"
+                  />
+                </div>
+                <div>
+                  <Label className="text-[11px] uppercase tracking-wide text-muted-foreground font-bold flex items-center gap-1">
+                    <StickyNote className="h-3 w-3" /> Follow-up Notes
+                  </Label>
+                  <Textarea
+                    value={followupNotes}
+                    onChange={e => setFollowupNotes(e.target.value)}
+                    placeholder="Patient response, adherence, lifestyle changes, lab updates..."
+                    className="mt-1 min-h-[60px] text-sm"
+                  />
+                </div>
+              </div>
+              <p className="text-[11px] text-muted-foreground pt-1 border-t">
+                Update primary health goals below if priorities have shifted, then continue to refresh medication & dose recommendations.
+              </p>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Show Primary Health Objectives at the beginning (step 0) */}
         {currentStep === 0 && (
           <Card className="mb-4">
