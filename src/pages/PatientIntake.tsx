@@ -259,6 +259,29 @@ export default function PatientIntake() {
       if (note.trim()) finalAnswers[`${id}_notes`] = note.trim();
     }
 
+    // Persist follow-up metadata so the consultation page can render previous context
+    if (flowType === "followup" && selectedPrevConsultation?.id) {
+      const prevIntake = (selectedPrevConsultation.intake_answers as Record<string, any>) || {};
+      const prevRecs = (selectedPrevConsultation.ai_recommendations as Record<string, any>) || {};
+      finalAnswers.flowType = "followup";
+      finalAnswers.previousConsultationId = selectedPrevConsultation.id;
+      finalAnswers.previousProtocol = {
+        peptides: Array.isArray(prevRecs?.recommended_peptides)
+          ? prevRecs.recommended_peptides.map((p: any) => ({
+              name: p.name, dosage: p.dosage, frequency: p.frequency, duration: p.duration,
+            }))
+          : [],
+        previousHealthGoals: prevIntake.health_goals || [],
+        previousDate: selectedPrevConsultation.created_at,
+      };
+      finalAnswers.followupData = {
+        sideEffects: followupSideEffects.trim(),
+        notes: followupNotes.trim(),
+      };
+    } else {
+      finalAnswers.flowType = "new";
+    }
+
     const { data, error } = await supabase
       .from("consultations")
       .insert({
