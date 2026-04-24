@@ -218,12 +218,12 @@ export default function DashboardStats() {
                 <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="fillPeptides" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.4} />
-                      <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0.02} />
+                      <stop offset="5%" stopColor={PEPTIDE_COLOR} stopOpacity={0.4} />
+                      <stop offset="95%" stopColor={PEPTIDE_COLOR} stopOpacity={0.02} />
                     </linearGradient>
                     <linearGradient id="fillWL" x1="0" y1="0" x2="0" y2="1">
-                      <stop offset="5%" stopColor="hsl(var(--accent-foreground))" stopOpacity={0.35} />
-                      <stop offset="95%" stopColor="hsl(var(--accent-foreground))" stopOpacity={0.02} />
+                      <stop offset="5%" stopColor={WL_COLOR} stopOpacity={0.45} />
+                      <stop offset="95%" stopColor={WL_COLOR} stopOpacity={0.02} />
                     </linearGradient>
                   </defs>
                   <CartesianGrid strokeDasharray="3 3" vertical={false} className="stroke-border/50" />
@@ -248,7 +248,7 @@ export default function DashboardStats() {
                       type="monotone"
                       dataKey="peptides"
                       stackId="1"
-                      stroke="hsl(var(--primary))"
+                      stroke={PEPTIDE_COLOR}
                       strokeWidth={2}
                       fill="url(#fillPeptides)"
                     />
@@ -258,7 +258,7 @@ export default function DashboardStats() {
                       type="monotone"
                       dataKey="weight-loss"
                       stackId="1"
-                      stroke="hsl(var(--accent-foreground))"
+                      stroke={WL_COLOR}
                       strokeWidth={2}
                       fill="url(#fillWL)"
                     />
