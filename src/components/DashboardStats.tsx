@@ -114,10 +114,13 @@ export default function DashboardStats() {
 
   const hasDistribution = distribution.some((d) => d.value > 0);
 
+  const PEPTIDE_COLOR = "hsl(152 60% 40%)"; // green
+  const WL_COLOR = "hsl(43 74% 49%)"; // gold
+
   const chartConfig = {
-    peptides: { label: "Peptides", color: "hsl(var(--primary))" },
-    "weight-loss": { label: "Weight Loss", color: "hsl(var(--accent-foreground))" },
-    total: { label: "Total", color: "hsl(var(--primary))" },
+    peptides: { label: "Peptides", color: PEPTIDE_COLOR },
+    "weight-loss": { label: "Weight Loss", color: WL_COLOR },
+    total: { label: "Total", color: PEPTIDE_COLOR },
   } as const;
 
   const cards = [
@@ -296,8 +299,8 @@ export default function DashboardStats() {
                         key={entry.key}
                         fill={
                           entry.key === "peptides"
-                            ? "hsl(var(--primary))"
-                            : "hsl(var(--accent-foreground))"
+                            ? PEPTIDE_COLOR
+                            : WL_COLOR
                         }
                       />
                     ))}
@@ -318,8 +321,8 @@ export default function DashboardStats() {
                           style={{
                             background:
                               d.key === "peptides"
-                                ? "hsl(var(--primary))"
-                                : "hsl(var(--accent-foreground))",
+                                ? PEPTIDE_COLOR
+                                : WL_COLOR,
                           }}
                         />
                         <span className="text-muted-foreground">{d.name}</span>
