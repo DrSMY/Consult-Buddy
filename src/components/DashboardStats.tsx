@@ -321,8 +321,8 @@ export default function DashboardStats() {
                           style={{
                             background:
                               d.key === "peptides"
-                                ? "hsl(var(--primary))"
-                                : "hsl(var(--accent-foreground))",
+                                ? PEPTIDE_COLOR
+                                : WL_COLOR,
                           }}
                         />
                         <span className="text-muted-foreground">{d.name}</span>
