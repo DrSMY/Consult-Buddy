@@ -59,12 +59,24 @@ export default function PatientFiles() {
   };
 
   const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const digits = q.replace(/\D/g, "");
     return consultations.filter((c) => {
-      const matchesSearch =
-        !search ||
-        c.patient_name.toLowerCase().includes(search.toLowerCase()) ||
-        c.program.toLowerCase().includes(search.toLowerCase());
       const matchesStatus = statusFilter === "all" || c.status === statusFilter;
+      if (!q) return matchesStatus;
+
+      const intake = (c.intake_answers || {}) as any;
+      const bookingRef = String(intake.booking_ref ?? intake.bookingId ?? "").toLowerCase();
+      const mobile = String(intake.mobile_number ?? intake.mobileNumber ?? "").toLowerCase();
+      const mobileDigits = mobile.replace(/\D/g, "");
+
+      const matchesSearch =
+        c.patient_name.toLowerCase().includes(q) ||
+        c.program.toLowerCase().includes(q) ||
+        bookingRef.includes(q) ||
+        mobile.includes(q) ||
+        (digits.length > 0 && mobileDigits.includes(digits));
+
       return matchesSearch && matchesStatus;
     });
   }, [consultations, search, statusFilter]);
@@ -155,7 +167,7 @@ export default function PatientFiles() {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by patient name..."
+              placeholder="Search by name, booking ref or mobile..."
               value={search}
               onChange={(e) => setSearch(e.target.value)}
               className="pl-10"
