@@ -248,7 +248,7 @@ export default function DashboardStats() {
                       type="monotone"
                       dataKey="peptides"
                       stackId="1"
-                      stroke="hsl(var(--primary))"
+                      stroke={PEPTIDE_COLOR}
                       strokeWidth={2}
                       fill="url(#fillPeptides)"
                     />
