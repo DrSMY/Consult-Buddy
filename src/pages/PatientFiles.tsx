@@ -59,12 +59,24 @@ export default function PatientFiles() {
   };
 
   const filtered = useMemo(() => {
+    const q = search.trim().toLowerCase();
+    const digits = q.replace(/\D/g, "");
     return consultations.filter((c) => {
-      const matchesSearch =
-        !search ||
-        c.patient_name.toLowerCase().includes(search.toLowerCase()) ||
-        c.program.toLowerCase().includes(search.toLowerCase());
       const matchesStatus = statusFilter === "all" || c.status === statusFilter;
+      if (!q) return matchesStatus;
+
+      const intake = (c.intake_answers || {}) as any;
+      const bookingRef = String(intake.booking_ref ?? intake.bookingId ?? "").toLowerCase();
+      const mobile = String(intake.mobile_number ?? intake.mobileNumber ?? "").toLowerCase();
+      const mobileDigits = mobile.replace(/\D/g, "");
+
+      const matchesSearch =
+        c.patient_name.toLowerCase().includes(q) ||
+        c.program.toLowerCase().includes(q) ||
+        bookingRef.includes(q) ||
+        mobile.includes(q) ||
+        (digits.length > 0 && mobileDigits.includes(digits));
+
       return matchesSearch && matchesStatus;
     });
   }, [consultations, search, statusFilter]);
