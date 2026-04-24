@@ -5,6 +5,7 @@ import { FlaskConical, Scale, Sparkles, ShieldAlert } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import AppHeader from "@/components/AppHeader";
 import { useToast } from "@/hooks/use-toast";
+import DashboardStats from "@/components/DashboardStats";
 
 const isClinician = (roles: string[]) => roles.includes("doctor") || roles.includes("nurse");
 
@@ -44,6 +45,8 @@ export default function Dashboard() {
           </div>
           <p className="text-muted-foreground">Select a consultation program to begin.</p>
         </div>
+
+        {clinician && <DashboardStats />}
 
         <div className="grid gap-4 sm:grid-cols-2 max-w-2xl">
           {programs.map((program) => {
