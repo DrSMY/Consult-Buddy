@@ -299,8 +299,8 @@ export default function DashboardStats() {
                         key={entry.key}
                         fill={
                           entry.key === "peptides"
-                            ? "hsl(var(--primary))"
-                            : "hsl(var(--accent-foreground))"
+                            ? PEPTIDE_COLOR
+                            : WL_COLOR
                         }
                       />
                     ))}
