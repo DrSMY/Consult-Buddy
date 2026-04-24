@@ -71,12 +71,14 @@ export default function DashboardStats() {
   // 14-day trend
   const trendData = useMemo(() => {
     const days = 14;
+    const localKey = (d: Date) =>
+      `${d.getFullYear()}-${String(d.getMonth() + 1).padStart(2, "0")}-${String(d.getDate()).padStart(2, "0")}`;
     const buckets: { date: string; label: string; peptides: number; "weight-loss": number; total: number }[] = [];
     const today = new Date(); today.setHours(0, 0, 0, 0);
     for (let i = days - 1; i >= 0; i--) {
       const d = new Date(today); d.setDate(today.getDate() - i);
       buckets.push({
-        date: d.toISOString().slice(0, 10),
+        date: localKey(d),
         label: d.toLocaleDateString(undefined, { month: "short", day: "numeric" }),
         peptides: 0,
         "weight-loss": 0,
@@ -85,8 +87,7 @@ export default function DashboardStats() {
     }
     const map = new Map(buckets.map((b) => [b.date, b]));
     for (const r of rows || []) {
-      const key = new Date(r.created_at).toISOString().slice(0, 10);
-      const b = map.get(key);
+      const b = map.get(localKey(new Date(r.created_at)));
       if (!b) continue;
       if (r.program === "peptides") b.peptides++;
       else if (r.program === "weight-loss") b["weight-loss"]++;
