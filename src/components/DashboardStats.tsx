@@ -258,7 +258,7 @@ export default function DashboardStats() {
                       type="monotone"
                       dataKey="weight-loss"
                       stackId="1"
-                      stroke="hsl(var(--accent-foreground))"
+                      stroke={WL_COLOR}
                       strokeWidth={2}
                       fill="url(#fillWL)"
                     />
