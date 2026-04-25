@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useMemo, useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
 import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Send, Eye, Pencil, Sparkles, Copy, Check } from "lucide-react";
 import PatientGuideDisplay from "@/components/PatientGuideDisplay";
 import { generateAndShareGuide } from "@/utils/shareGuide";
+import { buildGuideHtml } from "@/utils/printGuide";
 import type { WeightLossPatientSummary } from "@/utils/weightLossGuideHtml";
 import { useToast } from "@/hooks/use-toast";
 
@@ -37,6 +38,11 @@ export default function ShareGuideDialog({
   const [sending, setSending] = useState(false);
   const [linksReady, setLinksReady] = useState<{ landing: string; html: string; pdf: string } | null>(null);
   const [copied, setCopied] = useState(false);
+
+  const previewHtml = useMemo(
+    () => buildGuideHtml(guideText, patientName, program, { weightLossSummary }),
+    [guideText, patientName, program, weightLossSummary],
+  );
 
   // Reset state whenever the dialog re-opens with potentially new content
   const handleOpenChange = (next: boolean) => {
@@ -114,8 +120,13 @@ export default function ShareGuideDialog({
               </div>
               <div className="flex flex-col min-h-0">
                 <div className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 px-1">Live preview</div>
-                <div className="flex-1 min-h-[400px] overflow-y-auto rounded-lg border bg-background/50 p-3">
-                  <PatientGuideDisplay text={guideText} />
+                <div className="flex-1 min-h-[400px] overflow-hidden rounded-lg border bg-background">
+                  <iframe
+                    title="Branded patient guide preview"
+                    srcDoc={previewHtml}
+                    className="h-full min-h-[400px] w-full bg-background"
+                    sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+                  />
                 </div>
               </div>
             </div>
@@ -129,8 +140,13 @@ export default function ShareGuideDialog({
             />
           </TabsContent>
 
-          <TabsContent value="preview" className="flex-1 min-h-0 mt-3 overflow-y-auto rounded-lg border bg-background/50 p-4">
-            <PatientGuideDisplay text={guideText} />
+          <TabsContent value="preview" className="flex-1 min-h-0 mt-3 overflow-hidden rounded-lg border bg-background">
+            <iframe
+              title="Branded patient guide preview"
+              srcDoc={previewHtml}
+              className="h-full min-h-[440px] w-full bg-background"
+              sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+            />
           </TabsContent>
         </Tabs>
 
