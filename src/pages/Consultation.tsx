@@ -9,7 +9,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
 import { useToast } from "@/hooks/use-toast";
-import { AlertTriangle, CheckCircle, FileText, ClipboardList, User, Copy, Loader2, FlaskConical, Info, ShieldCheck, Microscope, StickyNote, MessageCircle, Ruler, Weight, Scale, Activity, Printer, Plus, Pencil, ArrowRight, ArrowLeft, Stethoscope, Trash2, Pill, History as HistoryIcon } from "lucide-react";
+import { AlertTriangle, CheckCircle, FileText, ClipboardList, User, Copy, Loader2, FlaskConical, Info, ShieldCheck, Microscope, StickyNote, MessageCircle, Ruler, Weight, Scale, Activity, Printer, Plus, Pencil, ArrowRight, ArrowLeft, Stethoscope, Trash2, Pill, History as HistoryIcon, Send } from "lucide-react";
 import PatientGuideDisplay from "@/components/PatientGuideDisplay";
 import PatientSummaryCard from "@/components/PatientSummaryCard";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
@@ -20,6 +20,7 @@ import AppHeader from "@/components/AppHeader";
 import LivePeptideSuggestions from "@/components/LivePeptideSuggestions";
 import { openWhatsApp } from "@/utils/whatsapp";
 import { printPatientGuide } from "@/utils/printGuide";
+import ShareGuideDialog from "@/components/ShareGuideDialog";
 import { getProtocolOptions, extractMl, extractVialMl, inferFrequency, type ProtocolOption } from "@/data/peptideProtocolOptions";
 
 interface PeptideRec {
@@ -158,6 +159,7 @@ export default function Consultation() {
   const [recommendations, setRecommendations] = useState<Recommendation | null>(null);
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [selectedPeptides, setSelectedPeptides] = useState<Set<string>>(new Set());
   const [selectedSupplements, setSelectedSupplements] = useState<Set<string>>(new Set());
   const [selectionConfirmed, setSelectionConfirmed] = useState(false);
@@ -1163,19 +1165,16 @@ SCOPE Certified Physician`;
                       <Button variant="outline" size="sm" onClick={() => copyToClipboard(buildActionPlan.patientGuide, "Patient guidelines")}>
                         <Copy className="h-3 w-3 mr-1" /> Copy
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const phone = consultation?.intake_answers?.mobile_number || consultation?.intake_answers?.phone || "";
-                          openWhatsApp(phone, buildActionPlan.patientGuide);
-                        }}
-                        disabled={!consultation?.intake_answers?.mobile_number && !consultation?.intake_answers?.phone}
-                      >
-                        <MessageCircle className="h-3 w-3 mr-1" /> WhatsApp
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => printPatientGuide(buildActionPlan.patientGuide, consultation?.patient_name)}>
+                      <Button variant="outline" size="sm" onClick={() => printPatientGuide(buildActionPlan.patientGuide, consultation?.patient_name, "peptides")}>
                         <Printer className="h-3 w-3 mr-1" /> Print / PDF
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => setShareOpen(true)}
+                        disabled={!consultation?.intake_answers?.mobile_number && !consultation?.intake_answers?.phone}
+                        title={(!consultation?.intake_answers?.mobile_number && !consultation?.intake_answers?.phone) ? "No phone number available" : "Edit & send branded guide via WhatsApp"}
+                      >
+                        <Send className="h-3 w-3 mr-1" /> Send to Patient
                       </Button>
                     </div>
                   </CardHeader>
@@ -1954,6 +1953,17 @@ SCOPE Certified Physician`;
         )}
         </div>
       </main>
+
+      {consultation && buildActionPlan?.patientGuide && (
+        <ShareGuideDialog
+          open={shareOpen}
+          onOpenChange={setShareOpen}
+          patientName={consultation.patient_name}
+          phone={consultation?.intake_answers?.mobile_number || consultation?.intake_answers?.phone || ""}
+          program="peptides"
+          initialGuideText={buildActionPlan.patientGuide}
+        />
+      )}
     </div>
   );
 }
