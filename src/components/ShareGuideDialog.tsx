@@ -29,6 +29,7 @@ export default function ShareGuideDialog({
   phone,
   program,
   initialGuideText,
+  weightLossSummary,
   onSent,
 }: ShareGuideDialogProps) {
   const { toast } = useToast();
