@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Send, Eye, Pencil, Sparkles, Copy, Check } from "lucide-react";
 import PatientGuideDisplay from "@/components/PatientGuideDisplay";
 import { generateAndShareGuide } from "@/utils/shareGuide";
+import type { WeightLossPatientSummary } from "@/utils/weightLossGuideHtml";
 import { useToast } from "@/hooks/use-toast";
 
 interface ShareGuideDialogProps {
@@ -15,6 +16,8 @@ interface ShareGuideDialogProps {
   phone: string;
   program: "peptides" | "weight_loss";
   initialGuideText: string;
+  /** Optional patient summary rendered in the weight-loss layout. */
+  weightLossSummary?: WeightLossPatientSummary;
   /** Called with the edited guide text after a successful send so the parent can persist it. */
   onSent?: (editedGuideText: string) => void;
 }
