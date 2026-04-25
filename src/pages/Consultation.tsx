@@ -1953,6 +1953,17 @@ SCOPE Certified Physician`;
         )}
         </div>
       </main>
+
+      {consultation && buildActionPlan?.patientGuide && (
+        <ShareGuideDialog
+          open={shareOpen}
+          onOpenChange={setShareOpen}
+          patientName={consultation.patient_name}
+          phone={consultation?.intake_answers?.mobile_number || consultation?.intake_answers?.phone || ""}
+          program="peptides"
+          initialGuideText={buildActionPlan.patientGuide}
+        />
+      )}
     </div>
   );
 }
