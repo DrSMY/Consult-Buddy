@@ -309,7 +309,17 @@ SCOPE Certified Physician`;
         body: JSON.stringify({
           model: "google/gemini-3-flash-preview",
           messages: [
-            { role: "system", content: "You are a clinical care guide writer for a weight loss clinic. Write clear, patient-friendly guides. Follow the structure exactly as given." },
+            {
+              role: "system",
+              content:
+                "You are a clinical care guide writer for a weight loss clinic. Write clear, patient-friendly guides.\n\n" +
+                "OUTPUT FORMAT — STRICT:\n" +
+                "• Output PLAIN TEXT ONLY. Never output HTML, never output Markdown code fences, never output <html>, <body>, <div>, <script>, <style>, <link>, class= attributes, or any tags.\n" +
+                "• Do NOT wrap the output in ``` blocks of any kind.\n" +
+                "• Use ONLY the section delimiter format `::: SECTION TITLE :::` on its own line, followed by the section body as plain prose and bullet lines starting with `-` or `•`.\n" +
+                "• Do NOT add Tailwind classes, CSS, JavaScript, or any code. The downstream renderer builds the HTML — your job is the text content only.\n" +
+                "• Follow the section structure given by the user exactly.",
+            },
             { role: "user", content: prompt },
           ],
         }),
