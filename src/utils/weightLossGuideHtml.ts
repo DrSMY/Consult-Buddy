@@ -64,7 +64,9 @@ function sanitizeStandaloneHtml(html: string, patientName: string): string {
   const hasDoctype = /<!doctype\s+html/i.test(html);
   const withoutDangerousScripts = html
     .replace(/<script\b(?![^>]*src=["']https:\/\/cdn\.tailwindcss\.com["'])[^>]*>[\s\S]*?<\/script>/gi, "")
-    .replace(/\son\w+=("[^"]*"|'[^']*'|[^\s>]+)/gi, "");
+    .replace(/\son\w+=("[^"]*"|'[^']*'|[^\s>]+)/gi, (attr) => {
+      return /^\s*onclick\s*=\s*(["'])window\.print\(\);?\1$/i.test(attr) ? ' onclick="window.print()"' : "";
+    });
 
   if (/<html[\s>]/i.test(withoutDangerousScripts)) {
     return `${hasDoctype ? "" : "<!DOCTYPE html>\n"}${withoutDangerousScripts}`;
