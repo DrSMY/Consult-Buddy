@@ -342,7 +342,10 @@ SCOPE Certified Physician`;
       }
 
       const data = await response.json();
-      const guide = data.choices?.[0]?.message?.content || "";
+      let guide = data.choices?.[0]?.message?.content || "";
+
+      // Defensive sanitizer: if the model returned HTML or code fences, extract the plain-text guide.
+      guide = sanitizeGuideOutput(guide);
 
       return new Response(JSON.stringify({ guide }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
