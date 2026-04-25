@@ -73,8 +73,21 @@ function getIcon(title: string): string {
   return `<svg xmlns="http://www.w3.org/2000/svg" width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8Z"/><path d="M14 2v6h6"/></svg>`;
 }
 
+// Brand assets — embedded via Vite imports so they bundle into the HTML
+import logoUrl from "@/assets/dr-sami-logo.png";
+import signatureUrl from "@/assets/dr-sami-signature.png";
+
+const PROGRAM_TITLES: Record<string, string> = {
+  peptides: "Peptide Therapy Guide",
+  weight_loss: "Weight Loss Program Guide",
+};
+
 /** Build the full HTML string for the patient guide (shared by print & share). */
-export function buildGuideHtml(guideText: string, patientName?: string): string {
+export function buildGuideHtml(
+  guideText: string,
+  patientName?: string,
+  program: "peptides" | "weight_loss" | string = "peptides",
+): string {
   // Parse ::: or --- sections
   const sectionRegex = /^(?:::+\s*(.+?)\s*:::+|---\s*(.+?)\s*---)$/gm;
   const titles: { title: string; start: number; end: number }[] = [];
