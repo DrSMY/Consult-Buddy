@@ -161,7 +161,7 @@ export default function ShareGuideDialog({
               </Button>
             </div>
             <div className="flex gap-3 text-muted-foreground text-[11px]">
-              <a href={linksReady.html} target="_blank" rel="noreferrer" className="underline hover:text-primary">Open HTML</a>
+              <a href={`${linksReady.landing}&view=guide`} target="_blank" rel="noreferrer" className="underline hover:text-primary">Open guide</a>
               <a href={linksReady.pdf} target="_blank" rel="noreferrer" className="underline hover:text-primary">Open PDF</a>
             </div>
           </div>
