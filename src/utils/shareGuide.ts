@@ -1,39 +1,131 @@
 import { supabase } from "@/integrations/supabase/client";
 import { buildGuideHtml } from "./printGuide";
+import { buildGuidePdfBlob } from "./pdfGuide";
+import { buildLandingHtml } from "./landingPage";
 import { sanitizePhone } from "./whatsapp";
+import logoSrc from "@/assets/dr-sami-logo.png";
+import signatureSrc from "@/assets/dr-sami-signature.png";
+
+type Program = "peptides" | "weight_loss";
+
+const PROGRAM_LABELS: Record<Program, string> = {
+  peptides: "Peptide Therapy",
+  weight_loss: "Weight Loss Program",
+};
+
+const BUCKET = "patient-guides";
 
 /**
- * Generate the patient guide HTML, upload it to storage,
- * and open WhatsApp with the public link.
+ * Convert an imported asset URL (Vite serves these from the same origin)
+ * into a publicly hosted Supabase URL so the patient's browser can load
+ * the logo/signature without needing the app to be running.
  */
+async function uploadAssetIfNeeded(localUrl: string, storagePath: string): Promise<string> {
+  // If the asset has already been uploaded once, the public URL is stable
+  const { data: existing } = supabase.storage.from(BUCKET).getPublicUrl(storagePath);
+  // Try to HEAD; if missing, upload
+  try {
+    const head = await fetch(existing.publicUrl, { method: "HEAD" });
+    if (head.ok) return existing.publicUrl;
+  } catch {
+    /* fall through to upload */
+  }
+  const res = await fetch(localUrl);
+  const blob = await res.blob();
+  await supabase.storage.from(BUCKET).upload(storagePath, blob, {
+    contentType: blob.type || "image/png",
+    upsert: true,
+  });
+  return existing.publicUrl;
+}
+
+async function uploadHtml(content: string, fileName: string): Promise<string> {
+  const blob = new Blob([content], { type: "text/html;charset=utf-8" });
+  const { error } = await supabase.storage.from(BUCKET).upload(fileName, blob, {
+    contentType: "text/html;charset=utf-8",
+    upsert: false,
+  });
+  if (error) throw new Error(`HTML upload failed: ${error.message}`);
+  return supabase.storage.from(BUCKET).getPublicUrl(fileName).data.publicUrl;
+}
+
+async function uploadPdf(blob: Blob, fileName: string): Promise<string> {
+  const { error } = await supabase.storage.from(BUCKET).upload(fileName, blob, {
+    contentType: "application/pdf",
+    upsert: false,
+  });
+  if (error) throw new Error(`PDF upload failed: ${error.message}`);
+  return supabase.storage.from(BUCKET).getPublicUrl(fileName).data.publicUrl;
+}
+
+export interface ShareResult {
+  htmlUrl: string;
+  pdfUrl: string;
+  landingUrl: string;
+  whatsappUrl: string;
+}
+
+/**
+ * Generate styled HTML guide + branded PDF, upload both plus a landing page,
+ * then open WhatsApp with a short message linking to the landing page.
+ */
+export async function generateAndShareGuide(
+  guideText: string,
+  patientName: string,
+  phone: string,
+  program: Program = "peptides",
+  options: { autoOpenWhatsApp?: boolean } = { autoOpenWhatsApp: true },
+): Promise<ShareResult> {
+  const safeName = patientName.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase() || "patient";
+  const ts = Date.now();
+
+  // 1) Make sure brand assets are publicly reachable (idempotent)
+  const [logoUrl, signatureUrl] = await Promise.all([
+    uploadAssetIfNeeded(logoSrc, "_brand/dr-sami-logo.png"),
+    uploadAssetIfNeeded(signatureSrc, "_brand/dr-sami-signature.png"),
+  ]);
+
+  // 2) Build HTML guide & PDF (PDF is rendered from the same HTML for visual parity)
+  const htmlContent = buildGuideHtml(guideText, patientName, program);
+  const pdfBlob = await buildGuidePdfBlob(guideText, patientName, program);
+
+  // 3) Upload artifacts
+  const htmlUrl = await uploadHtml(htmlContent, `${safeName}_${ts}.html`);
+  const pdfUrl = await uploadPdf(pdfBlob, `${safeName}_${ts}.pdf`);
+
+  // 4) Build landing page that wraps both links
+  const landingHtml = buildLandingHtml({
+    patientName,
+    program,
+    htmlUrl,
+    pdfUrl,
+    logoUrl,
+    signatureUrl,
+    expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
+  });
+  const landingUrl = await uploadHtml(landingHtml, `${safeName}_${ts}_share.html`);
+
+  // 5) Compose short WhatsApp message
+  const message =
+    `Hello ${patientName},\n\n` +
+    `Your ${PROGRAM_LABELS[program]} guide from Dr Sami M. Yesuf is ready.\n\n` +
+    `View it here: ${landingUrl}\n\n` +
+    `— PeptiDOC`;
+  const whatsappUrl = `https://wa.me/${sanitizePhone(phone)}?text=${encodeURIComponent(message)}`;
+
+  if (options.autoOpenWhatsApp !== false) {
+    window.open(whatsappUrl, "_blank");
+  }
+
+  return { htmlUrl, pdfUrl, landingUrl, whatsappUrl };
+}
+
+/** Backwards-compat wrapper used by older callers. */
 export async function shareGuideViaWhatsApp(
   guideText: string,
   patientName: string,
   phone: string,
+  program: Program = "peptides",
 ): Promise<void> {
-  const html = buildGuideHtml(guideText, patientName);
-  const blob = new Blob([html], { type: "text/html" });
-
-  // Unique filename per patient + timestamp
-  const safeName = patientName.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase();
-  const fileName = `${safeName}_${Date.now()}.html`;
-
-  const { error } = await supabase.storage
-    .from("patient-guides")
-    .upload(fileName, blob, {
-      contentType: "text/html",
-      upsert: false,
-    });
-
-  if (error) throw new Error(`Upload failed: ${error.message}`);
-
-  const { data: urlData } = supabase.storage
-    .from("patient-guides")
-    .getPublicUrl(fileName);
-
-  const publicUrl = urlData.publicUrl;
-  const sanitized = sanitizePhone(phone);
-  const message = `Hello ${patientName},\n\nPlease find your Patient Care Guide here:\n${publicUrl}\n\nYou can save it as a PDF by opening the link and using Print → Save as PDF.\n\nBest regards,\nDarDoc Team`;
-  const encoded = encodeURIComponent(message);
-  window.open(`https://wa.me/${sanitized}?text=${encoded}`, "_blank");
+  await generateAndShareGuide(guideText, patientName, phone, program);
 }
