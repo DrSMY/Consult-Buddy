@@ -159,6 +159,7 @@ export default function Consultation() {
   const [recommendations, setRecommendations] = useState<Recommendation | null>(null);
   const [loading, setLoading] = useState(true);
   const [analyzing, setAnalyzing] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [selectedPeptides, setSelectedPeptides] = useState<Set<string>>(new Set());
   const [selectedSupplements, setSelectedSupplements] = useState<Set<string>>(new Set());
   const [selectionConfirmed, setSelectionConfirmed] = useState(false);

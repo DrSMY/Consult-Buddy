@@ -312,11 +312,15 @@ ${bodyHtml}
 </body></html>`;
 }
 
-export function printPatientGuide(guideText: string, patientName?: string) {
+export function printPatientGuide(
+  guideText: string,
+  patientName?: string,
+  program: "peptides" | "weight_loss" | string = "peptides",
+) {
   const win = window.open("", "_blank", "width=800,height=900");
   if (!win) return;
 
-  win.document.write(buildGuideHtml(guideText, patientName));
+  win.document.write(buildGuideHtml(guideText, patientName, program));
   win.document.close();
   setTimeout(() => win.print(), 400);
 }
