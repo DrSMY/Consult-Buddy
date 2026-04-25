@@ -76,18 +76,40 @@ function getIcon(title: string): string {
 // Brand assets — embedded via Vite imports so they bundle into the HTML
 import logoUrl from "@/assets/dr-sami-logo.png";
 import signatureUrl from "@/assets/dr-sami-signature.png";
+import { buildWeightLossGuideHtml, type WeightLossPatientSummary } from "./weightLossGuideHtml";
 
 const PROGRAM_TITLES: Record<string, string> = {
   peptides: "Peptide Therapy Guide",
   weight_loss: "Weight Loss Program Guide",
 };
 
+export interface BuildGuideOptions {
+  /** Optional weight-loss patient summary to render in the side card. */
+  weightLossSummary?: WeightLossPatientSummary;
+  /** Optional override for logo public URL (e.g. when uploaded to storage). */
+  logoUrl?: string;
+  /** Optional override for signature public URL. */
+  signatureUrl?: string;
+}
+
 /** Build the full HTML string for the patient guide (shared by print & share). */
 export function buildGuideHtml(
   guideText: string,
   patientName?: string,
   program: "peptides" | "weight_loss" | string = "peptides",
+  options: BuildGuideOptions = {},
 ): string {
+  // Weight-loss program uses the dedicated branded magazine layout.
+  if (program === "weight_loss") {
+    return buildWeightLossGuideHtml({
+      guideText,
+      patientName: patientName || "Patient",
+      logoUrl: options.logoUrl || logoUrl,
+      signatureUrl: options.signatureUrl || signatureUrl,
+      summary: options.weightLossSummary,
+    });
+  }
+
   // Parse ::: or --- sections
   const sectionRegex = /^(?:::+\s*(.+?)\s*:::+|---\s*(.+?)\s*---)$/gm;
   const titles: { title: string; start: number; end: number }[] = [];
@@ -316,11 +338,12 @@ export function printPatientGuide(
   guideText: string,
   patientName?: string,
   program: "peptides" | "weight_loss" | string = "peptides",
+  options: BuildGuideOptions = {},
 ) {
   const win = window.open("", "_blank", "width=800,height=900");
   if (!win) return;
 
-  win.document.write(buildGuideHtml(guideText, patientName, program));
+  win.document.write(buildGuideHtml(guideText, patientName, program, options));
   win.document.close();
   setTimeout(() => win.print(), 400);
 }
