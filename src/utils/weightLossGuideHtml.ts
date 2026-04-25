@@ -33,12 +33,54 @@ export interface WeightLossGuideParams {
 }
 
 function esc(s: string) {
-  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
-/** Convert **bold** to <strong> while escaping HTML. */
+function escAttr(s: string) {
+  return esc(s).replace(/'/g, "&#39;");
+}
+
+function extractFirstUrl(text: string): string | null {
+  const match = text.match(/https?:\/\/[^\s)]+/i);
+  return match?.[0] || null;
+}
+
+/** Convert **bold** and URLs to safe inline HTML while escaping everything else. */
 function inline(text: string): string {
-  return esc(text).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  return esc(text)
+    .replace(/(https?:\/\/[^\s<]+)/g, (url) => `<a href="${escAttr(url)}" target="_blank" rel="noopener" class="font-semibold underline decoration-teal-400 underline-offset-2">${url}</a>`)
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+}
+
+function looksLikeCompleteHtml(text: string): boolean {
+  return /<!doctype\s+html|<html[\s>]|<body[\s>]/i.test(text);
+}
+
+function sanitizeStandaloneHtml(html: string, patientName: string): string {
+  const hasDoctype = /<!doctype\s+html/i.test(html);
+  const withoutDangerousScripts = html
+    .replace(/<script\b(?![^>]*src=["']https:\/\/cdn\.tailwindcss\.com["'])[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/\son\w+=("[^"]*"|'[^']*'|[^\s>]+)/gi, (attr) => {
+      return /^\s*onclick\s*=\s*(["'])window\.print\(\);?\1$/i.test(attr) ? ' onclick="window.print()"' : "";
+    });
+
+  if (/<html[\s>]/i.test(withoutDangerousScripts)) {
+    return `${hasDoctype ? "" : "<!DOCTYPE html>\n"}${withoutDangerousScripts}`;
+  }
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Patient Journey Guide | ${esc(patientName)}</title>
+</head>
+<body>${withoutDangerousScripts}</body>
+</html>`;
 }
 
 interface Section {
@@ -73,6 +115,16 @@ function splitLines(body: string): { bullets: string[]; paragraphs: string[] } {
     else paragraphs.push(line);
   }
   return { bullets, paragraphs };
+}
+
+function contentItems(body: string): string[] {
+  const { bullets, paragraphs } = splitLines(body);
+  if (bullets.length) return bullets;
+
+  return paragraphs
+    .flatMap((p) => p.split(/(?:\s*[;•]\s*|\.\s+(?=[A-Z])|,\s+(?=(?:room|do not|protect|rotate|seek|persistent|severe|dehydration|constipation|diarrhea|heartburn|nausea)\b))/i))
+    .map((item) => item.trim().replace(/\.$/, ""))
+    .filter(Boolean);
 }
 
 function findSection(sections: Section[], ...keywords: string[]): Section | undefined {
@@ -118,6 +170,14 @@ const NUTRITION_CATEGORY_COLORS = ["#0d9488", "#16a34a", "#f59e0b", "#0ea5e9", "
 
 export function buildWeightLossGuideHtml(params: WeightLossGuideParams): string {
   const { guideText, patientName, logoUrl, signatureUrl, summary } = params;
+
+  // Some clinicians paste the approved full guide HTML into the editable step.
+  // In that case, preserve it as the actual patient-facing page instead of
+  // escaping it into visible source code or trying to re-parse it as text.
+  if (looksLikeCompleteHtml(guideText)) {
+    return sanitizeStandaloneHtml(guideText, patientName);
+  }
+
   const { intro, sections } = parseSections(guideText);
 
   const introSec = findSection(sections, "INTRODUCTION", "ABOUT", "OVERVIEW");
@@ -229,7 +289,7 @@ export function buildWeightLossGuideHtml(params: WeightLossGuideParams): string 
     </section>`;
 
   // ===== STORAGE INSTRUCTIONS =====
-  const storageBullets = storageSec ? splitLines(storageSec.body).bullets : [];
+  const storageBullets = storageSec ? contentItems(storageSec.body) : [];
   const storageHtml = storageSec
     ? `
       <div class="card">
@@ -257,8 +317,9 @@ export function buildWeightLossGuideHtml(params: WeightLossGuideParams): string 
     : "";
 
   // ===== HOW TO INJECT =====
-  const injectBullets = injectSec ? splitLines(injectSec.body).bullets : [];
+  const injectBullets = injectSec ? contentItems(injectSec.body) : [];
   const injectTitle = injectSec ? injectSec.title.replace(/\b\w/g, (c) => c.toUpperCase()) : "How to Inject";
+  const injectionVideoUrl = extractFirstUrl(injectSec?.body || "") || "https://www.youtube.com/results?search_query=GLP1+pen+injection+technique";
   const injectHtml = injectSec
     ? `
       <div class="card">
@@ -267,7 +328,7 @@ export function buildWeightLossGuideHtml(params: WeightLossGuideParams): string 
             <span class="w-7 h-7 rounded-full border-2 border-teal-600 text-teal-700 flex items-center justify-center font-bold text-lg leading-none">+</span>
             <h3 class="text-xl font-bold text-slate-900">${esc(injectTitle)}</h3>
           </div>
-          <a href="https://www.youtube.com/results?search_query=GLP1+pen+injection+technique"
+          <a href="${escAttr(injectionVideoUrl)}"
              target="_blank" rel="noopener"
              class="inline-flex items-center gap-2 bg-rose-50 text-rose-600 text-sm font-bold px-3 py-1.5 rounded-full hover:bg-rose-100 transition">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M21.58 7.19a2.5 2.5 0 0 0-1.76-1.77C18.25 5 12 5 12 5s-6.25 0-7.82.42A2.5 2.5 0 0 0 2.42 7.2 26 26 0 0 0 2 12a26 26 0 0 0 .42 4.81 2.5 2.5 0 0 0 1.76 1.77C5.75 19 12 19 12 19s6.25 0 7.82-.42a2.5 2.5 0 0 0 1.76-1.77A26 26 0 0 0 22 12a26 26 0 0 0-.42-4.81zM10 15V9l5.2 3z"/></svg>
@@ -295,7 +356,8 @@ export function buildWeightLossGuideHtml(params: WeightLossGuideParams): string 
   // ===== NUTRITION & DIET =====
   let nutritionHtml = "";
   if (nutritionSec) {
-    const { bullets, paragraphs } = splitLines(nutritionSec.body);
+    const { paragraphs } = splitLines(nutritionSec.body);
+    const bullets = contentItems(nutritionSec.body);
     // Separate metric-style bullets (label: value unit) from category bars.
     const metricBullets: { label: string; value: string; unit?: string }[] = [];
     const detailBullets: string[] = [];
@@ -360,7 +422,7 @@ export function buildWeightLossGuideHtml(params: WeightLossGuideParams): string 
   // ===== SIDE EFFECTS (cream cards) =====
   let sideEffectsHtml = "";
   if (sideEffectsSec) {
-    const { bullets } = splitLines(sideEffectsSec.body);
+    const bullets = contentItems(sideEffectsSec.body);
     sideEffectsHtml = `
       <div class="card">
         <div class="flex items-center gap-3 mb-5">
@@ -391,7 +453,8 @@ export function buildWeightLossGuideHtml(params: WeightLossGuideParams): string 
   // ===== RED-FLAG SYMPTOMS =====
   let redFlagHtml = "";
   if (redFlagSec) {
-    const { bullets, paragraphs } = splitLines(redFlagSec.body);
+    const { paragraphs } = splitLines(redFlagSec.body);
+    const bullets = contentItems(redFlagSec.body);
     redFlagHtml = `
       <div class="card-rose">
         <div class="flex items-center gap-3 mb-4">
@@ -424,7 +487,8 @@ export function buildWeightLossGuideHtml(params: WeightLossGuideParams): string 
   // ===== FOLLOW-UP PLAN =====
   let followUpHtml = "";
   if (followUpSec) {
-    const { bullets, paragraphs } = splitLines(followUpSec.body);
+    const { paragraphs } = splitLines(followUpSec.body);
+    const bullets = contentItems(followUpSec.body);
     const allText = [...paragraphs, ...bullets].join(" ");
     const weekMatch = allText.match(/week\s*(\d+)/i) || allText.match(/(\d+)(?:st|nd|rd|th)\s+(?:dose|week)/i);
     const milestone = weekMatch ? `WEEK ${weekMatch[1]}` : "REVIEW";
