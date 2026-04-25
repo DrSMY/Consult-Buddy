@@ -116,23 +116,27 @@ export async function generateAndShareGuide(
   const htmlUrl = await uploadHtml(htmlContent, `${safeName}_${ts}.html`);
   const pdfUrl = await uploadPdf(pdfBlob, `${safeName}_${ts}.pdf`);
 
-  // 4) Build landing page that wraps both links
+  // 4) Use the app as the patient-facing wrapper so the online guide renders
+  // in an iframe even if storage serves the .html object as source text.
+  const appLandingUrl = buildAppSharedGuideUrl({ patientName, program, htmlUrl, pdfUrl });
+
+  // Keep uploading a static landing page as a fallback/reference artifact.
   const landingHtml = buildLandingHtml({
     patientName,
     program,
-    htmlUrl,
+    htmlUrl: `${appLandingUrl}&view=guide`,
     pdfUrl,
     logoUrl,
     signatureUrl,
     expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
   });
-  const landingUrl = await uploadHtml(landingHtml, `${safeName}_${ts}_share.html`);
+  await uploadHtml(landingHtml, `${safeName}_${ts}_share.html`);
 
   // 5) Compose short WhatsApp message
   const message =
     `Hello ${patientName},\n\n` +
     `Your ${PROGRAM_LABELS[program]} guide from Dr Sami M. Yesuf is ready.\n\n` +
-    `View it here: ${landingUrl}\n\n` +
+    `View it here: ${appLandingUrl}\n\n` +
     `— PeptiDOC`;
   const whatsappUrl = `https://wa.me/${sanitizePhone(phone)}?text=${encodeURIComponent(message)}`;
 
@@ -140,7 +144,7 @@ export async function generateAndShareGuide(
     window.open(whatsappUrl, "_blank");
   }
 
-  return { htmlUrl, pdfUrl, landingUrl, whatsappUrl };
+  return { htmlUrl, pdfUrl, landingUrl: appLandingUrl, whatsappUrl };
 }
 
 /** Backwards-compat wrapper used by older callers. */
