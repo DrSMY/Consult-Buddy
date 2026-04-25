@@ -19,6 +19,48 @@ function validateNumber(val: unknown, min: number, max: number): number | undefi
   return n;
 }
 
+/**
+ * Defensive cleanup: if the AI returned an HTML document or fenced code block
+ * instead of the expected `::: SECTION :::` plain-text format, salvage what
+ * we can so the downstream renderer doesn't display raw markup to clinicians.
+ */
+function sanitizeGuideOutput(raw: string): string {
+  if (!raw) return raw;
+  let text = raw.trim();
+
+  // Strip leading/trailing markdown code fences (```html ... ``` or ``` ... ```)
+  text = text.replace(/^```[a-zA-Z]*\s*\n?/, "").replace(/\n?```\s*$/, "").trim();
+
+  // If the model returned HTML, strip tags, scripts, and styles to recover plain text.
+  const looksLikeHtml = /<\s*(html|body|div|script|style|head|meta|link|h[1-6]|p|ul|li|span)\b/i.test(text);
+  if (looksLikeHtml) {
+    text = text
+      .replace(/<script[\s\S]*?<\/script>/gi, "")
+      .replace(/<style[\s\S]*?<\/style>/gi, "")
+      .replace(/<head[\s\S]*?<\/head>/gi, "")
+      .replace(/<!DOCTYPE[^>]*>/gi, "")
+      // Convert headings/list items to bullet lines so the renderer keeps structure
+      .replace(/<\s*(h[1-6])[^>]*>([\s\S]*?)<\/\s*\1\s*>/gi, "\n$2\n")
+      .replace(/<\s*li[^>]*>([\s\S]*?)<\/\s*li\s*>/gi, "- $1\n")
+      .replace(/<\s*br\s*\/?>/gi, "\n")
+      .replace(/<\s*\/\s*p\s*>/gi, "\n\n")
+      // Drop all remaining tags
+      .replace(/<[^>]+>/g, "")
+      // Decode common entities
+      .replace(/&nbsp;/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+  }
+
+  return text;
+}
+
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
