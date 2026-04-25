@@ -40,13 +40,27 @@ async function uploadAssetIfNeeded(localUrl: string, storagePath: string): Promi
   return existing.publicUrl;
 }
 
+/**
+ * Public-facing base URL for patient links. The app is hosted at multiple
+ * origins (lovable.app preview, peptidedoc.live, etc.). Preview origins
+ * (`id-preview--*.lovable.app`) require a Lovable login and CANNOT be opened
+ * by patients — so we always rewrite those to the published domain.
+ */
+function getPublicAppOrigin(): string {
+  const { origin, hostname } = window.location;
+  if (hostname.includes("id-preview--") || hostname.endsWith(".lovableproject.com")) {
+    return "https://peptidedoc.live";
+  }
+  return origin;
+}
+
 function buildAppSharedGuideUrl(params: {
   patientName: string;
   program: Program;
   htmlUrl: string;
   pdfUrl: string;
 }) {
-  const url = new URL("/shared-guide", window.location.origin);
+  const url = new URL("/shared-guide", getPublicAppOrigin());
   url.searchParams.set("name", params.patientName);
   url.searchParams.set("program", params.program);
   url.searchParams.set("html", params.htmlUrl);
