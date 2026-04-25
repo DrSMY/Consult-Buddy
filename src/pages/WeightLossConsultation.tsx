@@ -668,6 +668,15 @@ export default function WeightLossConsultation() {
           phone={patient?.mobileNumber || ""}
           program="weight_loss"
           initialGuideText={patientGuide}
+          weightLossSummary={{
+            weightKg: weight,
+            heightCm: height,
+            bmi: bmi,
+            bmiClass: bmi ? getBMICategory(bmi) : null,
+            calorieTarget: weightLossCalories ?? dailyCalories ?? null,
+            medication: medName || null,
+            dose: dose || null,
+          }}
         />
       )}
     </div>

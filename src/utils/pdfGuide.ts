@@ -1,5 +1,5 @@
 import html2pdf from "html2pdf.js";
-import { buildGuideHtml } from "./printGuide";
+import { buildGuideHtml, type BuildGuideOptions } from "./printGuide";
 
 /**
  * Render the patient guide HTML into a PDF Blob using html2pdf.js (browser-side).
@@ -9,8 +9,9 @@ export async function buildGuidePdfBlob(
   guideText: string,
   patientName: string,
   program: "peptides" | "weight_loss" = "peptides",
+  options: BuildGuideOptions = {},
 ): Promise<Blob> {
-  const html = buildGuideHtml(guideText, patientName, program);
+  const html = buildGuideHtml(guideText, patientName, program, options);
 
   // Render off-screen container
   const container = document.createElement("div");

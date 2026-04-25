@@ -6,6 +6,7 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Send, Eye, Pencil, Sparkles, Copy, Check } from "lucide-react";
 import PatientGuideDisplay from "@/components/PatientGuideDisplay";
 import { generateAndShareGuide } from "@/utils/shareGuide";
+import type { WeightLossPatientSummary } from "@/utils/weightLossGuideHtml";
 import { useToast } from "@/hooks/use-toast";
 
 interface ShareGuideDialogProps {
@@ -15,6 +16,8 @@ interface ShareGuideDialogProps {
   phone: string;
   program: "peptides" | "weight_loss";
   initialGuideText: string;
+  /** Optional patient summary rendered in the weight-loss layout. */
+  weightLossSummary?: WeightLossPatientSummary;
   /** Called with the edited guide text after a successful send so the parent can persist it. */
   onSent?: (editedGuideText: string) => void;
 }
@@ -26,6 +29,7 @@ export default function ShareGuideDialog({
   phone,
   program,
   initialGuideText,
+  weightLossSummary,
   onSent,
 }: ShareGuideDialogProps) {
   const { toast } = useToast();
@@ -51,7 +55,11 @@ export default function ShareGuideDialog({
     }
     setSending(true);
     try {
-      const result = await generateAndShareGuide(guideText, patientName, phone, program);
+      const result = await generateAndShareGuide(guideText, patientName, phone, program, {
+        autoOpenWhatsApp: true,
+        weightLossSummary,
+      });
+
       setLinksReady({ landing: result.landingUrl, html: result.htmlUrl, pdf: result.pdfUrl });
       onSent?.(guideText);
       toast({ title: "Guide sent", description: "WhatsApp opened with the share link." });
