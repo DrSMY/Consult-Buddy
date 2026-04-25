@@ -17,6 +17,7 @@ import UserManagement from "./pages/UserManagement";
 import NotFound from "./pages/NotFound";
 import ResetPassword from "./pages/ResetPassword";
 import Install from "./pages/Install";
+import SharedGuide from "./pages/SharedGuide";
 import InstallBanner from "./components/InstallBanner";
 
 const queryClient = new QueryClient();
@@ -33,6 +34,7 @@ const App = () => (
             <Route path="/" element={<Navigate to="/dashboard" replace />} />
             <Route path="/auth" element={<Auth />} />
             <Route path="/install" element={<Install />} />
+            <Route path="/shared-guide" element={<SharedGuide />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/program/peptides" element={<ProtectedRoute><PatientIntake /></ProtectedRoute>} />
