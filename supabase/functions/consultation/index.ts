@@ -19,6 +19,48 @@ function validateNumber(val: unknown, min: number, max: number): number | undefi
   return n;
 }
 
+/**
+ * Defensive cleanup: if the AI returned an HTML document or fenced code block
+ * instead of the expected `::: SECTION :::` plain-text format, salvage what
+ * we can so the downstream renderer doesn't display raw markup to clinicians.
+ */
+function sanitizeGuideOutput(raw: string): string {
+  if (!raw) return raw;
+  let text = raw.trim();
+
+  // Strip leading/trailing markdown code fences (```html ... ``` or ``` ... ```)
+  text = text.replace(/^```[a-zA-Z]*\s*\n?/, "").replace(/\n?```\s*$/, "").trim();
+
+  // If the model returned HTML, strip tags, scripts, and styles to recover plain text.
+  const looksLikeHtml = /<\s*(html|body|div|script|style|head|meta|link|h[1-6]|p|ul|li|span)\b/i.test(text);
+  if (looksLikeHtml) {
+    text = text
+      .replace(/<script[\s\S]*?<\/script>/gi, "")
+      .replace(/<style[\s\S]*?<\/style>/gi, "")
+      .replace(/<head[\s\S]*?<\/head>/gi, "")
+      .replace(/<!DOCTYPE[^>]*>/gi, "")
+      // Convert headings/list items to bullet lines so the renderer keeps structure
+      .replace(/<\s*(h[1-6])[^>]*>([\s\S]*?)<\/\s*\1\s*>/gi, "\n$2\n")
+      .replace(/<\s*li[^>]*>([\s\S]*?)<\/\s*li\s*>/gi, "- $1\n")
+      .replace(/<\s*br\s*\/?>/gi, "\n")
+      .replace(/<\s*\/\s*p\s*>/gi, "\n\n")
+      // Drop all remaining tags
+      .replace(/<[^>]+>/g, "")
+      // Decode common entities
+      .replace(/&nbsp;/g, " ")
+      .replace(/&amp;/g, "&")
+      .replace(/&lt;/g, "<")
+      .replace(/&gt;/g, ">")
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/\n{3,}/g, "\n\n")
+      .trim();
+  }
+
+  return text;
+}
+
+
 serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
@@ -309,7 +351,17 @@ SCOPE Certified Physician`;
         body: JSON.stringify({
           model: "google/gemini-3-flash-preview",
           messages: [
-            { role: "system", content: "You are a clinical care guide writer for a weight loss clinic. Write clear, patient-friendly guides. Follow the structure exactly as given." },
+            {
+              role: "system",
+              content:
+                "You are a clinical care guide writer for a weight loss clinic. Write clear, patient-friendly guides.\n\n" +
+                "OUTPUT FORMAT — STRICT:\n" +
+                "• Output PLAIN TEXT ONLY. Never output HTML, never output Markdown code fences, never output <html>, <body>, <div>, <script>, <style>, <link>, class= attributes, or any tags.\n" +
+                "• Do NOT wrap the output in ``` blocks of any kind.\n" +
+                "• Use ONLY the section delimiter format `::: SECTION TITLE :::` on its own line, followed by the section body as plain prose and bullet lines starting with `-` or `•`.\n" +
+                "• Do NOT add Tailwind classes, CSS, JavaScript, or any code. The downstream renderer builds the HTML — your job is the text content only.\n" +
+                "• Follow the section structure given by the user exactly.",
+            },
             { role: "user", content: prompt },
           ],
         }),
@@ -332,7 +384,10 @@ SCOPE Certified Physician`;
       }
 
       const data = await response.json();
-      const guide = data.choices?.[0]?.message?.content || "";
+      let guide = data.choices?.[0]?.message?.content || "";
+
+      // Defensive sanitizer: if the model returned HTML or code fences, extract the plain-text guide.
+      guide = sanitizeGuideOutput(guide);
 
       return new Response(JSON.stringify({ guide }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
