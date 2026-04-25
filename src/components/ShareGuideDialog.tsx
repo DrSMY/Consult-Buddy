@@ -54,7 +54,11 @@ export default function ShareGuideDialog({
     }
     setSending(true);
     try {
-      const result = await generateAndShareGuide(guideText, patientName, phone, program);
+      const result = await generateAndShareGuide(guideText, patientName, phone, program, {
+        autoOpenWhatsApp: true,
+        weightLossSummary,
+      });
+
       setLinksReady({ landing: result.landingUrl, html: result.htmlUrl, pdf: result.pdfUrl });
       onSent?.(guideText);
       toast({ title: "Guide sent", description: "WhatsApp opened with the share link." });
