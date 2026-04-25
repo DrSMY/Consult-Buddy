@@ -659,6 +659,17 @@ export default function WeightLossConsultation() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {consultation && patientGuide && (
+        <ShareGuideDialog
+          open={shareOpen}
+          onOpenChange={setShareOpen}
+          patientName={consultation.patient_name}
+          phone={patient?.mobileNumber || ""}
+          program="weight_loss"
+          initialGuideText={patientGuide}
+        />
+      )}
     </div>
   );
 }
