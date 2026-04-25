@@ -1,7 +1,14 @@
 /**
  * Branded magazine-style HTML for the Weight Loss / GLP-1 program.
  * Renders the AI-generated `::: SECTION :::` blocks into a structured
- * Tailwind layout matching the DarDoc reference design.
+ * Tailwind layout matching the DarDoc reference design exactly:
+ *   - Full-bleed teal gradient hero with "Hi {Name}," greeting
+ *   - White card containing Introduction + Patient Summary side card
+ *   - Storage Instructions + How to Inject (numbered steps, video pill) row
+ *   - Nutrition & Diet card with metric tiles and category bars
+ *   - Common Side Effects (cream) + Red-Flag Symptoms (warning) row
+ *   - Dark teal Follow-Up Plan band with "WEEK N" watermark
+ *   - Signature card with "Save Personal Guide" CTA
  *
  * Tailwind is loaded from CDN so the standalone HTML renders identically
  * in any browser and converts cleanly via "Print → Save as PDF".
@@ -29,6 +36,7 @@ function esc(s: string) {
   return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+/** Convert **bold** to <strong> while escaping HTML. */
 function inline(text: string): string {
   return esc(text).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
 }
@@ -54,7 +62,6 @@ function parseSections(text: string): { intro: string; sections: Section[] } {
   return { intro, sections };
 }
 
-/** Pull out bullets/numbered lines vs paragraph lines. */
 function splitLines(body: string): { bullets: string[]; paragraphs: string[] } {
   const bullets: string[] = [];
   const paragraphs: string[] = [];
@@ -75,247 +82,415 @@ function findSection(sections: Section[], ...keywords: string[]): Section | unde
   });
 }
 
-/** Render a generic card for any unmatched section. */
-function genericCard(s: Section): string {
-  const { bullets, paragraphs } = splitLines(s.body);
-  return `
-    <div class="bg-white rounded-2xl p-6 card-shadow">
-      <h3 class="text-lg font-bold text-slate-800 mb-3">${esc(s.title)}</h3>
-      ${paragraphs.map((p) => `<p class="text-sm text-slate-600 mb-2">${inline(p)}</p>`).join("")}
-      ${bullets.length
-        ? `<ul class="space-y-1.5 mt-2">
-            ${bullets
-              .map(
-                (b) =>
-                  `<li class="flex items-start gap-2 text-sm text-slate-600"><span class="text-teal-600 mt-1">●</span><span>${inline(b)}</span></li>`,
-              )
-              .join("")}
-          </ul>`
-        : ""}
-    </div>`;
+/** Split a bullet of the shape "Title: rest of text" into a heading + body. */
+function splitTitled(line: string): { head: string | null; body: string } {
+  const m = line.match(/^\*\*(.+?)\*\*\s*[:\-–]\s*(.+)$/) || line.match(/^([A-Z][A-Za-z0-9 /&\-]{1,40})\s*[:\-–]\s*(.+)$/);
+  if (m) return { head: m[1].trim(), body: m[2].trim() };
+  return { head: null, body: line };
 }
+
+/** Try to extract a "key: value(unit)" target from a line for the metric tiles. */
+function extractMetric(line: string): { label: string; value: string; unit?: string } | null {
+  // e.g. "Protein target: 124 - 155 g/day", "Hydration: 2-3 Liters/day", "Carbs: <20% total intake"
+  const m = line.match(/^\*?\*?(.+?)\*?\*?\s*[:\-–]\s*([<>]?\s*[\d.]+(?:\s*[-–]\s*[\d.]+)?\s*%?)\s*(.*)$/);
+  if (!m) return null;
+  return { label: m[1].trim(), value: m[2].replace(/\s+/g, " ").trim(), unit: m[3].trim() || undefined };
+}
+
+const STORAGE_EMOJI: Array<[RegExp, string]> = [
+  [/refrig|fridge|2.?°|cool/i, "❄️"],
+  [/room|travel|carry|28\s*day/i, "🏠"],
+  [/freez|do not freeze/i, "🚫"],
+  [/light|carton|sun|dark/i, "☀️"],
+];
+const pickStorageEmoji = (line: string) => {
+  for (const [re, e] of STORAGE_EMOJI) if (re.test(line)) return e;
+  return "📦";
+};
+
+/** Highlight critical "do not" / "discard" lines in red. */
+function isStorageDanger(line: string) {
+  return /do not|don'?t|discard|never|avoid freezing|do\s*not\s*freeze/i.test(line);
+}
+
+/** Category bars used inside the Nutrition card. Order matters for color variety. */
+const NUTRITION_CATEGORY_COLORS = ["#0d9488", "#16a34a", "#f59e0b", "#0ea5e9", "#a855f7"];
 
 export function buildWeightLossGuideHtml(params: WeightLossGuideParams): string {
   const { guideText, patientName, logoUrl, signatureUrl, summary } = params;
   const { intro, sections } = parseSections(guideText);
 
-  const intoSec = findSection(sections, "INTRODUCTION", "ABOUT", "OVERVIEW");
-  const summarySec = findSection(sections, "PATIENT SUMMARY", "YOUR SUMMARY");
+  const introSec = findSection(sections, "INTRODUCTION", "ABOUT", "OVERVIEW");
   const storageSec = findSection(sections, "STORAGE");
-  const injectSec = findSection(sections, "HOW TO INJECT", "HOW TO TAKE", "ADMINISTRATION");
+  const injectSec = findSection(sections, "HOW TO INJECT", "INJECT", "ADMINISTRATION", "HOW TO TAKE");
   const nutritionSec = findSection(sections, "NUTRITION", "DIET", "MEAL");
   const sideEffectsSec = findSection(sections, "SIDE EFFECT");
-  const redFlagSec = findSection(sections, "RED-FLAG", "RED FLAG", "URGENT", "WARNING");
+  const redFlagSec = findSection(sections, "RED-FLAG", "RED FLAG", "URGENT", "WARNING", "EMERGENCY");
   const followUpSec = findSection(sections, "FOLLOW-UP", "FOLLOW UP", "REVIEW");
 
   const handled = new Set(
-    [intoSec, summarySec, storageSec, injectSec, nutritionSec, sideEffectsSec, redFlagSec, followUpSec].filter(Boolean).map((s) => s!.title),
+    [introSec, storageSec, injectSec, nutritionSec, sideEffectsSec, redFlagSec, followUpSec]
+      .filter(Boolean)
+      .map((s) => s!.title),
   );
   const extras = sections.filter((s) => !handled.has(s.title));
 
-  // ---------- Intro ----------
-  const introText = intoSec?.body || intro || "";
-  const { bullets: introBullets, paragraphs: introParas } = splitLines(introText);
-  const introHtml = `
-    <div class="bg-white rounded-2xl p-6 card-shadow h-full">
-      <div class="flex items-center gap-2 mb-3">
-        <div class="w-8 h-8 rounded-lg bg-teal-100 text-teal-700 flex items-center justify-center">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
-        </div>
-        <h2 class="text-lg font-bold text-slate-800">Introduction</h2>
+  const today = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
+  const year = new Date().getFullYear();
+
+  // ===== HERO =====
+  const heroHtml = `
+  <section class="hero relative">
+    <div class="max-w-6xl mx-auto px-6 md:px-10 pt-10 pb-32">
+      <div class="inline-flex items-center gap-2 bg-white/15 backdrop-blur-sm border border-white/25 text-white text-[11px] font-bold tracking-[0.2em] uppercase px-4 py-1.5 rounded-full">
+        Clinical Weight Management
       </div>
-      ${introParas.map((p) => `<p class="text-sm text-slate-600 leading-relaxed mb-3">${inline(p)}</p>`).join("")}
-      ${introBullets.length
-        ? `<ul class="space-y-2 mt-3">
-            ${introBullets
+      <h1 class="text-white text-5xl md:text-6xl font-extrabold mt-6 leading-[1.05] tracking-tight">
+        Hi ${esc(patientName)},
+      </h1>
+      <p class="text-teal-50/95 text-base md:text-lg mt-4 max-w-2xl leading-relaxed">
+        This is your personalized roadmap to start your journey with us and take your medication as advised for sustainable health improvements.
+      </p>
+    </div>
+  </section>`;
+
+  // ===== INTRODUCTION + PATIENT SUMMARY =====
+  const introBody = introSec?.body || intro || "";
+  const introParts = splitLines(introBody);
+  const introCardHtml = `
+    <div>
+      <div class="flex items-center gap-3 mb-5">
+        <div class="w-9 h-9 rounded-full border-2 border-teal-600 text-teal-700 flex items-center justify-center">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="11" x2="12" y2="17"/><line x1="12" y1="7" x2="12.01" y2="7"/></svg>
+        </div>
+        <h2 class="text-2xl font-bold text-slate-800">Introduction</h2>
+      </div>
+      ${introParts.paragraphs
+        .map((p) => `<p class="text-[15px] text-slate-600 leading-[1.7] mb-3">${inline(p)}</p>`) 
+        .join("")}
+      ${introParts.bullets.length
+        ? `<div class="grid grid-cols-1 sm:grid-cols-2 gap-3 mt-4">
+            ${introParts.bullets
               .map(
-                (b) =>
-                  `<li class="flex items-start gap-2"><span class="text-teal-600 font-bold mt-0.5">●</span><p class="text-sm text-slate-600">${inline(b)}</p></li>`,
+                (b) => `
+              <div class="flex items-start gap-3 bg-slate-50 rounded-xl px-4 py-3">
+                <span class="w-2 h-2 rounded-full bg-teal-600 mt-2 flex-shrink-0"></span>
+                <p class="text-sm text-slate-700 leading-snug">${inline(b)}</p>
+              </div>`,
               )
               .join("")}
-          </ul>`
+          </div>`
         : ""}
     </div>`;
 
-  // ---------- Patient Summary ----------
-  const sumW = summary?.weightKg;
-  const sumH = summary?.heightCm;
-  const sumB = summary?.bmi;
-  const sumBClass = summary?.bmiClass;
-  const sumCal = summary?.calorieTarget;
-  const summaryHtml = `
-    <div class="gradient-header text-white rounded-2xl p-6 card-shadow h-full">
-      <h3 class="text-lg font-bold mb-4">Patient Summary</h3>
-      <div class="space-y-3 text-sm">
-        ${sumW != null ? `<div class="flex justify-between border-b border-white/20 pb-2"><span class="text-teal-100">Weight</span><span class="font-semibold">${sumW} kg</span></div>` : ""}
-        ${sumH != null ? `<div class="flex justify-between border-b border-white/20 pb-2"><span class="text-teal-100">Height</span><span class="font-semibold">${sumH} cm</span></div>` : ""}
-        ${sumB != null ? `<div class="flex justify-between border-b border-white/20 pb-2"><span class="text-teal-100">BMI</span><span class="font-semibold">${sumB.toFixed(1)}${sumBClass ? ` (${esc(sumBClass)})` : ""}</span></div>` : ""}
-        ${sumCal != null ? `<div class="flex justify-between"><span class="text-teal-100">Caloric Target</span><span class="font-semibold">${sumCal} kcal/day</span></div>` : ""}
-        ${summary?.medication ? `<div class="flex justify-between border-t border-white/20 pt-2"><span class="text-teal-100">Medication</span><span class="font-semibold">${esc(summary.medication)}${summary.dose ? ` · ${esc(summary.dose)}` : ""}</span></div>` : ""}
-        ${!sumW && !sumH && !sumB && !sumCal && summarySec ? `<p class="text-sm text-teal-50">${inline(summarySec.body)}</p>` : ""}
-      </div>
-    </div>`;
-
-  // ---------- Storage ----------
-  const storageEmojis: Record<string, string> = {
-    refrig: "❄️", "2": "❄️", cool: "❄️",
-    room: "🏠", travel: "🏠", carry: "🏠",
-    freez: "🚫", "do not": "🚫",
-    light: "☀️", carton: "☀️", protect: "☀️",
-  };
-  const pickEmoji = (text: string) => {
-    const low = text.toLowerCase();
-    for (const k of Object.keys(storageEmojis)) if (low.includes(k)) return storageEmojis[k];
-    return "📦";
-  };
-  const storageBullets = storageSec ? splitLines(storageSec.body).bullets : [];
-  const storageHtml = storageSec
-    ? `
-    <div class="bg-white rounded-2xl p-6 card-shadow h-full">
-      <div class="flex items-center gap-2 mb-3">
-        <div class="w-8 h-8 rounded-lg bg-cyan-100 text-cyan-700 flex items-center justify-center">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M14 4v10.54a4 4 0 1 1-4 0V4a2 2 0 0 1 4 0Z"/></svg>
-        </div>
-        <h3 class="text-lg font-bold text-slate-800">Storage Instructions</h3>
-      </div>
-      <ul class="space-y-2.5">
-        ${storageBullets
+  const summaryRows: Array<[string, string]> = [];
+  if (summary?.weightKg != null) summaryRows.push(["Weight", `${summary.weightKg} kg`]);
+  if (summary?.heightCm != null) summaryRows.push(["Height", `${summary.heightCm} cm`]);
+  if (summary?.bmi != null) summaryRows.push(["BMI", `${summary.bmi.toFixed(1)}${summary.bmiClass ? ` (${esc(summary.bmiClass)})` : ""}`]);
+  const summaryCardHtml = `
+    <aside class="bg-teal-50 rounded-2xl p-6 h-full">
+      <div class="text-[11px] font-bold tracking-[0.18em] uppercase text-teal-800/80 mb-4">Patient Summary</div>
+      <div class="space-y-3">
+        ${summaryRows
           .map(
-            (b) =>
-              `<li class="flex items-start gap-3"><span class="text-xl leading-none">${pickEmoji(b)}</span><p class="text-sm text-slate-600">${inline(b)}</p></li>`,
-          )
-          .join("")}
-      </ul>
-    </div>`
-    : "";
-
-  // ---------- Inject / Take ----------
-  const injectBullets = injectSec ? splitLines(injectSec.body).bullets : [];
-  const injectHtml = injectSec
-    ? `
-    <div class="bg-white rounded-2xl p-6 card-shadow h-full">
-      <div class="flex items-center gap-2 mb-3">
-        <div class="w-8 h-8 rounded-lg bg-indigo-100 text-indigo-700 flex items-center justify-center">
-          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m18 2 4 4"/><path d="m17 7 3-3"/><path d="M19 9 8.7 19.3c-1 1-2.5 1-3.4 0l-.6-.6c-1-1-1-2.5 0-3.4L15 5"/></svg>
-        </div>
-        <h3 class="text-lg font-bold text-slate-800">${esc(injectSec.title.replace(/\b\w/g, (c) => c.toUpperCase()))}</h3>
-      </div>
-      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
-        ${injectBullets
-          .map(
-            (b, i) => `
-          <div class="flex items-start gap-3">
-            <div class="step-number">${i + 1}</div>
-            <p class="text-sm text-slate-600 pt-0.5">${inline(b)}</p>
+            ([k, v]) => `
+          <div class="flex items-center justify-between border-b border-teal-200/60 pb-3">
+            <span class="text-sm text-slate-600">${esc(k)}</span>
+            <span class="text-base font-bold text-slate-900">${v}</span>
           </div>`,
           )
           .join("")}
+        ${summary?.calorieTarget != null
+          ? `
+          <div class="pt-3">
+            <div class="text-[11px] font-bold tracking-[0.18em] uppercase text-teal-700">Caloric Target</div>
+            <div class="text-2xl font-extrabold text-slate-900 mt-1">${summary.calorieTarget} kcal/day</div>
+          </div>`
+          : ""}
+        ${summary?.medication
+          ? `
+          <div class="pt-3 border-t border-teal-200/60">
+            <div class="text-[11px] font-bold tracking-[0.18em] uppercase text-teal-700">Medication</div>
+            <div class="text-base font-bold text-slate-900 mt-1">${esc(summary.medication)}${summary.dose ? ` · ${esc(summary.dose)}` : ""}</div>
+          </div>`
+          : ""}
       </div>
-    </div>`
+    </aside>`;
+
+  // The intro+summary card sits ON TOP of the hero, overlapping it.
+  const introSummaryHtml = `
+    <section class="max-w-6xl mx-auto px-4 md:px-6 -mt-24 relative z-10">
+      <div class="bg-white rounded-3xl card-shadow p-6 md:p-10">
+        <div class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+          <div class="lg:col-span-2">${introCardHtml}</div>
+          <div>${summaryCardHtml}</div>
+        </div>
+      </div>
+    </section>`;
+
+  // ===== STORAGE INSTRUCTIONS =====
+  const storageBullets = storageSec ? splitLines(storageSec.body).bullets : [];
+  const storageHtml = storageSec
+    ? `
+      <div class="card">
+        <div class="flex items-center gap-3 mb-5">
+          <span class="text-2xl">🧪</span>
+          <h3 class="text-xl font-bold text-slate-900">Storage Instructions</h3>
+        </div>
+        <ul class="space-y-4">
+          ${storageBullets
+            .map((b) => {
+              const parts = splitTitled(b);
+              const danger = isStorageDanger(b);
+              const head = parts.head ? `<strong class="${danger ? "text-rose-600" : "text-slate-900"}">${esc(parts.head)}:</strong> ` : "";
+              const body = `<span class="${danger ? "text-rose-600" : "text-slate-700"}">${inline(parts.body)}</span>`;
+              const emoji = danger ? "🚫" : pickStorageEmoji(b);
+              return `
+              <li class="flex items-start gap-3">
+                <span class="text-lg leading-tight pt-0.5">${emoji}</span>
+                <p class="text-[15px] leading-snug">${head}${body}</p>
+              </li>`;
+            })
+            .join("")}
+        </ul>
+      </div>`
     : "";
 
-  // ---------- Nutrition ----------
-  const nutritionHtml = nutritionSec
-    ? (() => {
-        const { bullets, paragraphs } = splitLines(nutritionSec.body);
-        return `
-        <div class="nutrition-bg rounded-2xl p-6 card-shadow">
-          <div class="flex items-center gap-2 mb-3">
-            <div class="w-8 h-8 rounded-lg bg-green-100 text-green-700 flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M3 2v7c0 1.1.9 2 2 2h4a2 2 0 0 0 2-2V2"/><path d="M7 2v20"/><path d="M21 15V2v0a5 5 0 0 0-5 5v6c0 1.1.9 2 2 2h3Zm0 0v7"/></svg>
-            </div>
-            <h3 class="text-lg font-bold text-slate-800">Nutrition &amp; Diet Structure</h3>
+  // ===== HOW TO INJECT =====
+  const injectBullets = injectSec ? splitLines(injectSec.body).bullets : [];
+  const injectTitle = injectSec ? injectSec.title.replace(/\b\w/g, (c) => c.toUpperCase()) : "How to Inject";
+  const injectHtml = injectSec
+    ? `
+      <div class="card">
+        <div class="flex items-center justify-between gap-4 mb-5 flex-wrap">
+          <div class="flex items-center gap-3">
+            <span class="w-7 h-7 rounded-full border-2 border-teal-600 text-teal-700 flex items-center justify-center font-bold text-lg leading-none">+</span>
+            <h3 class="text-xl font-bold text-slate-900">${esc(injectTitle)}</h3>
           </div>
-          ${paragraphs.map((p) => `<p class="text-sm text-slate-700 mb-3">${inline(p)}</p>`).join("")}
+          <a href="https://www.youtube.com/results?search_query=GLP1+pen+injection+technique"
+             target="_blank" rel="noopener"
+             class="inline-flex items-center gap-2 bg-rose-50 text-rose-600 text-sm font-bold px-3 py-1.5 rounded-full hover:bg-rose-100 transition">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><path d="M21.58 7.19a2.5 2.5 0 0 0-1.76-1.77C18.25 5 12 5 12 5s-6.25 0-7.82.42A2.5 2.5 0 0 0 2.42 7.2 26 26 0 0 0 2 12a26 26 0 0 0 .42 4.81 2.5 2.5 0 0 0 1.76 1.77C5.75 19 12 19 12 19s6.25 0 7.82-.42a2.5 2.5 0 0 0 1.76-1.77A26 26 0 0 0 22 12a26 26 0 0 0-.42-4.81zM10 15V9l5.2 3z"/></svg>
+            Watch Instructional Video
+          </a>
+        </div>
+        <div class="grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-4">
+          ${injectBullets
+            .map((b, i) => {
+              const parts = splitTitled(b);
+              return `
+              <div class="flex items-start gap-3">
+                <span class="step-pill">${i + 1}</span>
+                <p class="text-[15px] leading-snug pt-0.5">
+                  ${parts.head ? `<strong class="text-slate-900">${esc(parts.head)}:</strong> ` : ""}
+                  <span class="text-slate-700">${inline(parts.body)}</span>
+                </p>
+              </div>`;
+            })
+            .join("")}
+        </div>
+      </div>`
+    : "";
+
+  // ===== NUTRITION & DIET =====
+  let nutritionHtml = "";
+  if (nutritionSec) {
+    const { bullets, paragraphs } = splitLines(nutritionSec.body);
+    // Separate metric-style bullets (label: value unit) from category bars.
+    const metricBullets: { label: string; value: string; unit?: string }[] = [];
+    const detailBullets: string[] = [];
+    for (const b of bullets) {
+      const m = extractMetric(b);
+      // Only treat as metric if value contains a number/percent (avoid grabbing every "Title: text" line)
+      if (m && /[\d%]/.test(m.value) && (!m.unit || m.unit.length < 30)) {
+        metricBullets.push(m);
+      } else {
+        detailBullets.push(b);
+      }
+    }
+    // If we have lots of "metrics", keep only the first 3 for the tile row.
+    const tiles = metricBullets.slice(0, 3);
+    const remainingAsDetail = metricBullets.slice(3).map((m) => `**${m.label}:** ${m.value}${m.unit ? " " + m.unit : ""}`);
+    const allDetails = [...remainingAsDetail, ...detailBullets];
+
+    const tilesHtml = tiles.length
+      ? `<div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
+          ${tiles
+            .map(
+              (t) => `
+            <div class="bg-white/85 border border-emerald-100 rounded-2xl p-5 text-center">
+              <div class="text-[11px] font-bold tracking-[0.18em] uppercase text-emerald-700">${esc(t.label)}</div>
+              <div class="mt-3 flex items-baseline justify-center gap-1.5 flex-wrap">
+                <span class="text-3xl font-extrabold text-slate-900 leading-none">${esc(t.value)}</span>
+                ${t.unit ? `<span class="text-sm text-slate-500 font-medium">${esc(t.unit)}</span>` : ""}
+              </div>
+            </div>`,
+            )
+            .join("")}
+        </div>`
+      : "";
+
+    const detailsHtml = allDetails.length
+      ? `<div class="space-y-4 mt-2">
+          ${allDetails
+            .map((b, i) => {
+              const parts = splitTitled(b);
+              const color = NUTRITION_CATEGORY_COLORS[i % NUTRITION_CATEGORY_COLORS.length];
+              return `
+              <div class="pl-4" style="border-left:3px solid ${color}">
+                ${parts.head ? `<div class="text-[11px] font-bold tracking-[0.12em] uppercase mb-1" style="color:${color}">${esc(parts.head)}</div>` : ""}
+                <p class="text-[15px] text-slate-700 leading-snug">${inline(parts.body)}</p>
+              </div>`;
+            })
+            .join("")}
+        </div>`
+      : "";
+
+    nutritionHtml = `
+      <div class="nutrition-bg rounded-3xl p-6 md:p-8 card-shadow">
+        <h3 class="text-2xl font-extrabold tracking-tight text-emerald-900 uppercase">Nutrition &amp; Diet Structure</h3>
+        ${paragraphs.length
+          ? `<p class="text-sm md:text-base text-slate-700 mt-2 mb-6 max-w-3xl">${inline(paragraphs.join(" "))}</p>`
+          : '<div class="mb-4"></div>'}
+        ${tilesHtml}
+        ${detailsHtml}
+      </div>`;
+  }
+
+  // ===== SIDE EFFECTS (cream cards) =====
+  let sideEffectsHtml = "";
+  if (sideEffectsSec) {
+    const { bullets } = splitLines(sideEffectsSec.body);
+    sideEffectsHtml = `
+      <div class="card">
+        <div class="flex items-center gap-3 mb-5">
+          <span class="w-8 h-8 rounded-md bg-amber-100 text-amber-600 flex items-center justify-center">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
+          </span>
+          <h3 class="text-xl font-bold text-slate-900">Common Side Effects &amp; Management</h3>
+        </div>
+        <ul class="space-y-3">
+          ${bullets
+            .map((b, i) => {
+              const parts = splitTitled(b);
+              const isFirst = i === 0;
+              const wrapperCls = isFirst
+                ? "bg-orange-50 border border-orange-100"
+                : "bg-slate-50 border border-slate-100";
+              return `
+              <li class="${wrapperCls} rounded-xl px-4 py-3">
+                ${parts.head ? `<div class="text-base font-bold text-slate-900 mb-1">${esc(parts.head)}</div>` : ""}
+                <p class="text-sm text-slate-600 leading-snug">${inline(parts.body)}</p>
+              </li>`;
+            })
+            .join("")}
+        </ul>
+      </div>`;
+  }
+
+  // ===== RED-FLAG SYMPTOMS =====
+  let redFlagHtml = "";
+  if (redFlagSec) {
+    const { bullets, paragraphs } = splitLines(redFlagSec.body);
+    redFlagHtml = `
+      <div class="card-rose">
+        <div class="flex items-center gap-3 mb-4">
+          <span class="w-8 h-8 rounded-md bg-rose-100 text-rose-600 flex items-center justify-center">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+          </span>
+          <h3 class="text-xl font-bold text-rose-700">Red-Flag Symptoms</h3>
+        </div>
+        ${paragraphs.length
+          ? `<p class="italic text-rose-700/90 text-sm mb-4">${inline(paragraphs.join(" "))}</p>`
+          : `<p class="italic text-rose-700/90 text-sm mb-4">Seek urgent medical attention if you experience:</p>`}
+        <ul class="space-y-4">
+          ${bullets
+            .map((b) => {
+              const parts = splitTitled(b);
+              return `
+              <li class="flex items-start gap-3">
+                <span class="text-amber-500 text-xl leading-none pt-0.5">⚠️</span>
+                <div>
+                  ${parts.head ? `<div class="text-base font-bold text-slate-900">${esc(parts.head)}</div>` : ""}
+                  <p class="text-sm text-rose-600 leading-snug">${inline(parts.body)}</p>
+                </div>
+              </li>`;
+            })
+            .join("")}
+        </ul>
+      </div>`;
+  }
+
+  // ===== FOLLOW-UP PLAN =====
+  let followUpHtml = "";
+  if (followUpSec) {
+    const { bullets, paragraphs } = splitLines(followUpSec.body);
+    const allText = [...paragraphs, ...bullets].join(" ");
+    const weekMatch = allText.match(/week\s*(\d+)/i) || allText.match(/(\d+)(?:st|nd|rd|th)\s+(?:dose|week)/i);
+    const milestone = weekMatch ? `WEEK ${weekMatch[1]}` : "REVIEW";
+    followUpHtml = `
+      <div class="followup relative overflow-hidden rounded-3xl p-8 md:p-10 card-shadow text-white">
+        <div class="relative z-10 grid grid-cols-1 md:grid-cols-3 gap-6 items-start">
+          <div class="md:col-span-2">
+            <h3 class="text-3xl md:text-4xl font-extrabold tracking-tight">Follow-Up Plan</h3>
+            ${paragraphs.map((p) => `<p class="text-base text-teal-50/95 leading-relaxed mt-4 max-w-2xl">${inline(p)}</p>`).join("")}
+            ${bullets.length
+              ? `<ul class="mt-4 space-y-1.5">${bullets.map((b) => `<li class="text-sm text-teal-50/90">• ${inline(b)}</li>`).join("")}</ul>`
+              : ""}
+            <a href="https://wa.me/971000000000?text=${encodeURIComponent("Hello, I would like to book my recommended blood test.")}"
+               class="inline-flex items-center gap-2 mt-6 bg-white text-slate-900 font-bold text-sm px-5 py-3 rounded-full hover:bg-slate-100 transition">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect x="8" y="2" width="8" height="4" rx="1" ry="1"/></svg>
+              Book Recommended Blood Test
+            </a>
+          </div>
+          <div class="text-right">
+            <div class="text-[11px] font-bold tracking-[0.22em] uppercase text-teal-200">Next Milestone</div>
+          </div>
+        </div>
+        <div class="watermark">${esc(milestone)}</div>
+      </div>`;
+  }
+
+  // ===== EXTRAS (any unmatched sections) =====
+  const extrasHtml = extras
+    .map((s) => {
+      const { bullets, paragraphs } = splitLines(s.body);
+      return `
+        <div class="card">
+          <h3 class="text-xl font-bold text-slate-900 mb-4">${esc(s.title)}</h3>
+          ${paragraphs.map((p) => `<p class="text-[15px] text-slate-700 leading-relaxed mb-2">${inline(p)}</p>`).join("")}
           ${bullets.length
-            ? `<ul class="space-y-2 mt-2">
-                ${bullets
-                  .map(
-                    (b) => `<li class="flex items-start gap-2 bg-white/70 rounded-lg p-2.5"><span class="text-green-600 font-bold mt-0.5">●</span><p class="text-sm text-slate-700">${inline(b)}</p></li>`,
-                  )
-                  .join("")}
-              </ul>`
+            ? `<ul class="space-y-2 mt-3">${bullets
+                .map(
+                  (b) => `
+              <li class="flex items-start gap-3">
+                <span class="w-1.5 h-1.5 rounded-full bg-teal-600 mt-2.5 flex-shrink-0"></span>
+                <span class="text-[15px] text-slate-700">${inline(b)}</span>
+              </li>`,
+                )
+                .join("")}</ul>`
             : ""}
         </div>`;
-      })()
-    : "";
+    })
+    .join("");
 
-  // ---------- Side Effects ----------
-  const sideEffectsHtml = sideEffectsSec
-    ? (() => {
-        const { bullets, paragraphs } = splitLines(sideEffectsSec.body);
-        return `
-        <div class="bg-amber-50 border border-amber-200 rounded-2xl p-6 card-shadow h-full">
-          <div class="flex items-center gap-2 mb-3">
-            <div class="w-8 h-8 rounded-lg bg-amber-200 text-amber-800 flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="m21.73 18-8-14a2 2 0 0 0-3.48 0l-8 14A2 2 0 0 0 4 21h16a2 2 0 0 0 1.73-3Z"/><path d="M12 9v4"/><path d="M12 17h.01"/></svg>
-            </div>
-            <h3 class="text-lg font-bold text-amber-900">Common Side Effects &amp; Management</h3>
-          </div>
-          ${paragraphs.map((p) => `<p class="text-sm text-amber-900 mb-2">${inline(p)}</p>`).join("")}
-          <ul class="space-y-2">
-            ${bullets
-              .map(
-                (b) => `<li class="bg-white/70 rounded-lg p-2.5 text-sm text-slate-700">${inline(b)}</li>`,
-              )
-              .join("")}
-          </ul>
-        </div>`;
-      })()
-    : "";
+  // ===== SIGNATURE CARD =====
+  const signatureHtml = `
+    <div class="bg-white rounded-3xl card-shadow p-6 md:p-8 flex flex-col md:flex-row items-start md:items-center justify-between gap-6">
+      <div>
+        <p class="italic text-slate-500 text-sm mb-3">Best regards,</p>
+        ${signatureUrl ? `<img src="${esc(signatureUrl)}" alt="Dr Sami signature" class="h-12 mb-2 object-contain" onerror="this.style.display='none'" />` : ""}
+        <div class="text-2xl font-extrabold text-slate-900 tracking-tight">Dr Sami M. Yesuf</div>
+        <div class="text-base font-semibold text-teal-700 mt-1">DarDoc Healthcare Services</div>
+        <div class="text-sm text-slate-500 mt-0.5">SCOPE Certified Physician</div>
+      </div>
+      <button onclick="window.print()" class="no-print bg-slate-900 hover:bg-slate-800 text-white text-base font-bold px-7 py-4 rounded-full inline-flex items-center gap-3 transition">
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
+        Save Personal Guide
+      </button>
+    </div>`;
 
-  // ---------- Red Flag ----------
-  const redFlagHtml = redFlagSec
-    ? (() => {
-        const { bullets, paragraphs } = splitLines(redFlagSec.body);
-        return `
-        <div class="bg-red-50 border border-red-200 rounded-2xl p-6 card-shadow h-full">
-          <div class="flex items-center gap-2 mb-3">
-            <div class="w-8 h-8 rounded-lg bg-red-200 text-red-800 flex items-center justify-center">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><path d="M12 8v4"/><path d="M12 16h.01"/></svg>
-            </div>
-            <h3 class="text-lg font-bold text-red-900">Red-Flag Symptoms</h3>
-          </div>
-          ${paragraphs.map((p) => `<p class="text-sm text-red-900 mb-2">${inline(p)}</p>`).join("")}
-          <ul class="space-y-2">
-            ${bullets
-              .map(
-                (b) => `<li class="flex items-start gap-3 bg-white/70 rounded-lg p-2.5"><span class="text-red-600">⚠️</span><p class="text-sm text-slate-700">${inline(b)}</p></li>`,
-              )
-              .join("")}
-          </ul>
-        </div>`;
-      })()
-    : "";
-
-  // ---------- Follow-up ----------
-  const followUpHtml = followUpSec
-    ? (() => {
-        const { bullets, paragraphs } = splitLines(followUpSec.body);
-        return `
-        <div class="gradient-header text-white rounded-2xl p-6 card-shadow">
-          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 items-center">
-            <div class="md:col-span-2">
-              <h3 class="text-lg font-bold mb-2">Follow-Up Plan</h3>
-              ${paragraphs.map((p) => `<p class="text-sm text-teal-50 mb-2">${inline(p)}</p>`).join("")}
-              ${bullets.length
-                ? `<ul class="space-y-1 mt-2">${bullets.map((b) => `<li class="text-sm text-teal-50">• ${inline(b)}</li>`).join("")}</ul>`
-                : ""}
-            </div>
-            <div class="text-center bg-white/15 rounded-xl p-4">
-              <div class="text-xs uppercase tracking-wider text-teal-100">Next Milestone</div>
-              <div class="text-2xl font-bold mt-1">Review</div>
-            </div>
-          </div>
-        </div>`;
-      })()
-    : "";
-
-  // ---------- Extras ----------
-  const extrasHtml = extras.map(genericCard).join("");
-
-  const today = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
-
+  // ===== ASSEMBLY =====
   return `<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -323,102 +498,92 @@ export function buildWeightLossGuideHtml(params: WeightLossGuideParams): string 
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
 <title>Patient Journey Guide | ${esc(patientName)}</title>
 <script src="https://cdn.tailwindcss.com"></script>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
 <style>
-  body { font-family: 'Inter', sans-serif; background-color: #f1f5f9; color: #0f172a; }
-  .gradient-header { background: linear-gradient(135deg, #0d9488 0%, #115e59 100%); }
+  body { font-family: 'Inter', system-ui, -apple-system, sans-serif; background-color: #f1f5f9; color: #0f172a; }
+  .hero {
+    background: linear-gradient(135deg, #0d9488 0%, #0f766e 60%, #115e59 100%);
+  }
   .nutrition-bg {
-    background-image: linear-gradient(rgba(255,255,255,0.92), rgba(255,255,255,0.92)),
+    background-image:
+      linear-gradient(rgba(255,255,255,0.92), rgba(255,255,255,0.92)),
       url('https://images.unsplash.com/photo-1490645935967-10de6ba17061?ixlib=rb-1.2.1&auto=format&fit=crop&w=1350&q=80');
     background-size: cover;
     background-position: center;
   }
-  .card-shadow { box-shadow: 0 10px 25px -5px rgba(0,0,0,0.05), 0 8px 10px -6px rgba(0,0,0,0.05); }
-  .step-number {
-    background: #0d9488; color: white;
-    width: 28px; height: 28px; border-radius: 50%;
-    display: flex; align-items: center; justify-content: center;
-    font-size: 13px; font-weight: bold; flex-shrink: 0;
+  .followup {
+    background: linear-gradient(135deg, #134e4a 0%, #0f3a37 100%);
+  }
+  .followup .watermark {
+    position: absolute;
+    right: -0.5rem;
+    bottom: -1.25rem;
+    font-size: clamp(5rem, 12vw, 9rem);
+    font-weight: 900;
+    letter-spacing: -0.04em;
+    line-height: 0.85;
+    color: rgba(255,255,255,0.06);
+    pointer-events: none;
+    user-select: none;
+  }
+  .card {
+    background: #ffffff;
+    border-radius: 1.5rem;
+    padding: 1.75rem;
+    box-shadow: 0 10px 30px -12px rgba(15,23,42,0.08), 0 4px 10px -4px rgba(15,23,42,0.04);
+  }
+  .card-rose {
+    background: #fff5f5;
+    border-radius: 1.5rem;
+    padding: 1.75rem;
+    box-shadow: 0 10px 30px -12px rgba(15,23,42,0.06);
+  }
+  .card-shadow { box-shadow: 0 20px 50px -20px rgba(15,23,42,0.12), 0 8px 16px -8px rgba(15,23,42,0.06); }
+  .step-pill {
+    width: 28px; height: 28px; border-radius: 999px;
+    background: #0d9488; color: #fff;
+    display: inline-flex; align-items: center; justify-content: center;
+    font-size: 13px; font-weight: 700; flex-shrink: 0;
   }
   @media print {
     .no-print { display: none !important; }
-    body { background: white; }
-    .card-shadow { box-shadow: none; border: 1px solid #e2e8f0; }
+    body { background: #fff; }
+    .card, .card-rose, .card-shadow { box-shadow: none !important; border: 1px solid #e2e8f0; }
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
     @page { margin: 1.2cm; }
   }
 </style>
 </head>
 <body class="min-h-screen">
-  <div class="max-w-5xl mx-auto p-4 md:p-6 space-y-5">
+  ${heroHtml}
+  ${introSummaryHtml}
 
-    <!-- HERO HEADER -->
-    <header class="gradient-header text-white rounded-2xl p-6 md:p-8 card-shadow">
-      <div class="flex items-center gap-4 mb-4">
-        <div class="w-14 h-14 rounded-xl bg-white/95 p-2 flex items-center justify-center flex-shrink-0">
-          <img src="${esc(logoUrl)}" alt="Dr Sami logo" class="max-w-full max-h-full object-contain" />
-        </div>
-        <div>
-          <div class="text-xs uppercase tracking-widest text-teal-100 font-semibold">Clinical Weight Management</div>
-          <div class="text-xs text-teal-100/80 mt-0.5">${today}</div>
-        </div>
-      </div>
-      <h1 class="text-2xl md:text-3xl font-extrabold leading-tight">Hi ${esc(patientName)},</h1>
-      <p class="text-sm md:text-base text-teal-50 mt-2 max-w-2xl">
-        This is your personalized roadmap to start your journey with us and take your medication as advised for sustainable health improvements.
-      </p>
-    </header>
-
-    <!-- ROW 1: Intro + Summary -->
-    <section class="grid grid-cols-1 md:grid-cols-3 gap-4">
-      <div class="md:col-span-2">${introHtml}</div>
-      <div>${summaryHtml}</div>
-    </section>
-
+  <div class="max-w-6xl mx-auto px-4 md:px-6 mt-6 space-y-6 pb-10">
     ${(storageHtml || injectHtml)
-      ? `<section class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          ${storageHtml || '<div></div>'}
-          ${injectHtml || '<div></div>'}
+      ? `<section class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          ${storageHtml || ""}
+          ${injectHtml || ""}
         </section>`
       : ""}
 
     ${nutritionHtml ? `<section>${nutritionHtml}</section>` : ""}
 
     ${(sideEffectsHtml || redFlagHtml)
-      ? `<section class="grid grid-cols-1 md:grid-cols-2 gap-4">
-          ${sideEffectsHtml || '<div></div>'}
-          ${redFlagHtml || '<div></div>'}
+      ? `<section class="grid grid-cols-1 md:grid-cols-2 gap-6">
+          ${sideEffectsHtml || ""}
+          ${redFlagHtml || ""}
         </section>`
       : ""}
 
     ${followUpHtml ? `<section>${followUpHtml}</section>` : ""}
 
-    ${extrasHtml ? `<section class="grid grid-cols-1 md:grid-cols-2 gap-4">${extrasHtml}</section>` : ""}
+    ${extrasHtml ? `<section class="grid grid-cols-1 md:grid-cols-2 gap-6">${extrasHtml}</section>` : ""}
 
-    <!-- SIGNATURE -->
-    <section class="bg-white rounded-2xl p-6 card-shadow">
-      <div class="flex flex-col md:flex-row items-start md:items-center gap-4">
-        <div class="flex-1">
-          <p class="text-sm text-slate-600 mb-2">Best regards,</p>
-          <div class="w-32 h-16 mb-1">
-            <img src="${esc(signatureUrl)}" alt="Dr Sami signature" class="max-w-full max-h-full object-contain" />
-          </div>
-          <div class="text-base font-bold text-slate-800">Dr Sami M. Yesuf</div>
-          <div class="text-xs text-slate-500">DarDoc Healthcare Services</div>
-          <div class="text-xs text-teal-700 font-semibold mt-0.5">SCOPE Certified Physician</div>
-        </div>
-        <button onclick="window.print()" class="no-print bg-teal-600 hover:bg-teal-700 text-white text-sm font-semibold px-5 py-2.5 rounded-lg flex items-center gap-2 transition">
-          <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><polyline points="6 9 6 2 18 2 18 9"/><path d="M6 18H4a2 2 0 0 1-2-2v-5a2 2 0 0 1 2-2h16a2 2 0 0 1 2 2v5a2 2 0 0 1-2 2h-2"/><rect x="6" y="14" width="12" height="8"/></svg>
-          Save Personal Guide
-        </button>
-      </div>
-    </section>
+    <section>${signatureHtml}</section>
 
-    <!-- FOOTER -->
-    <footer class="text-center text-xs text-slate-500 py-4">
-      <span class="font-semibold text-teal-700">DarDoc</span> · Weight Loss Program · ${new Date().getFullYear()}
+    <footer class="text-center text-xs tracking-[0.18em] uppercase text-slate-400 font-semibold pt-4">
+      Internal Health Markers Monitoring Recommended &middot; DarDoc Weight Loss Program &middot; ${year}
     </footer>
-
   </div>
 </body>
 </html>`;
