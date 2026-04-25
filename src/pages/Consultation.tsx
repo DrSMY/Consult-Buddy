@@ -20,6 +20,7 @@ import AppHeader from "@/components/AppHeader";
 import LivePeptideSuggestions from "@/components/LivePeptideSuggestions";
 import { openWhatsApp } from "@/utils/whatsapp";
 import { printPatientGuide } from "@/utils/printGuide";
+import ShareGuideDialog from "@/components/ShareGuideDialog";
 import { getProtocolOptions, extractMl, extractVialMl, inferFrequency, type ProtocolOption } from "@/data/peptideProtocolOptions";
 
 interface PeptideRec {
@@ -1163,19 +1164,16 @@ SCOPE Certified Physician`;
                       <Button variant="outline" size="sm" onClick={() => copyToClipboard(buildActionPlan.patientGuide, "Patient guidelines")}>
                         <Copy className="h-3 w-3 mr-1" /> Copy
                       </Button>
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        onClick={() => {
-                          const phone = consultation?.intake_answers?.mobile_number || consultation?.intake_answers?.phone || "";
-                          openWhatsApp(phone, buildActionPlan.patientGuide);
-                        }}
-                        disabled={!consultation?.intake_answers?.mobile_number && !consultation?.intake_answers?.phone}
-                      >
-                        <MessageCircle className="h-3 w-3 mr-1" /> WhatsApp
-                      </Button>
-                      <Button variant="outline" size="sm" onClick={() => printPatientGuide(buildActionPlan.patientGuide, consultation?.patient_name)}>
+                      <Button variant="outline" size="sm" onClick={() => printPatientGuide(buildActionPlan.patientGuide, consultation?.patient_name, "peptides")}>
                         <Printer className="h-3 w-3 mr-1" /> Print / PDF
+                      </Button>
+                      <Button
+                        size="sm"
+                        onClick={() => setShareOpen(true)}
+                        disabled={!consultation?.intake_answers?.mobile_number && !consultation?.intake_answers?.phone}
+                        title={(!consultation?.intake_answers?.mobile_number && !consultation?.intake_answers?.phone) ? "No phone number available" : "Edit & send branded guide via WhatsApp"}
+                      >
+                        <Send className="h-3 w-3 mr-1" /> Send to Patient
                       </Button>
                     </div>
                   </CardHeader>
