@@ -22,7 +22,7 @@ import { getBMICategory, getBMIColorClass, getDoseOptions, type MedicationType, 
 import { openWhatsApp } from "@/utils/whatsapp";
 import { printPatientGuide } from "@/utils/printGuide";
 import { buildEmrOutput } from "@/utils/emrOutput";
-import { shareGuideViaWhatsApp } from "@/utils/shareGuide";
+import ShareGuideDialog from "@/components/ShareGuideDialog";
 
 const MEDICATION_OPTIONS: MedicationType[] = ["Mounjaro", "Wegovy", "Ozempic", "Rybelsus", "Other"];
 
@@ -33,7 +33,7 @@ export default function WeightLossConsultation() {
   const queryClient = useQueryClient();
   const [copiedSection, setCopiedSection] = useState<string | null>(null);
   const [generating, setGenerating] = useState(false);
-  const [sharing, setSharing] = useState(false);
+  const [shareOpen, setShareOpen] = useState(false);
   const [editOpen, setEditOpen] = useState(false);
   const [editSaving, setEditSaving] = useState(false);
   const [editMed, setEditMed] = useState<MedicationType | "">("");
@@ -100,15 +100,9 @@ export default function WeightLossConsultation() {
     setGenerating(false);
   };
 
-  const handleShareGuideWhatsApp = async () => {
+  const handleShareGuideWhatsApp = () => {
     if (!consultation || !patientGuide || !patient?.mobileNumber) return;
-    setSharing(true);
-    try {
-      await shareGuideViaWhatsApp(patientGuide, consultation.patient_name, patient.mobileNumber);
-    } catch (e: any) {
-      toast({ title: "Failed to share guide", description: e.message, variant: "destructive" });
-    }
-    setSharing(false);
+    setShareOpen(true);
   };
 
   const openEditDialog = () => {
@@ -411,28 +405,17 @@ export default function WeightLossConsultation() {
                         <Button
                           variant="outline"
                           size="sm"
-                          onClick={() => openWhatsApp(patient?.mobileNumber || "", patientGuide)}
-                          disabled={!patient?.mobileNumber}
-                          title={!patient?.mobileNumber ? "No phone number available" : "Send via WhatsApp"}
-                        >
-                          <MessageCircle className="h-3 w-3 mr-1" /> WhatsApp
-                        </Button>
-                        <Button
-                          variant="outline"
-                          size="sm"
                           onClick={() => printPatientGuide(patientGuide, consultation.patient_name)}
                         >
                           <Printer className="h-3 w-3 mr-1" /> Print / PDF
                         </Button>
                         <Button
-                          variant="outline"
                           size="sm"
                           onClick={handleShareGuideWhatsApp}
-                          disabled={!patient?.mobileNumber || sharing}
-                          title={!patient?.mobileNumber ? "No phone number available" : "Send PDF guide via WhatsApp"}
+                          disabled={!patient?.mobileNumber}
+                          title={!patient?.mobileNumber ? "No phone number available" : "Edit & send branded guide via WhatsApp"}
                         >
-                          {sharing ? <Loader2 className="h-3 w-3 mr-1 animate-spin" /> : <Send className="h-3 w-3 mr-1" />}
-                          {sharing ? "Sending..." : "Send PDF"}
+                          <Send className="h-3 w-3 mr-1" /> Send to Patient
                         </Button>
                       </>
                     )}
