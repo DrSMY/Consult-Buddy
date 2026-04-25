@@ -4,7 +4,6 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Loader2, Send, Eye, Pencil, Sparkles, Copy, Check } from "lucide-react";
-import PatientGuideDisplay from "@/components/PatientGuideDisplay";
 import { generateAndShareGuide } from "@/utils/shareGuide";
 import { buildGuideHtml } from "@/utils/printGuide";
 import type { WeightLossPatientSummary } from "@/utils/weightLossGuideHtml";
@@ -125,7 +124,7 @@ export default function ShareGuideDialog({
                     title="Branded patient guide preview"
                     srcDoc={previewHtml}
                     className="h-full min-h-[400px] w-full bg-background"
-                    sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+                    sandbox="allow-same-origin allow-scripts allow-popups allow-popups-to-escape-sandbox"
                   />
                 </div>
               </div>
@@ -145,7 +144,7 @@ export default function ShareGuideDialog({
               title="Branded patient guide preview"
               srcDoc={previewHtml}
               className="h-full min-h-[440px] w-full bg-background"
-              sandbox="allow-same-origin allow-popups allow-popups-to-escape-sandbox"
+              sandbox="allow-same-origin allow-scripts allow-popups allow-popups-to-escape-sandbox"
             />
           </TabsContent>
         </Tabs>
