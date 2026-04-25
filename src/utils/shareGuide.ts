@@ -1,10 +1,11 @@
 import { supabase } from "@/integrations/supabase/client";
-import { buildGuideHtml } from "./printGuide";
+import { buildGuideHtml, type BuildGuideOptions } from "./printGuide";
 import { buildGuidePdfBlob } from "./pdfGuide";
 import { buildLandingHtml } from "./landingPage";
 import { sanitizePhone } from "./whatsapp";
 import logoSrc from "@/assets/dr-sami-logo.png";
 import signatureSrc from "@/assets/dr-sami-signature.png";
+import type { WeightLossPatientSummary } from "./weightLossGuideHtml";
 
 type Program = "peptides" | "weight_loss";
 
@@ -74,7 +75,7 @@ export async function generateAndShareGuide(
   patientName: string,
   phone: string,
   program: Program = "peptides",
-  options: { autoOpenWhatsApp?: boolean } = { autoOpenWhatsApp: true },
+  options: { autoOpenWhatsApp?: boolean; weightLossSummary?: WeightLossPatientSummary } = { autoOpenWhatsApp: true },
 ): Promise<ShareResult> {
   const safeName = patientName.replace(/[^a-zA-Z0-9]/g, "_").toLowerCase() || "patient";
   const ts = Date.now();
@@ -85,9 +86,17 @@ export async function generateAndShareGuide(
     uploadAssetIfNeeded(signatureSrc, "_brand/dr-sami-signature.png"),
   ]);
 
+  // Pass public asset URLs into the HTML builders so the standalone HTML
+  // points at hosted images (not the Vite dev URL which the patient can't reach).
+  const buildOpts: BuildGuideOptions = {
+    weightLossSummary: options.weightLossSummary,
+    logoUrl,
+    signatureUrl,
+  };
+
   // 2) Build HTML guide & PDF (PDF is rendered from the same HTML for visual parity)
-  const htmlContent = buildGuideHtml(guideText, patientName, program);
-  const pdfBlob = await buildGuidePdfBlob(guideText, patientName, program);
+  const htmlContent = buildGuideHtml(guideText, patientName, program, buildOpts);
+  const pdfBlob = await buildGuidePdfBlob(guideText, patientName, program, buildOpts);
 
   // 3) Upload artifacts
   const htmlUrl = await uploadHtml(htmlContent, `${safeName}_${ts}.html`);
