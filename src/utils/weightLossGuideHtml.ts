@@ -33,12 +33,52 @@ export interface WeightLossGuideParams {
 }
 
 function esc(s: string) {
-  return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+  return String(s)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;");
 }
 
-/** Convert **bold** to <strong> while escaping HTML. */
+function escAttr(s: string) {
+  return esc(s).replace(/'/g, "&#39;");
+}
+
+function extractFirstUrl(text: string): string | null {
+  const match = text.match(/https?:\/\/[^\s)]+/i);
+  return match?.[0] || null;
+}
+
+/** Convert **bold** and URLs to safe inline HTML while escaping everything else. */
 function inline(text: string): string {
-  return esc(text).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+  return esc(text)
+    .replace(/(https?:\/\/[^\s<]+)/g, (url) => `<a href="${escAttr(url)}" target="_blank" rel="noopener" class="font-semibold underline decoration-teal-400 underline-offset-2">${url}</a>`)
+    .replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+}
+
+function looksLikeCompleteHtml(text: string): boolean {
+  return /<!doctype\s+html|<html[\s>]|<body[\s>]/i.test(text);
+}
+
+function sanitizeStandaloneHtml(html: string, patientName: string): string {
+  const hasDoctype = /<!doctype\s+html/i.test(html);
+  const withoutDangerousScripts = html
+    .replace(/<script\b(?![^>]*src=["']https:\/\/cdn\.tailwindcss\.com["'])[^>]*>[\s\S]*?<\/script>/gi, "")
+    .replace(/\son\w+=("[^"]*"|'[^']*'|[^\s>]+)/gi, "");
+
+  if (/<html[\s>]/i.test(withoutDangerousScripts)) {
+    return `${hasDoctype ? "" : "<!DOCTYPE html>\n"}${withoutDangerousScripts}`;
+  }
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Patient Journey Guide | ${esc(patientName)}</title>
+</head>
+<body>${withoutDangerousScripts}</body>
+</html>`;
 }
 
 interface Section {
@@ -73,6 +113,16 @@ function splitLines(body: string): { bullets: string[]; paragraphs: string[] } {
     else paragraphs.push(line);
   }
   return { bullets, paragraphs };
+}
+
+function contentItems(body: string): string[] {
+  const { bullets, paragraphs } = splitLines(body);
+  if (bullets.length) return bullets;
+
+  return paragraphs
+    .flatMap((p) => p.split(/(?:\s*[;•]\s*|\.\s+(?=[A-Z])|,\s+(?=(?:room|do not|protect|rotate|seek|persistent|severe|dehydration|constipation|diarrhea|heartburn|nausea)\b))/i))
+    .map((item) => item.trim().replace(/\.$/, ""))
+    .filter(Boolean);
 }
 
 function findSection(sections: Section[], ...keywords: string[]): Section | undefined {
