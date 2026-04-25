@@ -40,6 +40,20 @@ async function uploadAssetIfNeeded(localUrl: string, storagePath: string): Promi
   return existing.publicUrl;
 }
 
+function buildAppSharedGuideUrl(params: {
+  patientName: string;
+  program: Program;
+  htmlUrl: string;
+  pdfUrl: string;
+}) {
+  const url = new URL("/shared-guide", window.location.origin);
+  url.searchParams.set("name", params.patientName);
+  url.searchParams.set("program", params.program);
+  url.searchParams.set("html", params.htmlUrl);
+  url.searchParams.set("pdf", params.pdfUrl);
+  return url.toString();
+}
+
 async function uploadHtml(content: string, fileName: string): Promise<string> {
   const blob = new Blob([content], { type: "text/html;charset=utf-8" });
   const { error } = await supabase.storage.from(BUCKET).upload(fileName, blob, {
