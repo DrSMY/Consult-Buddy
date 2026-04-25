@@ -123,41 +123,66 @@ export function buildGuideHtml(
     bodyHtml = `<div class="plain">${escapeAndFormat(guideText, "#14b8a6")}</div>`;
   }
 
-  const title = patientName ? `Patient Guide — ${patientName}` : "Patient Care Guide";
+  const programLabel = PROGRAM_TITLES[program] || "Patient Care Guide";
+  const title = patientName ? `${programLabel} — ${patientName}` : programLabel;
+  const today = new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" });
 
   return `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${esc(title)}</title>
 <style>
   @media print {
-    @page { margin: 1.2cm; }
+    @page { margin: 1cm; }
     * { -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important; }
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; color: #1a1a1a; line-height: 1.6; padding: 0; background: linear-gradient(180deg, #f0fdfa 0%, #f8fafc 30%, #eff6ff 70%, #f0fdfa 100%); }
 
-  .header-banner {
-    background: linear-gradient(135deg, #0d9488, #0891b2, #0ea5e9);
+  .letterhead {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 1rem;
+    background: linear-gradient(135deg, #0d9488 0%, #0891b2 60%, #0ea5e9 100%);
     color: white;
-    padding: 1.5rem 2rem;
-    border-radius: 0 0 16px 16px;
+    padding: 1.1rem 1.5rem;
+    border-radius: 0 0 18px 18px;
     margin-bottom: 1.2rem;
+    box-shadow: 0 8px 24px -12px rgba(13,148,136,0.5);
   }
-  .header-banner h1 {
-    font-size: 1.5rem;
-    font-weight: 700;
+  .letterhead-logo {
+    flex-shrink: 0;
+    width: 64px; height: 64px;
+    border-radius: 14px;
+    background: rgba(255,255,255,0.95);
+    padding: 6px;
+    display: flex; align-items: center; justify-content: center;
+    box-shadow: 0 4px 12px -4px rgba(0,0,0,0.2);
+  }
+  .letterhead-logo img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .letterhead-text { flex: 1; min-width: 0; }
+  .letterhead-brand {
+    font-size: 0.65rem;
+    opacity: 0.9;
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-weight: 600;
+    margin-bottom: 0.2rem;
+  }
+  .letterhead-title {
+    font-size: 1.35rem;
+    font-weight: 800;
     letter-spacing: -0.02em;
     margin-bottom: 0.15rem;
+    line-height: 1.15;
   }
-  .header-brand {
-    font-size: 0.7rem;
-    opacity: 0.85;
-    text-transform: uppercase;
-    letter-spacing: 0.15em;
-    margin-bottom: 0.3rem;
+  .letterhead-date { font-size: 0.7rem; opacity: 0.85; }
+  .letterhead-meta {
+    text-align: right;
+    flex-shrink: 0;
+    font-size: 0.65rem;
+    opacity: 0.9;
+    line-height: 1.5;
   }
-  .header-date {
-    font-size: 0.75rem;
-    opacity: 0.8;
-  }
+  .letterhead-meta-name { font-weight: 700; font-size: 0.78rem; opacity: 1; }
 
   .content { padding: 0 1.5rem; max-width: 780px; margin: 0 auto; }
 
@@ -221,31 +246,66 @@ export function buildGuideHtml(
 
   .plain { white-space: pre-wrap; font-size: 0.85rem; padding: 1.5rem; }
 
+  .signature-block {
+    margin: 1.5rem 1.5rem 0;
+    padding: 1rem 1.25rem;
+    background: linear-gradient(135deg, #f0fdfa, #ecfeff);
+    border: 1px solid #99f6e4;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    page-break-inside: avoid;
+  }
+  .signature-img {
+    flex-shrink: 0;
+    width: 110px; height: 70px;
+    display: flex; align-items: center; justify-content: center;
+  }
+  .signature-img img { max-width: 100%; max-height: 100%; object-fit: contain; }
+  .signature-name { font-size: 0.9rem; font-weight: 700; color: #0f766e; }
+  .signature-title { font-size: 0.7rem; color: #475569; text-transform: uppercase; letter-spacing: 0.08em; }
+
   .footer {
-    margin-top: 1.5rem;
-    padding: 0.8rem 1.5rem;
+    margin-top: 1rem;
+    padding: 0.9rem 1.5rem;
     background: linear-gradient(135deg, #f0fdfa, #ecfeff);
     border-top: 2px solid #99f6e4;
     text-align: center;
     font-size: 0.7rem;
-    color: #5eead4;
+    color: #64748b;
   }
-  .footer-brand { font-weight: 700; color: #0d9488; font-size: 0.8rem; letter-spacing: 0.05em; }
-  .footer-sub { color: #9ca3af; margin-top: 0.15rem; }
+  .footer-brand { font-weight: 700; color: #0d9488; font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; }
+  .footer-sub { color: #9ca3af; margin-top: 0.2rem; font-size: 0.65rem; }
 </style></head><body>
 
-<div class="header-banner">
-  <div class="header-brand">DarDoc</div>
-  <h1>${esc(title)}</h1>
-  <div class="header-date">Generated: ${new Date().toLocaleDateString("en-US", { year: "numeric", month: "long", day: "numeric" })}</div>
+<div class="letterhead">
+  <div class="letterhead-logo"><img src="${logoUrl}" alt="Dr Sami logo" /></div>
+  <div class="letterhead-text">
+    <div class="letterhead-brand">PeptiDOC</div>
+    <h1 class="letterhead-title">${esc(programLabel)}</h1>
+    <div class="letterhead-date">${patientName ? esc(patientName) + " &middot; " : ""}${today}</div>
+  </div>
+  <div class="letterhead-meta">
+    <div class="letterhead-meta-name">Dr Sami M. Yesuf</div>
+    <div>Scope Certified Physician</div>
+  </div>
 </div>
 
 <div class="content">
 ${bodyHtml}
 </div>
 
+<div class="signature-block">
+  <div class="signature-img"><img src="${signatureUrl}" alt="Dr Sami signature" /></div>
+  <div>
+    <div class="signature-name">Dr Sami M. Yesuf</div>
+    <div class="signature-title">Scope Certified Physician &middot; PeptiDOC</div>
+  </div>
+</div>
+
 <div class="footer">
-  <div class="footer-brand">DarDoc</div>
+  <div class="footer-brand">PeptiDOC</div>
   <div class="footer-sub">Confidential Patient Information — For Personal Use Only</div>
 </div>
 
