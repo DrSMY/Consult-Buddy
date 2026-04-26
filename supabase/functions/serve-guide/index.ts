@@ -14,6 +14,7 @@ const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const BUCKET = "patient-guides";
 const PUBLIC_APP_ORIGIN = "https://peptidedoc.live";
+const PUBLIC_FUNCTION_ORIGIN = "https://kokottennducgqcearxu.supabase.co/functions/v1/serve-guide";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -59,7 +60,7 @@ Deno.serve(async (req) => {
       const sharedGuide = new URL("/shared-guide", PUBLIC_APP_ORIGIN);
       sharedGuide.searchParams.set("name", url.searchParams.get("name") || "Patient");
       sharedGuide.searchParams.set("program", url.searchParams.get("program") || "peptides");
-      sharedGuide.searchParams.set("html", `${url.origin}${url.pathname}?file=${encodeURIComponent(file)}&raw=1`);
+      sharedGuide.searchParams.set("html", `${PUBLIC_FUNCTION_ORIGIN}?file=${encodeURIComponent(file)}&raw=1`);
       sharedGuide.searchParams.set("view", "guide");
       return Response.redirect(sharedGuide.toString(), 302);
     }
@@ -72,6 +73,13 @@ Deno.serve(async (req) => {
     // usable and prevents browsers from falling back to raw storage URLs.
     if ((error || !data) && file.toLowerCase().endsWith(".htm")) {
       file = `${file}l`;
+      ({ data, error } = await supabase.storage.from(BUCKET).download(file));
+    }
+
+    // Recover from links accidentally copied with a duplicated first letter,
+    // e.g. `mmadison_larsen_...htm` instead of `madison_larsen_...html`.
+    if ((error || !data) && file.length > 2 && file[0].toLowerCase() === file[1].toLowerCase()) {
+      file = file.slice(1);
       ({ data, error } = await supabase.storage.from(BUCKET).download(file));
     }
 
