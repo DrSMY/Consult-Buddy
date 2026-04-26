@@ -35,6 +35,7 @@ const App = () => (
             <Route path="/auth" element={<Auth />} />
             <Route path="/install" element={<Install />} />
             <Route path="/shared-guide" element={<SharedGuide />} />
+            <Route path="/g/:file" element={<SharedGuide />} />
             <Route path="/reset-password" element={<ResetPassword />} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/program/peptides" element={<ProtectedRoute><PatientIntake /></ProtectedRoute>} />
