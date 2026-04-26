@@ -159,6 +159,12 @@ export async function generateAndShareGuide(
     view: "guide",
   });
 
+  // Short, durable link — survives WhatsApp/SMS URL rewriting much better
+  // than the long ~250-char query-string version. The /g/:file route
+  // reconstructs the html+pdf URLs from the filename.
+  const baseName = `${safeName}_${ts}`;
+  const shortGuideUrl = `${getPublicAppOrigin()}/g/${baseName}`;
+
   // Static landing page fallback artifact.
   const landingHtml = buildLandingHtml({
     patientName,
@@ -171,13 +177,13 @@ export async function generateAndShareGuide(
   });
   await uploadHtml(landingHtml, `${safeName}_${ts}_share.html`);
 
-  // 5) Compose short WhatsApp message — link the patient DIRECTLY to the
-  // rendered guide so they see a fully styled page on first tap, even
-  // inside the WhatsApp in-app browser.
+  // 5) Compose short WhatsApp message — use the short link as the primary
+  // URL so it survives WhatsApp's URL preview/rewrite logic. The full link
+  // is kept as a fallback in case the short route fails for any reason.
   const message =
     `Hello ${patientName},\n\n` +
     `Your ${PROGRAM_LABELS[program]} guide from Dr Sami M. Yesuf is ready.\n\n` +
-    `View your guide: ${patientGuidePageUrl}\n\n` +
+    `View your guide: ${shortGuideUrl}\n\n` +
     `— PeptiDOC`;
   const whatsappUrl = `https://wa.me/${sanitizePhone(phone)}?text=${encodeURIComponent(message)}`;
 
