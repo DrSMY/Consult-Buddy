@@ -47,11 +47,7 @@ async function uploadAssetIfNeeded(localUrl: string, storagePath: string): Promi
  * by patients — so we always rewrite those to the published domain.
  */
 function getPublicAppOrigin(): string {
-  const { origin, hostname } = window.location;
-  if (hostname.includes("id-preview--") || hostname.endsWith(".lovableproject.com")) {
-    return "https://peptidedoc.live";
-  }
-  return origin;
+  return "https://peptidedoc.live";
 }
 
 
@@ -71,12 +67,14 @@ function buildAppSharedGuideUrl(params: {
   program: Program;
   htmlUrl: string;
   pdfUrl: string;
+  view?: "landing" | "guide";
 }) {
   const url = new URL("/shared-guide", getPublicAppOrigin());
   url.searchParams.set("name", params.patientName);
   url.searchParams.set("program", params.program);
   url.searchParams.set("html", params.htmlUrl);
   url.searchParams.set("pdf", params.pdfUrl);
+  if (params.view) url.searchParams.set("view", params.view);
   return url.toString();
 }
 
@@ -151,12 +149,14 @@ export async function generateAndShareGuide(
   const patientHtmlUrl = buildServeGuideUrl(htmlFileName);
   const patientPdfUrl = buildServeGuideUrl(pdfFileName);
 
-  // Keep the in-app landing page (clinician-facing) as a backup view.
-  const appLandingUrl = buildAppSharedGuideUrl({
+  // Patient-facing app URL on the published domain. It opens the rendered
+  // HTML guide immediately (not the Lovable preview and not the PDF).
+  const patientGuidePageUrl = buildAppSharedGuideUrl({
     patientName,
     program,
     htmlUrl: patientHtmlUrl,
     pdfUrl: patientPdfUrl,
+    view: "guide",
   });
 
   // Static landing page fallback artifact.
@@ -177,8 +177,7 @@ export async function generateAndShareGuide(
   const message =
     `Hello ${patientName},\n\n` +
     `Your ${PROGRAM_LABELS[program]} guide from Dr Sami M. Yesuf is ready.\n\n` +
-    `View your guide: ${patientHtmlUrl}\n` +
-    `Download PDF: ${patientPdfUrl}\n\n` +
+    `View your guide: ${patientGuidePageUrl}\n\n` +
     `— PeptiDOC`;
   const whatsappUrl = `https://wa.me/${sanitizePhone(phone)}?text=${encodeURIComponent(message)}`;
 
@@ -186,7 +185,7 @@ export async function generateAndShareGuide(
     window.open(whatsappUrl, "_blank");
   }
 
-  return { htmlUrl: patientHtmlUrl, pdfUrl: patientPdfUrl, landingUrl: appLandingUrl, whatsappUrl };
+  return { htmlUrl: patientGuidePageUrl, pdfUrl: patientPdfUrl, landingUrl: patientGuidePageUrl, whatsappUrl };
 }
 
 /** Backwards-compat wrapper used by older callers. */
