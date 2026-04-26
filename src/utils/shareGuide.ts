@@ -54,13 +54,6 @@ function getPublicAppOrigin(): string {
   return origin;
 }
 
-function getPublicAppOrigin(): string {
-  const { origin, hostname } = window.location;
-  if (hostname.includes("id-preview--") || hostname.endsWith(".lovableproject.com")) {
-    return "https://peptidedoc.live";
-  }
-  return origin;
-}
 
 /**
  * Public Edge Function URL that re-serves a stored guide file with the
