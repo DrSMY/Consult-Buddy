@@ -90,8 +90,7 @@ export default function ShareGuideDialog({
             Share Patient Guide — {patientName}
           </DialogTitle>
           <DialogDescription>
-            Edit the guide on the left, preview on the right. When ready, send a branded WhatsApp link with both an
-            online view and a downloadable PDF.
+            Edit the guide on the left, preview on the right. When ready, send the branded HTML guide link via WhatsApp.
           </DialogDescription>
         </DialogHeader>
 
@@ -155,13 +154,13 @@ export default function ShareGuideDialog({
               <Check className="h-3.5 w-3.5 text-primary" /> Links ready & WhatsApp opened
             </div>
             <div className="flex items-center gap-2">
-              <code className="flex-1 truncate bg-background rounded px-2 py-1 border">{linksReady.landing}</code>
-              <Button size="sm" variant="outline" onClick={() => copyLink(linksReady.landing)}>
+              <code className="flex-1 truncate bg-background rounded px-2 py-1 border">{linksReady.html}</code>
+              <Button size="sm" variant="outline" onClick={() => copyLink(linksReady.html)}>
                 {copied ? <Check className="h-3 w-3" /> : <Copy className="h-3 w-3" />}
               </Button>
             </div>
             <div className="flex gap-3 text-muted-foreground text-[11px]">
-              <a href={`${linksReady.landing}&view=guide`} target="_blank" rel="noreferrer" className="underline hover:text-primary">Open guide</a>
+              <a href={linksReady.html} target="_blank" rel="noreferrer" className="underline hover:text-primary">Open HTML guide</a>
               <a href={linksReady.pdf} target="_blank" rel="noreferrer" className="underline hover:text-primary">Open PDF</a>
             </div>
           </div>
