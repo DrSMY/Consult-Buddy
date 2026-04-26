@@ -13,7 +13,12 @@ function isAllowedSharedFileUrl(value: string | null) {
   if (!value) return false;
   try {
     const url = new URL(value);
-    return url.protocol === "https:" && url.pathname.includes("/patient-guides/");
+    if (url.protocol !== "https:") return false;
+    // Accept either a direct storage URL or our serve-guide Edge Function URL.
+    return (
+      url.pathname.includes("/patient-guides/") ||
+      url.pathname.includes("/functions/v1/serve-guide")
+    );
   } catch {
     return false;
   }
