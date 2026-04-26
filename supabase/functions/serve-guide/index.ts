@@ -13,6 +13,7 @@ import { createClient } from "https://esm.sh/@supabase/supabase-js@2.45.0";
 const SUPABASE_URL = Deno.env.get("SUPABASE_URL")!;
 const SERVICE_ROLE_KEY = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
 const BUCKET = "patient-guides";
+const PUBLIC_APP_ORIGIN = "https://peptidedoc.live";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -39,6 +40,7 @@ Deno.serve(async (req) => {
 
   try {
     const url = new URL(req.url);
+    const raw = url.searchParams.get("raw") === "1";
     // Accept ?file=name.html or trailing path /serve-guide/name.html
     let file = url.searchParams.get("file") || "";
     if (!file) {
@@ -51,6 +53,15 @@ Deno.serve(async (req) => {
         status: 400,
         headers: { ...corsHeaders, "Content-Type": "text/plain; charset=utf-8" },
       });
+    }
+
+    if (!raw && !file.toLowerCase().endsWith(".pdf")) {
+      const sharedGuide = new URL("/shared-guide", PUBLIC_APP_ORIGIN);
+      sharedGuide.searchParams.set("name", url.searchParams.get("name") || "Patient");
+      sharedGuide.searchParams.set("program", url.searchParams.get("program") || "peptides");
+      sharedGuide.searchParams.set("html", `${url.origin}${url.pathname}?file=${encodeURIComponent(file)}&raw=1`);
+      sharedGuide.searchParams.set("view", "guide");
+      return Response.redirect(sharedGuide.toString(), 302);
     }
 
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
