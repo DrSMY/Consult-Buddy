@@ -54,6 +54,18 @@ function getPublicAppOrigin(): string {
   return origin;
 }
 
+
+/**
+ * Public Edge Function URL that re-serves a stored guide file with the
+ * correct Content-Type so patients see a fully rendered branded page
+ * instead of raw HTML source. The raw Supabase Storage URL serves files
+ * as text/plain with a hard CSP, which breaks the experience.
+ */
+function buildServeGuideUrl(fileName: string): string {
+  const projectRef = (import.meta.env.VITE_SUPABASE_PROJECT_ID as string) || "kokottennducgqcearxu";
+  return `https://${projectRef}.supabase.co/functions/v1/serve-guide?file=${encodeURIComponent(fileName)}`;
+}
+
 function buildAppSharedGuideUrl(params: {
   patientName: string;
   program: Program;
@@ -127,30 +139,46 @@ export async function generateAndShareGuide(
   const pdfBlob = await buildGuidePdfBlob(guideText, patientName, program, buildOpts);
 
   // 3) Upload artifacts
-  const htmlUrl = await uploadHtml(htmlContent, `${safeName}_${ts}.html`);
-  const pdfUrl = await uploadPdf(pdfBlob, `${safeName}_${ts}.pdf`);
+  const htmlFileName = `${safeName}_${ts}.html`;
+  const pdfFileName = `${safeName}_${ts}.pdf`;
+  const htmlUrl = await uploadHtml(htmlContent, htmlFileName);
+  const pdfUrl = await uploadPdf(pdfBlob, pdfFileName);
 
-  // 4) Use the app as the patient-facing wrapper so the online guide renders
-  // in an iframe even if storage serves the .html object as source text.
-  const appLandingUrl = buildAppSharedGuideUrl({ patientName, program, htmlUrl, pdfUrl });
+  // 4) Patient-facing URLs go through our serve-guide Edge Function so the
+  // browser receives the file with the correct Content-Type (text/html or
+  // application/pdf). The raw Supabase Storage URL serves files as
+  // text/plain with a hard CSP, which renders the page as source code.
+  const patientHtmlUrl = buildServeGuideUrl(htmlFileName);
+  const patientPdfUrl = buildServeGuideUrl(pdfFileName);
 
-  // Keep uploading a static landing page as a fallback/reference artifact.
+  // Keep the in-app landing page (clinician-facing) as a backup view.
+  const appLandingUrl = buildAppSharedGuideUrl({
+    patientName,
+    program,
+    htmlUrl: patientHtmlUrl,
+    pdfUrl: patientPdfUrl,
+  });
+
+  // Static landing page fallback artifact.
   const landingHtml = buildLandingHtml({
     patientName,
     program,
-    htmlUrl: `${appLandingUrl}&view=guide`,
-    pdfUrl,
+    htmlUrl: patientHtmlUrl,
+    pdfUrl: patientPdfUrl,
     logoUrl,
     signatureUrl,
     expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000),
   });
   await uploadHtml(landingHtml, `${safeName}_${ts}_share.html`);
 
-  // 5) Compose short WhatsApp message
+  // 5) Compose short WhatsApp message — link the patient DIRECTLY to the
+  // rendered guide so they see a fully styled page on first tap, even
+  // inside the WhatsApp in-app browser.
   const message =
     `Hello ${patientName},\n\n` +
     `Your ${PROGRAM_LABELS[program]} guide from Dr Sami M. Yesuf is ready.\n\n` +
-    `View it here: ${appLandingUrl}\n\n` +
+    `View your guide: ${patientHtmlUrl}\n` +
+    `Download PDF: ${patientPdfUrl}\n\n` +
     `— PeptiDOC`;
   const whatsappUrl = `https://wa.me/${sanitizePhone(phone)}?text=${encodeURIComponent(message)}`;
 
@@ -158,7 +186,7 @@ export async function generateAndShareGuide(
     window.open(whatsappUrl, "_blank");
   }
 
-  return { htmlUrl, pdfUrl, landingUrl: appLandingUrl, whatsappUrl };
+  return { htmlUrl: patientHtmlUrl, pdfUrl: patientPdfUrl, landingUrl: appLandingUrl, whatsappUrl };
 }
 
 /** Backwards-compat wrapper used by older callers. */

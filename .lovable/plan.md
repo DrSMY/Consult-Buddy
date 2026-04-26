@@ -1,98 +1,70 @@
-# Weight-Loss Guide — Branded HTML Redesign
+# Why the link "looks like code" to patients
 
-## Goal
+I diagnosed the actual cause by inspecting how Supabase Storage serves the uploaded `.html` file:
 
-Replace the current single-column weight-loss guide HTML with a magazine-style branded layout that matches the reference you shared (Tailwind CDN + Inter, gradient teal header, hero greeting card, two-column section grid, food-photo nutrition section, color-coded side-effects/red-flags, signature card, "Save Personal Guide" button, footer).
-
-The peptide guide will keep its current rendering — only the **weight-loss** path changes.
-
-## What changes
-
-### 1. New utility: `src/utils/weightLossGuideHtml.ts`
-
-A dedicated HTML builder for `program === "weight_loss"`. It will:
-
-- Use Tailwind CDN + Google Fonts (Inter) — same approach as your reference, so the output renders identically in any browser and "Print → Save as PDF" works cleanly.
-- Embed brand assets via the same Supabase public URLs already uploaded by `shareGuide.ts` (logo + signature passed in as params).
-- Map the parsed `::: SECTION :::` blocks from the AI-generated guide into the reference layout's named sections:
-  - `INTRODUCTION` → left column intro card with bullet list
-  - `PATIENT SUMMARY` → right teal stat card (Weight / Height / BMI / Caloric target)
-  - `STORAGE INSTRUCTIONS` → emoji icon list card (left, row 2)
-  - `HOW TO INJECT` / `HOW TO TAKE YOUR MEDICATION` → numbered step grid (right, row 2)
-  - `NUTRITION & DIET PLAN` → full-width card with food background image + macro pills + 3 macro rows
-  - `COMMON SIDE EFFECTS` → amber bordered card (left)
-  - `RED-FLAG SYMPTOMS` → red bordered card with ⚠ icons (right)
-  - `FOLLOW-UP PLAN` → teal CTA card with milestone badge
-  - Signature block (signature image + name + DarDoc Healthcare Services + SCOPE Certified Physician)
-  - Footer "DarDoc Weight Loss Program • <year>"
-- Sections that don't match a known title fall back to a clean default card so any extra AI sections still render.
-- Patient Summary auto-pulls from the consultation row (weight kg, height cm, BMI + class, daily calorie target) so it always shows even if the AI didn't include those numbers in the guide text.
-- "Save Personal Guide" button uses `window.print()` (hidden via `@media print { .no-print { display: none; } }` exactly like your reference).
-
-### 2. Wire it in `src/utils/printGuide.ts`
-
-`buildGuideHtml(text, name, program)` becomes a thin router:
-
-```ts
-if (program === "weight_loss") return buildWeightLossGuideHtml(...);
-return buildPeptideGuideHtml(...);   // = current implementation, renamed
+```
+content-type: text/plain                              ← browser shows raw source
+content-security-policy: default-src 'none'; sandbox  ← blocks fonts, images, scripts
+x-content-type-options: nosniff                       ← prevents browser from guessing
 ```
 
-No changes to the peptide path.
+Supabase Storage **forces every served file to `text/plain` with a hard sandbox CSP**. This is a security policy on the public bucket — there's no setting to change it. So:
 
-### 3. Pass patient summary data through
+- The raw storage URL will **always** show source code, never a rendered page.
+- Even when it does render, Tailwind CDN, Google Fonts, and your logo are blocked by the CSP.
+- Our current `/shared-guide?view=guide` workaround only works because our React app fetches the text and re-injects it via `srcDoc` — but that requires the patient to first load the full React app, wait for JS, and trust an iframe. On WhatsApp's in-app browser this is fragile.
 
-`shareGuide.ts → generateAndShareGuide(...)` gets one extra optional arg: `patientSummary?: { weightKg, heightCm, bmi, bmiClass, calorieTarget }`. `WeightLossConsultation.tsx` already has these values computed for the sticky sidebar — we pass them in when calling `generateAndShareGuide`. If absent, the summary card is omitted gracefully.
+**You don't need a different HTML maker.** The HTML you're already generating is correct (the in-app preview proves it). The problem is purely the *delivery channel*.
 
-### 4. PDF stays in sync
+# Recommended fix: serve guides through an Edge Function
 
-`pdfGuide.ts` already renders from the same HTML string, so the downloadable PDF automatically picks up the new design. No separate work needed.
+Create a tiny public Edge Function `serve-guide` that:
+1. Reads a `?file=<storage-path>` query param
+2. Downloads the HTML from the `patient-guides` bucket using the service role
+3. Returns it with **`Content-Type: text/html; charset=utf-8`** and **no restrictive CSP**
 
-### 5. Landing page unchanged
-
-The WhatsApp landing page (`landingPage.ts`) keeps its current glassmorphism design — it already matches your brand and offers View Online + Download PDF.
-
-## Layout sketch
-
-```text
-┌────────────────────────────────────────────────────┐
-│  TEAL GRADIENT HEADER  [logo]  Clinical Weight Mgmt│
-│  Hi <Name>, your personalized roadmap…             │
-└────────────────────────────────────────────────────┘
-┌──────────────── Introduction ───┬─ Patient Summary┐
-│  Wegovy 0.25 mg, GLP-1…         │  Weight 103 kg  │
-│  • Targets appetite             │  Height 175 cm  │
-│  • Slows gastric emptying       │  BMI   33.6     │
-│  • …                            │  Cal   2125 kcal│
-└─────────────────────────────────┴─────────────────┘
-┌──── Storage Instructions ───────┬── How to Inject ┐
-│ ❄ 2–8 °C   🏠 ≤30 °C …          │  1 Prepare 2 …  │
-└─────────────────────────────────┴─────────────────┘
-┌─────── NUTRITION & DIET (food photo bg) ──────────┐
-│  Protein 124–155 g · Water 2–3 L · Carbs <20%     │
-│  • Protein 40–50%  • Fiber 40–50%  • Low-GI carbs │
-└────────────────────────────────────────────────────┘
-┌── Side Effects (amber) ─────────┬─ Red Flags (red)┐
-└─────────────────────────────────┴─────────────────┘
-┌── Follow-Up Plan ───────────────┬── Milestone Wk 4┐
-└─────────────────────────────────┴─────────────────┘
-┌── Signature: [img] Dr Sami M. Yesuf · DarDoc … ───┐
-└────────────────────────────────────────────────────┘
-        Footer · DarDoc Weight Loss Program · 2026
+Patients receive a single clean URL like:
 ```
+https://peptidedoc.live/g/sami_test_html_flow_1777120979848
+```
+…which redirects (or proxies) to the Edge Function and renders as a full branded page instantly — no React app load, no iframe, works in every WhatsApp in-app browser, fonts/images load normally.
 
-## Files
+# Implementation steps
 
-- **New**: `src/utils/weightLossGuideHtml.ts`
-- **Edited**: `src/utils/printGuide.ts` (router + extracted peptide builder)
-- **Edited**: `src/utils/shareGuide.ts` (forward optional patient-summary)
-- **Edited**: `src/pages/WeightLossConsultation.tsx` (pass patient summary into the share dialog → shareGuide)
-- **Edited**: `src/components/ShareGuideDialog.tsx` (accept and forward optional summary prop)
+1. **New Edge Function** `supabase/functions/serve-guide/index.ts`
+   - Public (no JWT): add `[functions.serve-guide] verify_jwt = false` to `supabase/config.toml`
+   - Validates the file path is inside `patient-guides/` and ends with `.html`
+   - Fetches the object from storage, returns it with `Content-Type: text/html; charset=utf-8`, `Cache-Control: public, max-age=300`, and permissive headers so external assets (Tailwind CDN, Google Fonts) load
+   - Optional: also handle `.pdf` to serve PDFs with `Content-Type: application/pdf` and `Content-Disposition: inline`
 
-## Out of scope
+2. **Update `src/utils/shareGuide.ts`**
+   - After uploading, build the patient URL as the Edge Function URL:
+     `https://kokottennducgqcearxu.supabase.co/functions/v1/serve-guide?file=<filename>.html`
+   - Use this as the WhatsApp link directly — drop the `/shared-guide` React route from the patient flow
+   - Keep the PDF link pointing at the same function (or keep the storage URL for PDFs since browsers handle PDFs better, but text/plain breaks even there — safer to proxy)
 
-- Peptide guide visual design (unchanged).
-- Landing page redesign (already matches brand).
-- Removing PDF generation — kept so patients still get an offline file.
+3. **Keep `/shared-guide` route** as the *clinician-facing* landing page with both "View Online" and "Download PDF" buttons (optional fallback — not in the patient WhatsApp message)
 
-Approve to implement.
+4. **Optional polish**: add a short slug column (e.g. `guide_links` table mapping `slug → file path`) so the patient URL can be `peptidedoc.live/g/abc123` instead of a Supabase function URL. Not required for the fix to work.
+
+# Alternative HTML/delivery options (you asked)
+
+If you'd rather not build the Edge Function, here are real alternatives — but honestly, the Edge Function is the cleanest:
+
+| Option | Pros | Cons |
+|---|---|---|
+| **Edge Function proxy (recommended)** | One file, no new service, instant render, works everywhere | ~30 lines of code |
+| **Cloudflare R2 / AWS S3 + CloudFront** | Real static HTML hosting | New account, billing, DNS setup |
+| **Netlify Drop / GitHub Pages per file** | Free static hosting | Manual upload per patient — not automatable cleanly |
+| **Convert to PDF only, send PDF link** | Simplest | Loses interactivity, links in guide aren't clickable on all viewers |
+| **Email the HTML inline via Resend** | Renders perfectly in Gmail/Apple Mail | Patient needs email, not WhatsApp; some clients strip styles |
+
+# What I will change (in build mode)
+
+- `supabase/functions/serve-guide/index.ts` — new public Edge Function
+- `supabase/config.toml` — register the function with `verify_jwt = false`
+- `src/utils/shareGuide.ts` — point WhatsApp link at the new function URL
+- `src/components/ShareGuideDialog.tsx` — update the "Open guide" link in the success card to use the new URL
+- No DB changes, no new dependencies, no UI changes for clinicians
+
+After this, the WhatsApp link a patient taps will open a fully branded, fonts-loaded, image-loaded HTML page directly in their browser — exactly what your in-app preview shows.

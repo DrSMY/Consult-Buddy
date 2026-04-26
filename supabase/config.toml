@@ -13,3 +13,6 @@ verify_jwt = false
 
 [functions.send-confirmation-email]
 verify_jwt = false
+
+[functions.serve-guide]
+verify_jwt = false
