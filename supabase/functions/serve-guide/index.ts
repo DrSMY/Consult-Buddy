@@ -21,9 +21,15 @@ const corsHeaders = {
 };
 
 // Only allow simple filenames inside the patient-guides bucket — no traversal,
-// no subpaths, only .html or .pdf.
+// no subpaths, only .html, .htm or .pdf.
 function isSafeFile(name: string): boolean {
-  return /^[a-zA-Z0-9._-]+\.(html|pdf)$/i.test(name) && !name.includes("..");
+  return /^[a-zA-Z0-9._-]+\.(html?|pdf)$/i.test(name) && !name.includes("..");
+}
+
+function getContentType(file: string): string {
+  return file.toLowerCase().endsWith(".pdf")
+    ? "application/pdf"
+    : "text/html; charset=utf-8";
 }
 
 Deno.serve(async (req) => {
@@ -48,7 +54,15 @@ Deno.serve(async (req) => {
     }
 
     const supabase = createClient(SUPABASE_URL, SERVICE_ROLE_KEY);
-    const { data, error } = await supabase.storage.from(BUCKET).download(file);
+    let { data, error } = await supabase.storage.from(BUCKET).download(file);
+
+    // If a shared URL was copied with `.htm` instead of `.html`, try the
+    // canonical `.html` file before giving up. This keeps older patient links
+    // usable and prevents browsers from falling back to raw storage URLs.
+    if ((error || !data) && file.toLowerCase().endsWith(".htm")) {
+      file = `${file}l`;
+      ({ data, error } = await supabase.storage.from(BUCKET).download(file));
+    }
 
     if (error || !data) {
       return new Response("This guide is no longer available.", {
@@ -58,9 +72,7 @@ Deno.serve(async (req) => {
     }
 
     const isPdf = file.toLowerCase().endsWith(".pdf");
-    const contentType = isPdf
-      ? "application/pdf"
-      : "text/html; charset=utf-8";
+    const contentType = getContentType(file);
 
     const headers: Record<string, string> = {
       ...corsHeaders,
