@@ -191,7 +191,7 @@ export async function generateAndShareGuide(
     window.open(whatsappUrl, "_blank");
   }
 
-  return { htmlUrl: patientGuidePageUrl, pdfUrl: patientPdfUrl, landingUrl: patientGuidePageUrl, whatsappUrl };
+  return { htmlUrl: shortGuideUrl, pdfUrl: patientPdfUrl, landingUrl: patientGuidePageUrl, whatsappUrl };
 }
 
 /** Backwards-compat wrapper used by older callers. */
