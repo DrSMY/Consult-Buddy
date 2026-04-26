@@ -59,7 +59,7 @@ function getPublicAppOrigin(): string {
  */
 function buildServeGuideUrl(fileName: string): string {
   const projectRef = (import.meta.env.VITE_SUPABASE_PROJECT_ID as string) || "kokottennducgqcearxu";
-  return `https://${projectRef}.supabase.co/functions/v1/serve-guide?file=${encodeURIComponent(fileName)}`;
+  return `https://${projectRef}.supabase.co/functions/v1/serve-guide?file=${encodeURIComponent(fileName)}&raw=1`;
 }
 
 function buildAppSharedGuideUrl(params: {
