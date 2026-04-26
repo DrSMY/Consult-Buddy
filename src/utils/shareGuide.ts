@@ -54,6 +54,25 @@ function getPublicAppOrigin(): string {
   return origin;
 }
 
+function getPublicAppOrigin(): string {
+  const { origin, hostname } = window.location;
+  if (hostname.includes("id-preview--") || hostname.endsWith(".lovableproject.com")) {
+    return "https://peptidedoc.live";
+  }
+  return origin;
+}
+
+/**
+ * Public Edge Function URL that re-serves a stored guide file with the
+ * correct Content-Type so patients see a fully rendered branded page
+ * instead of raw HTML source. The raw Supabase Storage URL serves files
+ * as text/plain with a hard CSP, which breaks the experience.
+ */
+function buildServeGuideUrl(fileName: string): string {
+  const projectRef = (import.meta.env.VITE_SUPABASE_PROJECT_ID as string) || "kokottennducgqcearxu";
+  return `https://${projectRef}.supabase.co/functions/v1/serve-guide?file=${encodeURIComponent(fileName)}`;
+}
+
 function buildAppSharedGuideUrl(params: {
   patientName: string;
   program: Program;
