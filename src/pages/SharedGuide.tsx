@@ -1,39 +1,95 @@
 import { useEffect, useMemo, useState } from "react";
-import { Link, useSearchParams } from "react-router-dom";
-import { AlertCircle, Download, Eye, FileText, Loader2 } from "lucide-react";
+import { Link, useParams, useSearchParams } from "react-router-dom";
+import { AlertCircle, Download, Eye, FileText, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 
 type Program = "peptides" | "weight_loss";
 
-function safeParam(value: string | null, fallback = "") {
+const PROJECT_REF =
+  (import.meta.env.VITE_SUPABASE_PROJECT_ID as string) || "kokottennducgqcearxu";
+const SUPABASE_HOST = `${PROJECT_REF}.supabase.co`;
+
+function safeParam(value: string | null | undefined, fallback = "") {
   return value?.trim() || fallback;
 }
 
-function isAllowedSharedFileUrl(value: string | null) {
+/**
+ * Accept any HTTPS URL on our Supabase host. Old strict matching against
+ * specific path substrings was rejecting perfectly valid links that had been
+ * lightly rewritten by WhatsApp / SMS clients, surfacing a misleading
+ * "expired" message. Guides themselves never expire.
+ */
+function isAllowedSharedFileUrl(value: string | null | undefined) {
   if (!value) return false;
   try {
     const url = new URL(value);
     if (url.protocol !== "https:") return false;
-    // Accept either a direct storage URL or our serve-guide Edge Function URL.
-    return (
-      url.pathname.includes("/patient-guides/") ||
-      url.pathname.includes("/functions/v1/serve-guide")
-    );
+    return url.hostname === SUPABASE_HOST || url.hostname.endsWith(".supabase.co");
   } catch {
     return false;
   }
 }
 
+/** Build the canonical serve-guide URL for a stored filename. */
+function buildServeGuideUrl(file: string): string {
+  return `https://${SUPABASE_HOST}/functions/v1/serve-guide?file=${encodeURIComponent(file)}&raw=1`;
+}
+
+/** Fetch with a single retry to survive flaky mobile networks. */
+async function fetchWithRetry(url: string, signal: AbortSignal): Promise<string> {
+  const attempt = async () => {
+    const res = await fetch(url, { cache: "no-store", signal });
+    if (!res.ok) throw new Error(`status ${res.status}`);
+    return res.text();
+  };
+  try {
+    return await attempt();
+  } catch (e) {
+    if (signal.aborted) throw e;
+    await new Promise((r) => setTimeout(r, 1500));
+    return attempt();
+  }
+}
+
 export default function SharedGuide() {
   const [searchParams] = useSearchParams();
-  const htmlUrl = safeParam(searchParams.get("html"));
-  const pdfUrl = safeParam(searchParams.get("pdf"));
+  const params = useParams<{ file?: string }>();
+
+  // Reconstruct html/pdf URLs from the short /g/:file route if present.
+  const inferredHtmlUrl = useMemo(() => {
+    const file = params.file;
+    if (!file) return "";
+    const base = file.replace(/\.(html?|pdf)$/i, "");
+    return buildServeGuideUrl(`${base}.html`);
+  }, [params.file]);
+
+  const inferredPdfUrl = useMemo(() => {
+    const file = params.file;
+    if (!file) return "";
+    const base = file.replace(/\.(html?|pdf)$/i, "");
+    return buildServeGuideUrl(`${base}.pdf`);
+  }, [params.file]);
+
+  const htmlUrlParam = safeParam(searchParams.get("html"));
+  const pdfUrlParam = safeParam(searchParams.get("pdf"));
+  const htmlUrl = htmlUrlParam || inferredHtmlUrl;
+  const pdfUrl = pdfUrlParam || inferredPdfUrl;
   const patientName = safeParam(searchParams.get("name"), "Patient");
   const program = (safeParam(searchParams.get("program"), "peptides") as Program) || "peptides";
-  const view = safeParam(searchParams.get("view"), "landing");
+
+  // Default to "guide" view on the short /g/:file route so patients see the
+  // rendered guide immediately without an extra tap.
+  const requestedView = safeParam(searchParams.get("view"), params.file ? "guide" : "landing");
+
+  // Auto-fallback: if html is unreachable but pdf is present, jump to PDF.
+  const hasHtml = isAllowedSharedFileUrl(htmlUrl);
+  const hasPdf = isAllowedSharedFileUrl(pdfUrl);
+  const view = requestedView === "guide" && !hasHtml && hasPdf ? "pdf" : requestedView;
+
   const [htmlDoc, setHtmlDoc] = useState("");
   const [loading, setLoading] = useState(view === "guide");
   const [error, setError] = useState("");
+  const [reloadKey, setReloadKey] = useState(0);
 
   const programLabel = program === "weight_loss" ? "Weight Loss Program" : "Peptide Therapy";
   const guideUrl = useMemo(() => {
@@ -44,36 +100,55 @@ export default function SharedGuide() {
 
   useEffect(() => {
     if (view !== "guide") return;
-    if (!isAllowedSharedFileUrl(htmlUrl)) {
-      setError("This guide link is invalid or has expired.");
+    if (!hasHtml) {
+      setError("We couldn't open the online guide. Please use the PDF copy below.");
       setLoading(false);
       return;
     }
 
-    let cancelled = false;
+    const ctrl = new AbortController();
     setLoading(true);
     setError("");
 
-    fetch(htmlUrl, { cache: "no-store" })
-      .then(async (res) => {
-        if (!res.ok) throw new Error("Guide could not be loaded.");
-        return res.text();
-      })
-      .then((doc) => {
-        if (!cancelled) setHtmlDoc(doc);
-      })
+    fetchWithRetry(htmlUrl, ctrl.signal)
+      .then((doc) => setHtmlDoc(doc))
       .catch(() => {
-        if (!cancelled) setError("We could not open this guide. Please try the PDF copy below.");
+        if (!ctrl.signal.aborted) {
+          setError("We couldn't open the online guide right now. Please try again or use the PDF copy.");
+        }
       })
       .finally(() => {
-        if (!cancelled) setLoading(false);
+        if (!ctrl.signal.aborted) setLoading(false);
       });
 
-    return () => {
-      cancelled = true;
-    };
-  }, [htmlUrl, view]);
+    return () => ctrl.abort();
+  }, [htmlUrl, view, hasHtml, reloadKey]);
 
+  // ---------- PDF auto-fallback view ----------
+  if (view === "pdf" && hasPdf) {
+    return (
+      <main className="min-h-screen bg-background">
+        <header className="flex min-h-16 items-center justify-between gap-3 border-b bg-card px-4 py-3 shadow-sm">
+          <div className="min-w-0">
+            <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{programLabel}</p>
+            <h1 className="truncate text-lg font-semibold text-foreground">{patientName} — Patient Guide</h1>
+          </div>
+          <Button asChild size="sm" className="shrink-0">
+            <a href={pdfUrl} target="_blank" rel="noopener noreferrer" download>
+              <Download className="mr-2 h-4 w-4" /> Download
+            </a>
+          </Button>
+        </header>
+        <iframe
+          title="Patient guide PDF"
+          src={pdfUrl}
+          className="h-[calc(100vh-4rem)] w-full border-0 bg-background"
+        />
+      </main>
+    );
+  }
+
+  // ---------- Online guide view ----------
   if (view === "guide") {
     return (
       <main className="min-h-screen bg-background">
@@ -82,8 +157,8 @@ export default function SharedGuide() {
             <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{programLabel}</p>
             <h1 className="truncate text-lg font-semibold text-foreground">{patientName} — Patient Guide</h1>
           </div>
-          {isAllowedSharedFileUrl(pdfUrl) && (
-            <Button asChild size="sm" className="shrink-0">
+          {hasPdf && (
+            <Button asChild size="sm" variant="secondary" className="shrink-0">
               <a href={pdfUrl} target="_blank" rel="noopener noreferrer" download>
                 <Download className="mr-2 h-4 w-4" /> PDF
               </a>
@@ -92,23 +167,37 @@ export default function SharedGuide() {
         </header>
 
         {loading ? (
-          <div className="flex h-[calc(100vh-4rem)] items-center justify-center text-muted-foreground">
-            <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Opening your guide…
+          <div className="flex h-[calc(100vh-4rem)] flex-col items-center justify-center gap-4 text-muted-foreground">
+            <div className="flex items-center">
+              <Loader2 className="mr-2 h-5 w-5 animate-spin" /> Opening your guide…
+            </div>
+            {hasPdf && (
+              <Button asChild size="sm" variant="ghost">
+                <a href={pdfUrl} target="_blank" rel="noopener noreferrer" download>
+                  <Download className="mr-2 h-4 w-4" /> Open PDF instead
+                </a>
+              </Button>
+            )}
           </div>
         ) : error ? (
           <div className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-lg flex-col items-center justify-center gap-4 px-6 text-center">
             <AlertCircle className="h-10 w-10 text-destructive" />
             <div>
-              <h2 className="text-xl font-semibold text-foreground">Guide unavailable</h2>
+              <h2 className="text-xl font-semibold text-foreground">Guide temporarily unavailable</h2>
               <p className="mt-2 text-sm text-muted-foreground">{error}</p>
             </div>
-            {isAllowedSharedFileUrl(pdfUrl) && (
-              <Button asChild>
-                <a href={pdfUrl} target="_blank" rel="noopener noreferrer" download>
-                  <Download className="mr-2 h-4 w-4" /> Download PDF instead
-                </a>
+            <div className="flex flex-wrap items-center justify-center gap-2">
+              <Button variant="outline" onClick={() => setReloadKey((k) => k + 1)}>
+                <RefreshCw className="mr-2 h-4 w-4" /> Try again
               </Button>
-            )}
+              {hasPdf && (
+                <Button asChild>
+                  <a href={pdfUrl} target="_blank" rel="noopener noreferrer" download>
+                    <Download className="mr-2 h-4 w-4" /> Download PDF
+                  </a>
+                </Button>
+              )}
+            </div>
           </div>
         ) : (
           <iframe
@@ -122,6 +211,7 @@ export default function SharedGuide() {
     );
   }
 
+  // ---------- Landing view ----------
   return (
     <main className="min-h-screen bg-gradient-to-b from-background via-secondary/30 to-background px-4 py-8">
       <section className="mx-auto flex min-h-[calc(100vh-4rem)] max-w-xl flex-col justify-center">
@@ -137,7 +227,7 @@ export default function SharedGuide() {
         </div>
 
         <div className="mt-4 grid gap-3 sm:grid-cols-2">
-          <Button asChild size="lg" className="h-auto justify-start rounded-lg p-5">
+          <Button asChild size="lg" className="h-auto justify-start rounded-lg p-5" disabled={!hasHtml && !hasPdf}>
             <Link to={guideUrl}>
               <Eye className="mr-3 h-5 w-5" />
               <span className="text-left">
@@ -146,7 +236,7 @@ export default function SharedGuide() {
               </span>
             </Link>
           </Button>
-          <Button asChild size="lg" variant="secondary" className="h-auto justify-start rounded-lg p-5" disabled={!isAllowedSharedFileUrl(pdfUrl)}>
+          <Button asChild size="lg" variant="secondary" className="h-auto justify-start rounded-lg p-5" disabled={!hasPdf}>
             <a href={pdfUrl} target="_blank" rel="noopener noreferrer" download>
               <Download className="mr-3 h-5 w-5" />
               <span className="text-left">
