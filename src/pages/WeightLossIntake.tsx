@@ -282,22 +282,22 @@ export default function WeightLossIntake() {
       <div className="min-h-screen gradient-surface">
         <AppHeader title="Weight Loss / GLP-1" subtitle="Select encounter type" showBack />
         <main className="container mx-auto max-w-3xl px-4 py-6 sm:py-12 animate-fade-in">
-          <div className="text-center mb-8">
-            <h2 className="text-2xl font-bold">Select Encounter Type</h2>
-            <p className="text-muted-foreground mt-2">Choose how to proceed with this patient.</p>
+          <div className="text-center mb-4 sm:mb-8">
+            <h2 className="text-xl sm:text-2xl font-bold">Select Encounter Type</h2>
+            <p className="text-sm sm:text-base text-muted-foreground mt-1 sm:mt-2">Choose how to proceed with this patient.</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6 mb-4 sm:mb-8">
             <Card
               className="cursor-pointer group hover:shadow-lg hover:border-primary/40 hover:-translate-y-0.5 transition-all"
               onClick={() => setFlowType("new")}
             >
-              <CardContent className="p-8 flex flex-col items-center text-center gap-4">
-                <div className="h-14 w-14 rounded-xl gradient-primary flex items-center justify-center group-hover:scale-105 transition-transform">
-                  <UserPlus className="h-7 w-7 text-primary-foreground" />
+              <CardContent className="p-4 sm:p-8 flex flex-row sm:flex-col items-center text-left sm:text-center gap-3 sm:gap-4">
+                <div className="h-11 w-11 sm:h-14 sm:w-14 shrink-0 rounded-xl gradient-primary flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <UserPlus className="h-5 w-5 sm:h-7 sm:w-7 text-primary-foreground" />
                 </div>
-                <div>
-                  <h3 className="text-lg font-bold">New Patient</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
+                <div className="min-w-0">
+                  <h3 className="text-base sm:text-lg font-bold">New Patient</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
                     Full intake: demographics, medical history, and clinical analysis.
                   </p>
                 </div>
@@ -307,13 +307,13 @@ export default function WeightLossIntake() {
               className="cursor-pointer group hover:shadow-lg hover:border-primary/40 hover:-translate-y-0.5 transition-all"
               onClick={() => setFlowType("followup")}
             >
-              <CardContent className="p-8 flex flex-col items-center text-center gap-4">
-                <div className="h-14 w-14 rounded-xl bg-secondary flex items-center justify-center group-hover:scale-105 transition-transform">
-                  <History className="h-7 w-7 text-secondary-foreground" />
+              <CardContent className="p-4 sm:p-8 flex flex-row sm:flex-col items-center text-left sm:text-center gap-3 sm:gap-4">
+                <div className="h-11 w-11 sm:h-14 sm:w-14 shrink-0 rounded-xl bg-secondary flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <History className="h-5 w-5 sm:h-7 sm:w-7 text-secondary-foreground" />
                 </div>
-                <div>
-                  <h3 className="text-lg font-bold">Patient Follow-up</h3>
-                  <p className="text-sm text-muted-foreground mt-1">
+                <div className="min-w-0">
+                  <h3 className="text-base sm:text-lg font-bold">Patient Follow-up</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
                     Review progress, adjust dosages, and manage side effects.
                   </p>
                 </div>
