@@ -21,6 +21,7 @@ import PatientGuideDisplay from "@/components/PatientGuideDisplay";
 import { getBMICategory, getBMIColorClass, getDoseOptions, type MedicationType, type BloodTestLevel, generateClinicalSuggestion } from "@/data/glp1Config";
 import { openWhatsApp } from "@/utils/whatsapp";
 import { printPatientGuide } from "@/utils/printGuide";
+import { sendGuideAsWhatsappText } from "@/utils/guideWhatsappText";
 import { buildEmrOutput } from "@/utils/emrOutput";
 import ShareGuideDialog from "@/components/ShareGuideDialog";
 
