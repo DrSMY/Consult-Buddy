@@ -134,26 +134,26 @@ export default function DashboardStats({ section = "all" }: { section?: Section 
   const loading = rows === null;
 
   return (
-    <section className="mb-10 space-y-4">
+    <section className="mb-6 sm:mb-10 space-y-3 sm:space-y-4">
       {section !== "kpis" && (
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-primary">
-            <Activity className="h-4 w-4 text-primary-foreground" />
+      <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-lg gradient-primary">
+            <Activity className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary-foreground" />
           </div>
-          <div>
-            <h3 className="text-sm font-semibold leading-none">Patient Statistics</h3>
-            <p className="text-[11px] text-muted-foreground mt-1">Live overview of consultations</p>
+          <div className="min-w-0">
+            <h3 className="text-xs sm:text-sm font-semibold leading-none truncate">Patient Statistics</h3>
+            <p className="hidden sm:block text-[11px] text-muted-foreground mt-1">Live overview of consultations</p>
           </div>
         </div>
         <Tabs value={filter} onValueChange={(v) => setFilter(v as ProgramFilter)}>
-          <TabsList className="h-9">
-            <TabsTrigger value="all" className="text-xs px-3">All</TabsTrigger>
-            <TabsTrigger value="peptides" className="text-xs px-3 gap-1">
-              <FlaskConical className="h-3 w-3" /> Peptides
+          <TabsList className="h-8 sm:h-9">
+            <TabsTrigger value="all" className="text-[11px] sm:text-xs px-2 sm:px-3">All</TabsTrigger>
+            <TabsTrigger value="peptides" className="text-[11px] sm:text-xs px-2 sm:px-3 gap-1">
+              <FlaskConical className="h-3 w-3" /> <span className="hidden xs:inline sm:inline">Peptides</span>
             </TabsTrigger>
-            <TabsTrigger value="weight-loss" className="text-xs px-3 gap-1">
-              <Scale className="h-3 w-3" /> Weight Loss
+            <TabsTrigger value="weight-loss" className="text-[11px] sm:text-xs px-2 sm:px-3 gap-1">
+              <Scale className="h-3 w-3" /> <span className="hidden xs:inline sm:inline">Weight</span>
             </TabsTrigger>
           </TabsList>
         </Tabs>
