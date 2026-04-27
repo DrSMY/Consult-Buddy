@@ -281,7 +281,7 @@ export default function WeightLossIntake() {
     return (
       <div className="min-h-screen gradient-surface">
         <AppHeader title="Weight Loss / GLP-1" subtitle="Select encounter type" showBack />
-        <main className="container mx-auto max-w-3xl px-4 py-12 animate-fade-in">
+        <main className="container mx-auto max-w-3xl px-4 py-6 sm:py-12 animate-fade-in">
           <div className="text-center mb-8">
             <h2 className="text-2xl font-bold">Select Encounter Type</h2>
             <p className="text-muted-foreground mt-2">Choose how to proceed with this patient.</p>
