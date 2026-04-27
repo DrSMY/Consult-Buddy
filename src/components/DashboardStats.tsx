@@ -162,30 +162,30 @@ export default function DashboardStats({ section = "all" }: { section?: Section 
 
       {/* KPI cards */}
       {section !== "charts" && (
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-2 sm:gap-3 grid-cols-3">
         {cards.map((c) => (
           <Card
             key={c.label}
             className="relative overflow-hidden transition-all hover:shadow-md hover:border-primary/30"
           >
             <div className="absolute inset-0 opacity-[0.04] gradient-primary pointer-events-none" />
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 relative">
-              <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            <CardHeader className="flex flex-row items-center justify-between pb-1 sm:pb-2 space-y-0 relative px-3 sm:px-6 pt-3 sm:pt-6">
+              <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide truncate">
                 {c.label}
               </CardTitle>
-              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <c.icon className="h-4 w-4 text-primary" />
+              <div className="h-6 w-6 sm:h-8 sm:w-8 shrink-0 rounded-lg bg-primary/10 flex items-center justify-center">
+                <c.icon className="h-3 w-3 sm:h-4 sm:w-4 text-primary" />
               </div>
             </CardHeader>
-            <CardContent className="relative">
+            <CardContent className="relative px-3 sm:px-6 pb-3 sm:pb-6">
               {loading ? (
-                <Skeleton className="h-9 w-20" />
+                <Skeleton className="h-7 sm:h-9 w-12 sm:w-20" />
               ) : (
-                <div className="flex items-baseline gap-2">
-                  <div className="text-3xl font-bold tracking-tight">{c.value}</div>
+                <div className="flex items-baseline gap-1 sm:gap-2 flex-wrap">
+                  <div className="text-xl sm:text-3xl font-bold tracking-tight tabular-nums">{c.value}</div>
                   {typeof c.trend === "number" && (
                     <span
-                      className={`text-[11px] font-medium flex items-center gap-0.5 ${
+                      className={`text-[10px] sm:text-[11px] font-medium flex items-center gap-0.5 ${
                         c.trend >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"
                       }`}
                     >
@@ -195,7 +195,7 @@ export default function DashboardStats({ section = "all" }: { section?: Section 
                   )}
                 </div>
               )}
-              <p className="text-[11px] text-muted-foreground mt-1">{c.hint}</p>
+              <p className="hidden sm:block text-[11px] text-muted-foreground mt-1">{c.hint}</p>
             </CardContent>
           </Card>
         ))}
