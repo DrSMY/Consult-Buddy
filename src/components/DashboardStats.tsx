@@ -23,7 +23,9 @@ const PROGRAM_LABEL: Record<string, string> = {
   "weight-loss": "Weight Loss",
 };
 
-export default function DashboardStats() {
+type Section = "all" | "kpis" | "charts";
+
+export default function DashboardStats({ section = "all" }: { section?: Section } = {}) {
   const [rows, setRows] = useState<Row[] | null>(null);
   const [filter, setFilter] = useState<ProgramFilter>("all");
 
@@ -133,6 +135,7 @@ export default function DashboardStats() {
 
   return (
     <section className="mb-10 space-y-4">
+      {section !== "kpis" && (
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-primary">
@@ -155,8 +158,10 @@ export default function DashboardStats() {
           </TabsList>
         </Tabs>
       </div>
+      )}
 
       {/* KPI cards */}
+      {section !== "charts" && (
       <div className="grid gap-3 sm:grid-cols-3">
         {cards.map((c) => (
           <Card
@@ -195,8 +200,10 @@ export default function DashboardStats() {
           </Card>
         ))}
       </div>
+      )}
 
       {/* Charts */}
+      {section !== "kpis" && (
       <div className="grid gap-3 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader className="pb-2">
@@ -338,6 +345,7 @@ export default function DashboardStats() {
           </CardContent>
         </Card>
       </div>
+      )}
     </section>
   );
 }
