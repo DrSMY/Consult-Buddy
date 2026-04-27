@@ -206,22 +206,22 @@ export default function DashboardStats({ section = "all" }: { section?: Section 
       {section !== "kpis" && (
       <div className="grid gap-3 lg:grid-cols-3">
         <Card className="lg:col-span-2">
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-2 px-3 sm:px-6 pt-3 sm:pt-6">
             <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-sm font-semibold">14-Day Trend</CardTitle>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
+              <div className="min-w-0">
+                <CardTitle className="text-xs sm:text-sm font-semibold truncate">14-Day Trend</CardTitle>
+                <p className="hidden sm:block text-[11px] text-muted-foreground mt-0.5">
                   Daily consultations by program
                 </p>
               </div>
-              <Users className="h-4 w-4 text-muted-foreground" />
+              <Users className="h-4 w-4 text-muted-foreground shrink-0" />
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-2 sm:px-6 pb-3 sm:pb-6">
             {loading ? (
-              <Skeleton className="h-[220px] w-full" />
+              <Skeleton className="h-[160px] sm:h-[220px] w-full" />
             ) : (
-              <ChartContainer config={chartConfig} className="h-[220px] w-full">
+              <ChartContainer config={chartConfig} className="h-[160px] sm:h-[220px] w-full">
                 <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="fillPeptides" x1="0" y1="0" x2="0" y2="1">
