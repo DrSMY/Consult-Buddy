@@ -295,24 +295,27 @@ export default function ProgramPrescriptionStats({ program }: Props) {
 function KpiTile({
   icon,
   label,
+  fullLabel,
   value,
   loading,
 }: {
   icon: React.ReactNode;
   label: string;
+  fullLabel?: string;
   value: number;
   loading: boolean;
 }) {
   return (
-    <div className="rounded-lg border bg-card/60 px-3 py-2.5">
-      <div className="flex items-center gap-1.5 text-[10px] uppercase tracking-wide text-muted-foreground font-medium">
-        <span className="text-primary">{icon}</span>
-        {label}
+    <div className="rounded-lg border bg-card/60 px-2 sm:px-3 py-2 sm:py-2.5 min-w-0">
+      <div className="flex items-center gap-1 sm:gap-1.5 text-[9px] sm:text-[10px] uppercase tracking-wide text-muted-foreground font-medium truncate">
+        <span className="text-primary shrink-0">{icon}</span>
+        <span className="sm:hidden truncate">{label}</span>
+        <span className="hidden sm:inline truncate">{fullLabel || label}</span>
       </div>
       {loading ? (
-        <Skeleton className="h-6 w-12 mt-1" />
+        <Skeleton className="h-5 sm:h-6 w-10 sm:w-12 mt-1" />
       ) : (
-        <div className="text-xl font-bold tracking-tight mt-0.5">{value}</div>
+        <div className="text-base sm:text-xl font-bold tracking-tight mt-0.5 tabular-nums">{value}</div>
       )}
     </div>
   );
