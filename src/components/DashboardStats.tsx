@@ -135,6 +135,7 @@ export default function DashboardStats({ section = "all" }: { section?: Section 
 
   return (
     <section className="mb-10 space-y-4">
+      {section !== "kpis" && (
       <div className="flex flex-wrap items-center justify-between gap-3">
         <div className="flex items-center gap-2">
           <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-primary">
