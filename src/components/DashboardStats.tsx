@@ -277,19 +277,19 @@ export default function DashboardStats({ section = "all" }: { section?: Section 
         </Card>
 
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold">Program Mix</CardTitle>
-            <p className="text-[11px] text-muted-foreground mt-0.5">This month</p>
+          <CardHeader className="pb-2 px-3 sm:px-6 pt-3 sm:pt-6">
+            <CardTitle className="text-xs sm:text-sm font-semibold">Program Mix</CardTitle>
+            <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5">This month</p>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
             {loading ? (
-              <Skeleton className="h-[220px] w-full" />
+              <Skeleton className="h-[160px] sm:h-[220px] w-full" />
             ) : !hasDistribution ? (
-              <div className="h-[220px] flex items-center justify-center text-xs text-muted-foreground">
+              <div className="h-[140px] sm:h-[220px] flex items-center justify-center text-xs text-muted-foreground">
                 No consultations yet this month
               </div>
             ) : (
-              <ChartContainer config={chartConfig} className="h-[220px] w-full">
+              <ChartContainer config={chartConfig} className="h-[160px] sm:h-[220px] w-full">
                 <PieChart>
                   <ChartTooltip content={<ChartTooltipContent hideLabel />} />
                   <Pie
