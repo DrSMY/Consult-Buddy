@@ -55,6 +55,8 @@ const COLORS = [
 export default function ProgramPrescriptionStats({ program }: Props) {
   const [rows, setRows] = useState<Row[] | null>(null);
   const [range, setRange] = useState<Range>("90d");
+  const isMobile = useIsMobile();
+  const [open, setOpen] = useState(false);
 
   useEffect(() => {
     let active = true;
