@@ -17,6 +17,7 @@ import type { IntakeQuestion } from "@/data/intakeQuestions";
 import AppHeader from "@/components/AppHeader";
 import LivePeptideSuggestions from "@/components/LivePeptideSuggestions";
 import PatientSummaryCard from "@/components/PatientSummaryCard";
+import ProgramPrescriptionStats from "@/components/ProgramPrescriptionStats";
 import { CalendarDays, Clock } from "lucide-react";
 
 // Mandatory question IDs that must be answered
@@ -509,10 +510,11 @@ export default function PatientIntake() {
       <div className="min-h-screen gradient-surface">
         <AppHeader title="Peptide Therapy" subtitle="Select encounter type" showBack />
         <main className="container mx-auto max-w-3xl px-4 py-12 animate-fade-in">
-          <div className="text-center mb-10">
+          <div className="text-center mb-8">
             <h2 className="text-2xl font-bold">Select Encounter Type</h2>
             <p className="text-muted-foreground mt-2">Choose how to proceed with this patient.</p>
           </div>
+          <ProgramPrescriptionStats program="peptides" />
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
             <Card
               className="cursor-pointer group hover:shadow-lg hover:border-primary/40 hover:-translate-y-0.5 transition-all"
