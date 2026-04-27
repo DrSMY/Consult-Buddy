@@ -410,6 +410,15 @@ export default function WeightLossConsultation() {
                           <Printer className="h-3 w-3 mr-1" /> Print / PDF
                         </Button>
                         <Button
+                          variant="outline"
+                          size="sm"
+                          onClick={() => sendGuideAsWhatsappText(patient?.mobileNumber || "", patientGuide, consultation.patient_name)}
+                          disabled={!patient?.mobileNumber}
+                          title={!patient?.mobileNumber ? "No phone number available" : "Send guide as WhatsApp text"}
+                        >
+                          <MessageCircle className="h-3 w-3 mr-1" /> WhatsApp Text
+                        </Button>
+                        <Button
                           size="sm"
                           onClick={handleShareGuideWhatsApp}
                           disabled={!patient?.mobileNumber}
