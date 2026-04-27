@@ -128,7 +128,7 @@ export default function ProgramPrescriptionStats({ program }: Props) {
       consultationsWithRx,
       uniqueMeds: counts.size,
     };
-  }, [filtered, program]);
+  }, [filtered, program, isMobile]);
 
   const loading = rows === null;
   const isEmpty = !loading && data.chart.length === 0;
