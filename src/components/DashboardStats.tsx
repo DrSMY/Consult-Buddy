@@ -134,26 +134,26 @@ export default function DashboardStats({ section = "all" }: { section?: Section 
   const loading = rows === null;
 
   return (
-    <section className="mb-10 space-y-4">
+    <section className="mb-6 sm:mb-10 space-y-3 sm:space-y-4">
       {section !== "kpis" && (
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div className="flex items-center gap-2">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg gradient-primary">
-            <Activity className="h-4 w-4 text-primary-foreground" />
+      <div className="flex flex-wrap items-center justify-between gap-2 sm:gap-3">
+        <div className="flex items-center gap-2 min-w-0">
+          <div className="flex h-7 w-7 sm:h-8 sm:w-8 shrink-0 items-center justify-center rounded-lg gradient-primary">
+            <Activity className="h-3.5 w-3.5 sm:h-4 sm:w-4 text-primary-foreground" />
           </div>
-          <div>
-            <h3 className="text-sm font-semibold leading-none">Patient Statistics</h3>
-            <p className="text-[11px] text-muted-foreground mt-1">Live overview of consultations</p>
+          <div className="min-w-0">
+            <h3 className="text-xs sm:text-sm font-semibold leading-none truncate">Patient Statistics</h3>
+            <p className="hidden sm:block text-[11px] text-muted-foreground mt-1">Live overview of consultations</p>
           </div>
         </div>
         <Tabs value={filter} onValueChange={(v) => setFilter(v as ProgramFilter)}>
-          <TabsList className="h-9">
-            <TabsTrigger value="all" className="text-xs px-3">All</TabsTrigger>
-            <TabsTrigger value="peptides" className="text-xs px-3 gap-1">
-              <FlaskConical className="h-3 w-3" /> Peptides
+          <TabsList className="h-8 sm:h-9">
+            <TabsTrigger value="all" className="text-[11px] sm:text-xs px-2 sm:px-3">All</TabsTrigger>
+            <TabsTrigger value="peptides" className="text-[11px] sm:text-xs px-2 sm:px-3 gap-1">
+              <FlaskConical className="h-3 w-3" /> <span className="hidden xs:inline sm:inline">Peptides</span>
             </TabsTrigger>
-            <TabsTrigger value="weight-loss" className="text-xs px-3 gap-1">
-              <Scale className="h-3 w-3" /> Weight Loss
+            <TabsTrigger value="weight-loss" className="text-[11px] sm:text-xs px-2 sm:px-3 gap-1">
+              <Scale className="h-3 w-3" /> <span className="hidden xs:inline sm:inline">Weight</span>
             </TabsTrigger>
           </TabsList>
         </Tabs>
@@ -162,30 +162,30 @@ export default function DashboardStats({ section = "all" }: { section?: Section 
 
       {/* KPI cards */}
       {section !== "charts" && (
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid gap-2 sm:gap-3 grid-cols-3">
         {cards.map((c) => (
           <Card
             key={c.label}
             className="relative overflow-hidden transition-all hover:shadow-md hover:border-primary/30"
           >
             <div className="absolute inset-0 opacity-[0.04] gradient-primary pointer-events-none" />
-            <CardHeader className="flex flex-row items-center justify-between pb-2 space-y-0 relative">
-              <CardTitle className="text-xs font-medium text-muted-foreground uppercase tracking-wide">
+            <CardHeader className="flex flex-row items-center justify-between pb-1 sm:pb-2 space-y-0 relative px-3 sm:px-6 pt-3 sm:pt-6">
+              <CardTitle className="text-[10px] sm:text-xs font-medium text-muted-foreground uppercase tracking-wide truncate">
                 {c.label}
               </CardTitle>
-              <div className="h-8 w-8 rounded-lg bg-primary/10 flex items-center justify-center">
-                <c.icon className="h-4 w-4 text-primary" />
+              <div className="h-6 w-6 sm:h-8 sm:w-8 shrink-0 rounded-lg bg-primary/10 flex items-center justify-center">
+                <c.icon className="h-3 w-3 sm:h-4 sm:w-4 text-primary" />
               </div>
             </CardHeader>
-            <CardContent className="relative">
+            <CardContent className="relative px-3 sm:px-6 pb-3 sm:pb-6">
               {loading ? (
-                <Skeleton className="h-9 w-20" />
+                <Skeleton className="h-7 sm:h-9 w-12 sm:w-20" />
               ) : (
-                <div className="flex items-baseline gap-2">
-                  <div className="text-3xl font-bold tracking-tight">{c.value}</div>
+                <div className="flex items-baseline gap-1 sm:gap-2 flex-wrap">
+                  <div className="text-xl sm:text-3xl font-bold tracking-tight tabular-nums">{c.value}</div>
                   {typeof c.trend === "number" && (
                     <span
-                      className={`text-[11px] font-medium flex items-center gap-0.5 ${
+                      className={`text-[10px] sm:text-[11px] font-medium flex items-center gap-0.5 ${
                         c.trend >= 0 ? "text-emerald-600 dark:text-emerald-400" : "text-destructive"
                       }`}
                     >
@@ -195,7 +195,7 @@ export default function DashboardStats({ section = "all" }: { section?: Section 
                   )}
                 </div>
               )}
-              <p className="text-[11px] text-muted-foreground mt-1">{c.hint}</p>
+              <p className="hidden sm:block text-[11px] text-muted-foreground mt-1">{c.hint}</p>
             </CardContent>
           </Card>
         ))}
@@ -206,22 +206,22 @@ export default function DashboardStats({ section = "all" }: { section?: Section 
       {section !== "kpis" && (
       <div className="grid gap-3 lg:grid-cols-3">
         <Card className="lg:col-span-2">
-          <CardHeader className="pb-2">
+          <CardHeader className="pb-2 px-3 sm:px-6 pt-3 sm:pt-6">
             <div className="flex items-center justify-between">
-              <div>
-                <CardTitle className="text-sm font-semibold">14-Day Trend</CardTitle>
-                <p className="text-[11px] text-muted-foreground mt-0.5">
+              <div className="min-w-0">
+                <CardTitle className="text-xs sm:text-sm font-semibold truncate">14-Day Trend</CardTitle>
+                <p className="hidden sm:block text-[11px] text-muted-foreground mt-0.5">
                   Daily consultations by program
                 </p>
               </div>
-              <Users className="h-4 w-4 text-muted-foreground" />
+              <Users className="h-4 w-4 text-muted-foreground shrink-0" />
             </div>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-2 sm:px-6 pb-3 sm:pb-6">
             {loading ? (
-              <Skeleton className="h-[220px] w-full" />
+              <Skeleton className="h-[160px] sm:h-[220px] w-full" />
             ) : (
-              <ChartContainer config={chartConfig} className="h-[220px] w-full">
+              <ChartContainer config={chartConfig} className="h-[160px] sm:h-[220px] w-full">
                 <AreaChart data={trendData} margin={{ top: 10, right: 10, left: -20, bottom: 0 }}>
                   <defs>
                     <linearGradient id="fillPeptides" x1="0" y1="0" x2="0" y2="1">
@@ -277,19 +277,19 @@ export default function DashboardStats({ section = "all" }: { section?: Section 
         </Card>
 
         <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold">Program Mix</CardTitle>
-            <p className="text-[11px] text-muted-foreground mt-0.5">This month</p>
+          <CardHeader className="pb-2 px-3 sm:px-6 pt-3 sm:pt-6">
+            <CardTitle className="text-xs sm:text-sm font-semibold">Program Mix</CardTitle>
+            <p className="text-[10px] sm:text-[11px] text-muted-foreground mt-0.5">This month</p>
           </CardHeader>
-          <CardContent>
+          <CardContent className="px-3 sm:px-6 pb-3 sm:pb-6">
             {loading ? (
-              <Skeleton className="h-[220px] w-full" />
+              <Skeleton className="h-[160px] sm:h-[220px] w-full" />
             ) : !hasDistribution ? (
-              <div className="h-[220px] flex items-center justify-center text-xs text-muted-foreground">
+              <div className="h-[140px] sm:h-[220px] flex items-center justify-center text-xs text-muted-foreground">
                 No consultations yet this month
               </div>
             ) : (
-              <ChartContainer config={chartConfig} className="h-[220px] w-full">
+              <ChartContainer config={chartConfig} className="h-[160px] sm:h-[220px] w-full">
                 <PieChart>
                   <ChartTooltip content={<ChartTooltipContent hideLabel />} />
                   <Pie

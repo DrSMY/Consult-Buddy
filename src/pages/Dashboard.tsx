@@ -35,18 +35,18 @@ export default function Dashboard() {
     <div className="min-h-screen gradient-surface">
       <AppHeader />
 
-      <main className="container mx-auto px-4 py-8 animate-fade-in">
-        <div className="mb-8">
+      <main className="container mx-auto px-4 py-4 sm:py-8 animate-fade-in">
+        <div className="mb-4 sm:mb-8">
           <div className="flex items-center gap-2 mb-1">
             <Sparkles className="h-5 w-5 text-primary" />
-            <h2 className="text-2xl font-bold">
+            <h2 className="text-xl sm:text-2xl font-bold">
               Welcome{profile?.full_name ? `, ${profile.full_name.split(" ")[0]}` : ""}
             </h2>
           </div>
-          <p className="text-muted-foreground">Select a consultation program to begin.</p>
+          <p className="text-sm sm:text-base text-muted-foreground">Select a consultation program to begin.</p>
         </div>
 
-        <div className="grid gap-4 sm:grid-cols-2 max-w-2xl mb-8">
+        <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 max-w-2xl mb-6 sm:mb-8">
           {programs.map((program) => {
             const blocked = !clinician && program.active;
             return (
