@@ -345,6 +345,7 @@ export default function DashboardStats({ section = "all" }: { section?: Section 
           </CardContent>
         </Card>
       </div>
+      )}
     </section>
   );
 }
