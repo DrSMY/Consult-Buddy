@@ -116,10 +116,11 @@ export default function ProgramPrescriptionStats({ program }: Props) {
       }
     }
 
+    const sliceN = isMobile ? 5 : 8;
     const sorted = Array.from(counts.entries())
       .map(([name, value]) => ({ name, value }))
       .sort((a, b) => b.value - a.value)
-      .slice(0, 8);
+      .slice(0, sliceN);
 
     return {
       chart: sorted,
