@@ -20,6 +20,7 @@ import AppHeader from "@/components/AppHeader";
 import LivePeptideSuggestions from "@/components/LivePeptideSuggestions";
 import { openWhatsApp } from "@/utils/whatsapp";
 import { printPatientGuide } from "@/utils/printGuide";
+import { sendGuideAsWhatsappText } from "@/utils/guideWhatsappText";
 import ShareGuideDialog from "@/components/ShareGuideDialog";
 import { getProtocolOptions, extractMl, extractVialMl, inferFrequency, type ProtocolOption } from "@/data/peptideProtocolOptions";
 
@@ -1167,6 +1168,19 @@ SCOPE Certified Physician`;
                       </Button>
                       <Button variant="outline" size="sm" onClick={() => printPatientGuide(buildActionPlan.patientGuide, consultation?.patient_name, "peptides")}>
                         <Printer className="h-3 w-3 mr-1" /> Print / PDF
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => sendGuideAsWhatsappText(
+                          (consultation?.intake_answers as any)?.mobile_number || (consultation?.intake_answers as any)?.phone || "",
+                          buildActionPlan.patientGuide,
+                          consultation?.patient_name,
+                        )}
+                        disabled={!(consultation?.intake_answers as any)?.mobile_number && !(consultation?.intake_answers as any)?.phone}
+                        title={(!(consultation?.intake_answers as any)?.mobile_number && !(consultation?.intake_answers as any)?.phone) ? "No phone number available" : "Send guide as WhatsApp text"}
+                      >
+                        <MessageCircle className="h-3 w-3 mr-1" /> WhatsApp Text
                       </Button>
                       <Button
                         size="sm"
