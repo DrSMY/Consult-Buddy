@@ -46,9 +46,7 @@ export default function Dashboard() {
           <p className="text-muted-foreground">Select a consultation program to begin.</p>
         </div>
 
-        {clinician && <DashboardStats />}
-
-        <div className="grid gap-4 sm:grid-cols-2 max-w-2xl">
+        <div className="grid gap-4 sm:grid-cols-2 max-w-2xl mb-8">
           {programs.map((program) => {
             const blocked = !clinician && program.active;
             return (
@@ -91,6 +89,9 @@ export default function Dashboard() {
             );
           })}
         </div>
+
+        {clinician && <DashboardStats section="charts" />}
+        {clinician && <DashboardStats section="kpis" />}
       </main>
     </div>
   );
