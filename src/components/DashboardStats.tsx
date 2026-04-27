@@ -160,11 +160,6 @@ export default function DashboardStats({ section = "all" }: { section?: Section 
       </div>
       )}
 
-      {/* Charts — render first so order is: programs → graphs → today/week/month */}
-      {section !== "kpis" && (
-      <div className="grid gap-3 lg:grid-cols-3 [&_.recharts-wrapper]:!w-full"></div>
-      )}
-
       {/* KPI cards */}
       {section !== "charts" && (
       <div className="grid gap-3 sm:grid-cols-3">
