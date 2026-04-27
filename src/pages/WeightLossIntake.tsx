@@ -286,8 +286,7 @@ export default function WeightLossIntake() {
             <h2 className="text-2xl font-bold">Select Encounter Type</h2>
             <p className="text-muted-foreground mt-2">Choose how to proceed with this patient.</p>
           </div>
-          <ProgramPrescriptionStats program="weight-loss" />
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 mb-8">
             <Card
               className="cursor-pointer group hover:shadow-lg hover:border-primary/40 hover:-translate-y-0.5 transition-all"
               onClick={() => setFlowType("new")}
@@ -321,6 +320,7 @@ export default function WeightLossIntake() {
               </CardContent>
             </Card>
           </div>
+          <ProgramPrescriptionStats program="weight-loss" />
         </main>
       </div>
     );
