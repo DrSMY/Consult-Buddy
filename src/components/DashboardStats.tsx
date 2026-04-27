@@ -23,7 +23,9 @@ const PROGRAM_LABEL: Record<string, string> = {
   "weight-loss": "Weight Loss",
 };
 
-export default function DashboardStats() {
+type Section = "all" | "kpis" | "charts";
+
+export default function DashboardStats({ section = "all" }: { section?: Section } = {}) {
   const [rows, setRows] = useState<Row[] | null>(null);
   const [filter, setFilter] = useState<ProgramFilter>("all");
 
