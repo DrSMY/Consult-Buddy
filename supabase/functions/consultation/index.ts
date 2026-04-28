@@ -394,6 +394,117 @@ SCOPE Certified Physician`;
       });
     }
 
+    // ---- FINALIZE PEPTIDE PLAN (regenerate narrative based on CHOSEN peptides) ----
+    if (action === "finalize-peptide-plan") {
+      const {
+        patient_name,
+        intake_answers,
+        chosen_peptides,
+        chosen_supplements,
+        final_lab_tests,
+        lab_tier,
+        lab_notes,
+      } = body;
+
+      if (!Array.isArray(chosen_peptides) || chosen_peptides.length === 0) {
+        return new Response(JSON.stringify({ error: "chosen_peptides is required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const safeName = sanitizeString(patient_name, 100) || "Patient";
+
+      const finalizeSystem = `You are a clinical peptide therapy consultation assistant. The physician has FINALIZED the prescription. Your job is to generate the final clinical narrative and patient-facing guide based ONLY on the peptides the physician actually chose (with their finalized doses, frequencies, vial sizes, supply days, and routes). Do NOT mention peptides that were merely suggested earlier and not chosen. Do NOT recommend additional peptides.
+
+Write three pieces of content for this finalized plan:
+1. clinical_summary — concise (4–8 sentences) physician-facing rationale: why these specific chosen peptides fit this patient's goals & history, expected synergies, and key monitoring points.
+2. doctor_note — internal narrative clinical notes (8–15 sentences) covering: presenting goals, relevant history/contraindications considered, prescribed regimen rationale (cite each chosen peptide by name with its actual prescribed dose/frequency), supplement rationale, lab plan rationale, and follow-up plan.
+3. patient_guidelines — warm, plain-language patient-facing guide. Address the patient by name. Cover: a brief intro, what each prescribed peptide does for them (using their actual prescribed dose/frequency in plain language), what to expect in the first weeks, lifestyle reminders, supplement reminders, lab test reminders, red-flag symptoms, and follow-up. Use clear short paragraphs and bullet lines starting with "- ". Plain text only — no HTML, no markdown fences. Sign as "Dr Sami M. Yesuf, SCOPE Certified Physician".
+
+Also produce next_steps (short bulleted action list for the patient).`;
+
+      const finalizeUser = `## Patient Name
+${safeName}
+
+## Patient Intake Data
+${JSON.stringify(intake_answers ?? {}, null, 2)}
+
+## CHOSEN Peptides (final prescription — ONLY discuss these)
+${JSON.stringify(chosen_peptides, null, 2)}
+
+## Chosen Supplements
+${JSON.stringify(chosen_supplements ?? [], null, 2)}
+
+## Final Lab Tests (${sanitizeString(lab_tier, 20) || "basic"} tier)
+${JSON.stringify(final_lab_tests ?? [], null, 2)}
+${lab_notes ? `\nLab notes: ${sanitizeString(lab_notes, 1000)}` : ""}
+
+Generate the finalized clinical_summary, doctor_note, next_steps, and patient_guidelines based STRICTLY on the chosen peptides above.`;
+
+      const finalizeResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            { role: "system", content: finalizeSystem },
+            { role: "user", content: finalizeUser },
+          ],
+          tools: [{
+            type: "function",
+            function: {
+              name: "finalize_plan",
+              description: "Return the finalized clinical narrative based on the chosen peptides.",
+              parameters: {
+                type: "object",
+                properties: {
+                  clinical_summary: { type: "string" },
+                  doctor_note: { type: "string" },
+                  next_steps: { type: "string" },
+                  patient_guidelines: { type: "string" },
+                },
+                required: ["clinical_summary", "doctor_note", "next_steps", "patient_guidelines"],
+              },
+            },
+          }],
+          tool_choice: { type: "function", function: { name: "finalize_plan" } },
+        }),
+      });
+
+      if (!finalizeResp.ok) {
+        if (finalizeResp.status === 429) {
+          return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again shortly." }), {
+            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        if (finalizeResp.status === 402) {
+          return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits." }), {
+            status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const t = await finalizeResp.text();
+        console.error("AI gateway error (finalize):", finalizeResp.status, t);
+        throw new Error("AI gateway error");
+      }
+
+      const fdata = await finalizeResp.json();
+      const ftool = fdata.choices?.[0]?.message?.tool_calls?.[0];
+      if (!ftool) throw new Error("No tool call in finalize response");
+      const parsed = JSON.parse(ftool.function.arguments);
+      // Defensive: scrub any HTML/markdown the model might sneak in.
+      parsed.clinical_summary = sanitizeGuideOutput(parsed.clinical_summary || "");
+      parsed.doctor_note = sanitizeGuideOutput(parsed.doctor_note || "");
+      parsed.next_steps = sanitizeGuideOutput(parsed.next_steps || "");
+      parsed.patient_guidelines = sanitizeGuideOutput(parsed.patient_guidelines || "");
+
+      return new Response(JSON.stringify(parsed), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ---- ORIGINAL PEPTIDE CONSULTATION ----
     const { intake_answers, peptide_protocols } = body;
 
