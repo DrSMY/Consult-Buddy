@@ -1662,6 +1662,90 @@ SCOPE Certified Physician`;
                           </div>
                         </div>
                       ))}
+                    {/* AI Suggest Next Steps */}
+                    <div className="rounded-lg border border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5 p-3 sm:p-4 space-y-3">
+                      <div className="flex items-start justify-between gap-3 flex-wrap">
+                        <div className="flex-1 min-w-[200px]">
+                          <p className="text-sm font-semibold flex items-center gap-1.5">
+                            <Activity className="h-4 w-4 text-primary" /> AI Next-Step Suggestions
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Let AI analyze the chosen peptides + patient intake to suggest additional lab tests, supplements, and clinical notes.
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={runAiSuggestNextSteps}
+                          disabled={suggestingNextSteps || selectedPeptides.size === 0}
+                          className="shrink-0"
+                        >
+                          {suggestingNextSteps ? (
+                            <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Analyzing…</>
+                          ) : (
+                            <><Activity className="h-3.5 w-3.5 mr-1.5" /> {aiSuggestion ? "Re-run AI" : "Suggest with AI"}</>
+                          )}
+                        </Button>
+                      </div>
+
+                      {aiSuggestion && (
+                        <div className="space-y-3 pt-2 border-t border-primary/20">
+                          {aiSuggestion.suggested_lab_tests.length > 0 && (
+                            <div>
+                              <p className="text-[11px] font-bold uppercase tracking-wider text-primary mb-1.5">
+                                Suggested Lab Tests ({aiSuggestion.suggested_lab_tests.length})
+                              </p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {aiSuggestion.suggested_lab_tests.map((t, i) => (
+                                  <Badge key={i} variant="outline" className="text-xs border-accent/40 bg-accent/5 text-accent">
+                                    <FlaskConical className="h-3 w-3 mr-1" /> {t}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {aiSuggestion.suggested_supplements.length > 0 && (
+                            <div>
+                              <p className="text-[11px] font-bold uppercase tracking-wider text-primary mb-1.5">
+                                Suggested Supplements ({aiSuggestion.suggested_supplements.length})
+                              </p>
+                              <div className="space-y-1.5">
+                                {aiSuggestion.suggested_supplements.map((s, i) => (
+                                  <div key={i} className="text-xs rounded-md border border-border bg-background/60 p-2">
+                                    <div className="font-medium">{s.name} <span className="text-muted-foreground font-normal">— {s.dosage}</span></div>
+                                    <div className="text-muted-foreground mt-0.5">{s.reason}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {aiSuggestion.lab_notes && (
+                            <div>
+                              <p className="text-[11px] font-bold uppercase tracking-wider text-primary mb-1.5">Lab Notes</p>
+                              <p className="text-xs text-muted-foreground whitespace-pre-line rounded-md bg-background/60 border border-border p-2">{aiSuggestion.lab_notes}</p>
+                            </div>
+                          )}
+
+                          {aiSuggestion.clinical_notes && (
+                            <div>
+                              <p className="text-[11px] font-bold uppercase tracking-wider text-primary mb-1.5">Clinical Notes</p>
+                              <p className="text-xs text-muted-foreground whitespace-pre-line rounded-md bg-background/60 border border-border p-2">{aiSuggestion.clinical_notes}</p>
+                            </div>
+                          )}
+
+                          <div className="flex gap-2 pt-1">
+                            <Button size="sm" variant="outline" onClick={() => setAiSuggestion(null)} className="flex-1">
+                              Dismiss
+                            </Button>
+                            <Button size="sm" onClick={applyAiSuggestion} className="flex-1">
+                              <CheckCircle className="h-3.5 w-3.5 mr-1.5" /> Apply Suggestions
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
                     <div className="flex gap-2 pt-2">
                       <Button variant="outline" onClick={() => setWizardStep("select")} className="flex-1" size="lg">
                         <ArrowLeft className="h-4 w-4 mr-2" /> Back
