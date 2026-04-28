@@ -394,6 +394,123 @@ SCOPE Certified Physician`;
       });
     }
 
+    // ---- SUGGEST NEXT STEPS (lab tests, supplements, notes) for CHOSEN peptides ----
+    if (action === "suggest-next-steps") {
+      const {
+        patient_name,
+        intake_answers,
+        chosen_peptides,
+        current_lab_tests,
+        current_supplements,
+        lab_tier,
+      } = body;
+
+      if (!Array.isArray(chosen_peptides) || chosen_peptides.length === 0) {
+        return new Response(JSON.stringify({ error: "chosen_peptides is required" }), {
+          status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
+        });
+      }
+
+      const safeName = sanitizeString(patient_name, 100) || "Patient";
+
+      const suggestSystem = `You are a clinical peptide therapy consultation assistant. The physician has chosen the peptides and configured doses. Now suggest the most appropriate NEXT STEPS for this specific patient and prescription:
+
+1. suggested_lab_tests — additional lab tests beyond the current panel that you would recommend for safety monitoring or efficacy tracking, given the chosen peptides + patient history. Return only test NAMES (e.g. "Vitamin D", "Ferritin", "HbA1c"). Do NOT repeat tests already in current_lab_tests.
+2. suggested_supplements — additional supplements (beyond current_supplements) that would synergize with this regimen or address gaps in the patient's intake. Each item: { name, dosage, reason }. Do NOT repeat names already present in current_supplements.
+3. lab_notes — short clinical instructions for the lab order (fasting requirements, timing, repeat schedule, special collection notes).
+4. clinical_notes — concise (3–6 sentences) physician-facing notes summarizing why these next steps matter for THIS patient with THIS regimen.
+
+Be conservative, evidence-based, and patient-specific. If nothing additional is needed for a category, return an empty array / empty string.`;
+
+      const suggestUser = `## Patient Name
+${safeName}
+
+## Patient Intake Data
+${JSON.stringify(intake_answers ?? {}, null, 2)}
+
+## CHOSEN Peptides (with finalized dose/frequency/route)
+${JSON.stringify(chosen_peptides, null, 2)}
+
+## Current Lab Tests (${sanitizeString(lab_tier, 20) || "basic"} tier, already in panel)
+${JSON.stringify(current_lab_tests ?? [], null, 2)}
+
+## Current Supplements (already selected)
+${JSON.stringify(current_supplements ?? [], null, 2)}
+
+Suggest additional lab tests, additional supplements, lab order notes, and clinical notes tailored to this patient and prescribed regimen.`;
+
+      const sResp = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          Authorization: `Bearer ${LOVABLE_API_KEY}`,
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify({
+          model: "google/gemini-3-flash-preview",
+          messages: [
+            { role: "system", content: suggestSystem },
+            { role: "user", content: suggestUser },
+          ],
+          tools: [{
+            type: "function",
+            function: {
+              name: "suggest_next_steps",
+              description: "Return suggested additional lab tests, supplements, and clinical notes.",
+              parameters: {
+                type: "object",
+                properties: {
+                  suggested_lab_tests: { type: "array", items: { type: "string" } },
+                  suggested_supplements: {
+                    type: "array",
+                    items: {
+                      type: "object",
+                      properties: {
+                        name: { type: "string" },
+                        dosage: { type: "string" },
+                        reason: { type: "string" },
+                      },
+                      required: ["name", "dosage", "reason"],
+                    },
+                  },
+                  lab_notes: { type: "string" },
+                  clinical_notes: { type: "string" },
+                },
+                required: ["suggested_lab_tests", "suggested_supplements", "lab_notes", "clinical_notes"],
+              },
+            },
+          }],
+          tool_choice: { type: "function", function: { name: "suggest_next_steps" } },
+        }),
+      });
+
+      if (!sResp.ok) {
+        if (sResp.status === 429) {
+          return new Response(JSON.stringify({ error: "Rate limit exceeded. Please try again shortly." }), {
+            status: 429, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        if (sResp.status === 402) {
+          return new Response(JSON.stringify({ error: "AI credits exhausted. Please add credits." }), {
+            status: 402, headers: { ...corsHeaders, "Content-Type": "application/json" },
+          });
+        }
+        const t = await sResp.text();
+        console.error("AI gateway error (suggest-next-steps):", sResp.status, t);
+        throw new Error("AI gateway error");
+      }
+
+      const sdata = await sResp.json();
+      const stool = sdata.choices?.[0]?.message?.tool_calls?.[0];
+      if (!stool) throw new Error("No tool call in suggest-next-steps response");
+      const sparsed = JSON.parse(stool.function.arguments);
+      sparsed.lab_notes = sanitizeGuideOutput(sparsed.lab_notes || "");
+      sparsed.clinical_notes = sanitizeGuideOutput(sparsed.clinical_notes || "");
+
+      return new Response(JSON.stringify(sparsed), {
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
     // ---- FINALIZE PEPTIDE PLAN (regenerate narrative based on CHOSEN peptides) ----
     if (action === "finalize-peptide-plan") {
       const {
