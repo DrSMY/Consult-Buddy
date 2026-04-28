@@ -329,6 +329,99 @@ export default function Consultation() {
     setSelectedSupplements((prev) => { const next = new Set(prev); next.has(name) ? next.delete(name) : next.add(name); return next; });
   };
 
+  const runAiSuggestNextSteps = async () => {
+    if (!recommendations || selectedPeptides.size === 0) return;
+    setSuggestingNextSteps(true);
+    setAiSuggestion(null);
+    try {
+      const chosen = recommendations.recommended_peptides
+        .filter((p) => selectedPeptides.has(p.name))
+        .map((p) => ({
+          name: p.name,
+          dosage: p.dosage,
+          duration: p.duration,
+          administration: p.administration,
+          frequency: p.frequency,
+          vial_size_ml: p.vial_size_ml,
+          dose_per_injection_ml: p.dose_per_injection_ml,
+          supply_days: p.supply_days,
+          priority: p.priority,
+        }));
+      const currentSupps = recommendations.recommended_supplements
+        .filter((s) => selectedSupplements.has(s.name))
+        .map((s) => ({ name: s.name, dosage: s.dosage }));
+      const { data, error } = await supabase.functions.invoke("consultation", {
+        body: {
+          action: "suggest-next-steps",
+          patient_name: consultation?.patient_name || "Patient",
+          intake_answers: consultation?.intake_answers || {},
+          chosen_peptides: chosen,
+          current_lab_tests: finalLabTests,
+          current_supplements: currentSupps,
+          lab_tier: labTier,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setAiSuggestion({
+        suggested_lab_tests: Array.isArray(data?.suggested_lab_tests) ? data.suggested_lab_tests : [],
+        suggested_supplements: Array.isArray(data?.suggested_supplements) ? data.suggested_supplements : [],
+        lab_notes: data?.lab_notes || "",
+        clinical_notes: data?.clinical_notes || "",
+      });
+      toast({ title: "AI suggestions ready", description: "Review and apply below." });
+    } catch (e: any) {
+      toast({ title: "AI suggestion failed", description: e?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setSuggestingNextSteps(false);
+    }
+  };
+
+  const applyAiSuggestion = () => {
+    if (!aiSuggestion || !recommendations) return;
+    // Add new lab tests (skip ones already in panel or removed)
+    const existing = new Set(finalLabTests.map((t) => t.toLowerCase()));
+    const newCustom = aiSuggestion.suggested_lab_tests.filter(
+      (t) => t && !existing.has(t.toLowerCase()) && !customLabTests.includes(t)
+    );
+    if (newCustom.length > 0) {
+      setCustomLabTests((prev) => [...prev, ...newCustom]);
+      // If any of these were previously removed, restore them
+      setRemovedLabTests((prev) => {
+        const next = new Set(prev);
+        newCustom.forEach((t) => next.delete(t));
+        return next;
+      });
+    }
+    // Merge supplements into recommendations & auto-select them
+    const existingSupps = new Set(
+      recommendations.recommended_supplements.map((s) => s.name.toLowerCase())
+    );
+    const newSupps = aiSuggestion.suggested_supplements.filter(
+      (s) => s.name && !existingSupps.has(s.name.toLowerCase())
+    );
+    if (newSupps.length > 0) {
+      setRecommendations({
+        ...recommendations,
+        recommended_supplements: [...recommendations.recommended_supplements, ...newSupps],
+      });
+      setSelectedSupplements((prev) => {
+        const next = new Set(prev);
+        newSupps.forEach((s) => next.add(s.name));
+        return next;
+      });
+    }
+    // Lab notes: append AI lab notes
+    if (aiSuggestion.lab_notes) {
+      setLabNotes((prev) => prev ? `${prev}\n\n${aiSuggestion.lab_notes}` : aiSuggestion.lab_notes);
+    }
+    toast({
+      title: "Suggestions applied",
+      description: `${newCustom.length} lab test(s), ${newSupps.length} supplement(s) added.`,
+    });
+    setAiSuggestion(null);
+  };
+
   const updatePeptideField = (peptideName: string, field: keyof PeptideRec, value: any) => {
     if (!recommendations) return;
     const updated: Recommendation = {
