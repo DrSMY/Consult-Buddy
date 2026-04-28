@@ -188,6 +188,14 @@ export default function Consultation() {
   const [quickStartGuides, setQuickStartGuides] = useState<Map<string, string>>(new Map());
   // Dose display unit toggle
   const [doseUnit, setDoseUnit] = useState<DoseUnit>("ml");
+  // AI suggest next steps (lab tests, supplements, notes) for chosen peptides
+  const [suggestingNextSteps, setSuggestingNextSteps] = useState(false);
+  const [aiSuggestion, setAiSuggestion] = useState<{
+    suggested_lab_tests: string[];
+    suggested_supplements: Array<{ name: string; dosage: string; reason: string }>;
+    lab_notes: string;
+    clinical_notes: string;
+  } | null>(null);
 
   useEffect(() => {
     loadConsultation();
