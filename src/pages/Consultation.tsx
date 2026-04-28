@@ -629,7 +629,11 @@ ${labLines || "None required"}${labNotes ? `\nNotes: ${labNotes}` : ""}
 • Monitor for any side effects and report immediately`;
 
     // Build rich patient guide using quick-start guides from database
-    const patientGuideHeader = `Dear ${consultation?.patient_name || "Patient"},
+    // If AI has regenerated a personalised intro based on the chosen peptides, prefer it.
+    const aiIntro = (recommendations.ai_patient_intro || "").trim();
+    const patientGuideHeader = aiIntro
+      ? aiIntro
+      : `Dear ${consultation?.patient_name || "Patient"},
 
 Welcome to your personalised treatment plan. Below you will find detailed instructions for each of your prescribed medications, along with supplement and lab test guidance.`;
 
