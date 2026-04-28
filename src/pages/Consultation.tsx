@@ -733,6 +733,41 @@ SCOPE Certified Physician`;
     }
 
     const selectedRecs = recommendations!.recommended_peptides.filter((p) => selectedPeptides.has(p.name));
+    const selectedSupps = recommendations!.recommended_supplements.filter((s) => selectedSupplements.has(s.name));
+
+    // Ask AI to regenerate the clinical narrative based on the FINAL chosen peptides + doses.
+    let aiClinicalSummary = recommendations!.clinical_summary || "";
+    let aiPatientIntro = "";
+    let aiDoctorNote = "";
+    let aiNextSteps = "";
+    setAnalyzing(true);
+    try {
+      const finalizeResp = await supabase.functions.invoke("consultation", {
+        body: {
+          action: "finalize-peptide-plan",
+          patient_name: consultation?.patient_name || "Patient",
+          intake_answers: consultation?.intake_answers || {},
+          chosen_peptides: selectedRecs,
+          chosen_supplements: selectedSupps,
+          final_lab_tests: finalLabTests,
+          lab_tier: labTier,
+          lab_notes: labNotes,
+        },
+      });
+      if (finalizeResp.error) throw new Error(finalizeResp.error.message);
+      const f = finalizeResp.data as any;
+      if (f?.clinical_summary) aiClinicalSummary = f.clinical_summary;
+      if (f?.patient_guidelines) aiPatientIntro = f.patient_guidelines;
+      if (f?.doctor_note) aiDoctorNote = f.doctor_note;
+      if (f?.next_steps) aiNextSteps = f.next_steps;
+    } catch (e: any) {
+      toast({
+        title: "Could not regenerate AI narrative",
+        description: `${e.message}. Saving with previous narrative.`,
+        variant: "destructive",
+      });
+    }
+    setAnalyzing(false);
 
     const updatedRec: any = {
       ...recommendations!,
@@ -747,7 +782,17 @@ SCOPE Certified Physician`;
       custom_lab_tests: customLabTests,
       removed_lab_tests: Array.from(removedLabTests),
       final_lab_tests: finalLabTests,
+      clinical_summary: aiClinicalSummary,
+      ai_patient_intro: aiPatientIntro,
+      doctor_note: aiDoctorNote || recommendations!.doctor_note,
+      next_steps: aiNextSteps || recommendations!.next_steps,
     };
+
+    // Update local recommendations FIRST so buildActionPlan picks up the new
+    // clinical_summary + ai_patient_intro before we read it for persistence.
+    setRecommendations(updatedRec);
+    // Allow React to flush so buildActionPlan recomputes with updated narrative.
+    await new Promise((r) => setTimeout(r, 0));
 
     await supabase.from("consultations").update({
       ai_recommendations: updatedRec,
@@ -757,7 +802,6 @@ SCOPE Certified Physician`;
       status: "completed",
     }).eq("id", id);
 
-    setRecommendations(updatedRec);
     setSelectionConfirmed(true);
     toast({ title: "Consultation confirmed and saved" });
   };
