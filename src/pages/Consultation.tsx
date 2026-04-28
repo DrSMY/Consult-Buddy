@@ -188,6 +188,14 @@ export default function Consultation() {
   const [quickStartGuides, setQuickStartGuides] = useState<Map<string, string>>(new Map());
   // Dose display unit toggle
   const [doseUnit, setDoseUnit] = useState<DoseUnit>("ml");
+  // AI suggest next steps (lab tests, supplements, notes) for chosen peptides
+  const [suggestingNextSteps, setSuggestingNextSteps] = useState(false);
+  const [aiSuggestion, setAiSuggestion] = useState<{
+    suggested_lab_tests: string[];
+    suggested_supplements: Array<{ name: string; dosage: string; reason: string }>;
+    lab_notes: string;
+    clinical_notes: string;
+  } | null>(null);
 
   useEffect(() => {
     loadConsultation();
@@ -319,6 +327,99 @@ export default function Consultation() {
   };
   const toggleSupplement = (name: string) => {
     setSelectedSupplements((prev) => { const next = new Set(prev); next.has(name) ? next.delete(name) : next.add(name); return next; });
+  };
+
+  const runAiSuggestNextSteps = async () => {
+    if (!recommendations || selectedPeptides.size === 0) return;
+    setSuggestingNextSteps(true);
+    setAiSuggestion(null);
+    try {
+      const chosen = recommendations.recommended_peptides
+        .filter((p) => selectedPeptides.has(p.name))
+        .map((p) => ({
+          name: p.name,
+          dosage: p.dosage,
+          duration: p.duration,
+          administration: p.administration,
+          frequency: p.frequency,
+          vial_size_ml: p.vial_size_ml,
+          dose_per_injection_ml: p.dose_per_injection_ml,
+          supply_days: p.supply_days,
+          priority: p.priority,
+        }));
+      const currentSupps = recommendations.recommended_supplements
+        .filter((s) => selectedSupplements.has(s.name))
+        .map((s) => ({ name: s.name, dosage: s.dosage }));
+      const { data, error } = await supabase.functions.invoke("consultation", {
+        body: {
+          action: "suggest-next-steps",
+          patient_name: consultation?.patient_name || "Patient",
+          intake_answers: consultation?.intake_answers || {},
+          chosen_peptides: chosen,
+          current_lab_tests: finalLabTests,
+          current_supplements: currentSupps,
+          lab_tier: labTier,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setAiSuggestion({
+        suggested_lab_tests: Array.isArray(data?.suggested_lab_tests) ? data.suggested_lab_tests : [],
+        suggested_supplements: Array.isArray(data?.suggested_supplements) ? data.suggested_supplements : [],
+        lab_notes: data?.lab_notes || "",
+        clinical_notes: data?.clinical_notes || "",
+      });
+      toast({ title: "AI suggestions ready", description: "Review and apply below." });
+    } catch (e: any) {
+      toast({ title: "AI suggestion failed", description: e?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setSuggestingNextSteps(false);
+    }
+  };
+
+  const applyAiSuggestion = () => {
+    if (!aiSuggestion || !recommendations) return;
+    // Add new lab tests (skip ones already in panel or removed)
+    const existing = new Set(finalLabTests.map((t) => t.toLowerCase()));
+    const newCustom = aiSuggestion.suggested_lab_tests.filter(
+      (t) => t && !existing.has(t.toLowerCase()) && !customLabTests.includes(t)
+    );
+    if (newCustom.length > 0) {
+      setCustomLabTests((prev) => [...prev, ...newCustom]);
+      // If any of these were previously removed, restore them
+      setRemovedLabTests((prev) => {
+        const next = new Set(prev);
+        newCustom.forEach((t) => next.delete(t));
+        return next;
+      });
+    }
+    // Merge supplements into recommendations & auto-select them
+    const existingSupps = new Set(
+      recommendations.recommended_supplements.map((s) => s.name.toLowerCase())
+    );
+    const newSupps = aiSuggestion.suggested_supplements.filter(
+      (s) => s.name && !existingSupps.has(s.name.toLowerCase())
+    );
+    if (newSupps.length > 0) {
+      setRecommendations({
+        ...recommendations,
+        recommended_supplements: [...recommendations.recommended_supplements, ...newSupps],
+      });
+      setSelectedSupplements((prev) => {
+        const next = new Set(prev);
+        newSupps.forEach((s) => next.add(s.name));
+        return next;
+      });
+    }
+    // Lab notes: append AI lab notes
+    if (aiSuggestion.lab_notes) {
+      setLabNotes((prev) => prev ? `${prev}\n\n${aiSuggestion.lab_notes}` : aiSuggestion.lab_notes);
+    }
+    toast({
+      title: "Suggestions applied",
+      description: `${newCustom.length} lab test(s), ${newSupps.length} supplement(s) added.`,
+    });
+    setAiSuggestion(null);
   };
 
   const updatePeptideField = (peptideName: string, field: keyof PeptideRec, value: any) => {
@@ -1561,6 +1662,90 @@ SCOPE Certified Physician`;
                           </div>
                         </div>
                       ))}
+                    {/* AI Suggest Next Steps */}
+                    <div className="rounded-lg border border-primary/30 bg-gradient-to-br from-primary/5 to-accent/5 p-3 sm:p-4 space-y-3">
+                      <div className="flex items-start justify-between gap-3 flex-wrap">
+                        <div className="flex-1 min-w-[200px]">
+                          <p className="text-sm font-semibold flex items-center gap-1.5">
+                            <Activity className="h-4 w-4 text-primary" /> AI Next-Step Suggestions
+                          </p>
+                          <p className="text-xs text-muted-foreground mt-0.5">
+                            Let AI analyze the chosen peptides + patient intake to suggest additional lab tests, supplements, and clinical notes.
+                          </p>
+                        </div>
+                        <Button
+                          size="sm"
+                          onClick={runAiSuggestNextSteps}
+                          disabled={suggestingNextSteps || selectedPeptides.size === 0}
+                          className="shrink-0"
+                        >
+                          {suggestingNextSteps ? (
+                            <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Analyzing…</>
+                          ) : (
+                            <><Activity className="h-3.5 w-3.5 mr-1.5" /> {aiSuggestion ? "Re-run AI" : "Suggest with AI"}</>
+                          )}
+                        </Button>
+                      </div>
+
+                      {aiSuggestion && (
+                        <div className="space-y-3 pt-2 border-t border-primary/20">
+                          {aiSuggestion.suggested_lab_tests.length > 0 && (
+                            <div>
+                              <p className="text-[11px] font-bold uppercase tracking-wider text-primary mb-1.5">
+                                Suggested Lab Tests ({aiSuggestion.suggested_lab_tests.length})
+                              </p>
+                              <div className="flex flex-wrap gap-1.5">
+                                {aiSuggestion.suggested_lab_tests.map((t, i) => (
+                                  <Badge key={i} variant="outline" className="text-xs border-accent/40 bg-accent/5 text-accent">
+                                    <FlaskConical className="h-3 w-3 mr-1" /> {t}
+                                  </Badge>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {aiSuggestion.suggested_supplements.length > 0 && (
+                            <div>
+                              <p className="text-[11px] font-bold uppercase tracking-wider text-primary mb-1.5">
+                                Suggested Supplements ({aiSuggestion.suggested_supplements.length})
+                              </p>
+                              <div className="space-y-1.5">
+                                {aiSuggestion.suggested_supplements.map((s, i) => (
+                                  <div key={i} className="text-xs rounded-md border border-border bg-background/60 p-2">
+                                    <div className="font-medium">{s.name} <span className="text-muted-foreground font-normal">— {s.dosage}</span></div>
+                                    <div className="text-muted-foreground mt-0.5">{s.reason}</div>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+
+                          {aiSuggestion.lab_notes && (
+                            <div>
+                              <p className="text-[11px] font-bold uppercase tracking-wider text-primary mb-1.5">Lab Notes</p>
+                              <p className="text-xs text-muted-foreground whitespace-pre-line rounded-md bg-background/60 border border-border p-2">{aiSuggestion.lab_notes}</p>
+                            </div>
+                          )}
+
+                          {aiSuggestion.clinical_notes && (
+                            <div>
+                              <p className="text-[11px] font-bold uppercase tracking-wider text-primary mb-1.5">Clinical Notes</p>
+                              <p className="text-xs text-muted-foreground whitespace-pre-line rounded-md bg-background/60 border border-border p-2">{aiSuggestion.clinical_notes}</p>
+                            </div>
+                          )}
+
+                          <div className="flex gap-2 pt-1">
+                            <Button size="sm" variant="outline" onClick={() => setAiSuggestion(null)} className="flex-1">
+                              Dismiss
+                            </Button>
+                            <Button size="sm" onClick={applyAiSuggestion} className="flex-1">
+                              <CheckCircle className="h-3.5 w-3.5 mr-1.5" /> Apply Suggestions
+                            </Button>
+                          </div>
+                        </div>
+                      )}
+                    </div>
+
                     <div className="flex gap-2 pt-2">
                       <Button variant="outline" onClick={() => setWizardStep("select")} className="flex-1" size="lg">
                         <ArrowLeft className="h-4 w-4 mr-2" /> Back
