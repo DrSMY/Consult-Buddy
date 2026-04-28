@@ -70,6 +70,7 @@ interface Recommendation {
   next_steps: string;
   patient_guidelines: string;
   clinical_summary: string;
+  ai_patient_intro?: string; // AI-regenerated patient-facing narrative based on chosen peptides
 }
 
 type LabTier = "basic" | "advanced";
@@ -271,6 +272,7 @@ export default function Consultation() {
         next_steps: raw.next_steps || "",
         patient_guidelines: raw.patient_guidelines || "",
         clinical_summary: raw.clinical_summary || "",
+        ai_patient_intro: raw.ai_patient_intro || "",
       };
       setRecommendations(rec);
       if (raw.selected_lab_tier) setLabTier(raw.selected_lab_tier);
