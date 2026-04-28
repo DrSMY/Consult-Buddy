@@ -717,17 +717,49 @@ ${labLines || "None required"}${labNotes ? `\nLab Notes: ${labNotes}` : ""}
 --- SUPPLEMENTS TO DISPENSE ---
 ${suppLines || "None"}`;
 
-    const nextSteps = `NEXT STEPS — ${consultation?.patient_name || "Patient"}
+    // Patient demographics for the prescription block
+    const intake: any = consultation?.intake_answers || {};
+    const pName = consultation?.patient_name || intake.name || "Patient";
+    const pAge = intake.age ? `${intake.age} years` : "—";
+    const pGender = intake.gender || "—";
+
+    const prescriptionLines = selectedRecs.map((p) => {
+      const parts = [`• ${p.name}`];
+      const details: string[] = [];
+      // Strength / vial
+      if (p.vial_size_ml) details.push(`Strength: ${p.vial_size_ml} ml vial`);
+      // Prescribed dose (text from doctor selection)
+      if (p.dosage) details.push(`Prescribed Dose: ${p.dosage}`);
+      // Volume per injection
+      if (p.dose_per_injection_ml) {
+        details.push(`Volume/Injection: ${formatDose(p.dose_per_injection_ml, "ml")} (${formatDose(p.dose_per_injection_ml, "units")})`);
+      }
+      // Frequency / route / duration
+      if (p.frequency) details.push(`Frequency: ${p.frequency}`);
+      if (p.administration) details.push(`Route: ${p.administration}`);
+      if (p.duration) details.push(`Duration: ${p.duration}`);
+      return `${parts.join(" ")}\n   ${details.join("\n   ")}`;
+    }).join("\n\n");
+
+    const nextSteps = `NEXT STEPS — ${pName}
+
+--- PRESCRIPTION READY ---
+Patient Name: ${pName}
+Age: ${pAge}
+Gender: ${pGender}
+Date: ${new Date().toLocaleDateString()}
 
 Prescribed Medications:
-${selectedRecs.map((p) => `• ${p.name} — ${p.dosage}, ${p.duration}`).join("\n") || "None"}
+${prescriptionLines || "None"}
 
 --- REQUIRED BLOOD WORK (${labLabel}) ---
 ${labLines || "None required"}${labNotes ? `\nNotes: ${labNotes}` : ""}
 
 --- FOLLOW-UP ---
 • Schedule follow-up appointment as per treatment duration
-• Monitor for any side effects and report immediately`;
+• Monitor for any side effects and report immediately
+
+Physician: Dr Sami M. Yesuf`;
 
     // Build rich patient guide using quick-start guides from database
     // If AI has regenerated a personalised intro based on the chosen peptides, prefer it.
