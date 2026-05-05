@@ -30,7 +30,7 @@ export function exportWeightLossCSV(consultations: WeightLossConsultationRow[]) 
     "Treatment Notes",
     "Blood Test Required",
     "Medication Prescribed",
-    "Clinical Summary",
+    
     "Doctor Note and Suggestions",
     "Patient Guide",
     "Follow-up Date",
