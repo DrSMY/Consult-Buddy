@@ -66,7 +66,6 @@ export function exportWeightLossExcel(consultations: ConsultationRow[]) {
       "Medication Prescribed": prescribedMedication,
       "Blood Test Level": treatment.bloodTestLevel || recs.bloodTestLevel || "none",
       "Treatment Notes": treatment.notes || "",
-      "Clinical Summary": recs.doctorSuggestions || "",
       "Doctor Notes": c.doctor_notes || "",
       "Patient Guide": recs.patientGuide || treatment.patientGuide || "",
       "Follow-up Date": followUpDate.toLocaleDateString(),
@@ -90,16 +89,21 @@ export function exportPeptideExcel(consultations: ConsultationRow[]) {
     const peptideNames = peptides.map((p: any) => p.name).join(", ");
     const peptideDosages = peptides.map((p: any) => `${p.name}: ${p.dosage || "N/A"}`).join("; ");
     const peptideDurations = peptides.map((p: any) => `${p.name}: ${p.duration || "N/A"}`).join("; ");
+    const peptideRoutes = peptides.map((p: any) => `${p.name}: ${p.administration || p.route || "N/A"}`).join("; ");
+    const peptideFrequencies = peptides.map((p: any) => `${p.name}: ${p.frequency || "N/A"}`).join("; ");
+    const peptideVials = peptides.map((p: any) => `${p.name}: ${p.vial_size_ml ? p.vial_size_ml + " ml" : "N/A"}`).join("; ");
     const supplements = recs?.recommended_supplements?.map((s: any) => `${s.name} (${s.dosage})`).join(", ") || "";
-    const labTests = recs?.required_blood_tests?.join(", ") || "";
+    const labTests = recs?.required_blood_tests?.join(", ") || recs?.final_lab_tests?.join(", ") || "";
     const recLabTests = recs?.recommended_blood_tests?.join(", ") || "";
+    const customLabs = recs?.custom_lab_tests?.join(", ") || "";
     const safetyFlags = recs?.safety_flags?.map((f: any) => `[${f.severity}] ${f.concern}`).join("; ") || "";
 
     const healthGoals = Array.isArray(intake.health_goals) ? intake.health_goals.join(", ") : intake.health_goals || "";
 
     return {
+      "Booking Time": intake.booking_time || "",
       "Patient Name": intake.name || c.patient_name || "",
-      "Mobile Number": intake.mobileNumber || "",
+      "Mobile Number": intake.mobile_number || intake.mobileNumber || "",
       "Date Created": new Date(c.created_at).toLocaleDateString(),
       Status: c.status,
       Age: intake.age || "",
@@ -109,18 +113,25 @@ export function exportPeptideExcel(consultations: ConsultationRow[]) {
       "Body Shape": intake.body_shape || "",
       "Activity Level": intake.activity_level || "",
       "Health Goals": healthGoals,
+      "Health Goals (Other)": intake.health_goals_other || "",
       "Health Conditions": Array.isArray(intake.health_conditions) ? intake.health_conditions.join(", ") : intake.health_conditions || "",
       Allergies: Array.isArray(intake.allergies) ? intake.allergies.join(", ") : intake.allergies || "",
+      "Cancer History": intake.cancer_history || "",
       "Pregnant": intake.is_pregnant || "",
       "Breastfeeding": intake.is_breastfeeding || "",
+      "Additional Notes": intake.additional_notes || "",
       "Prescribed Peptides": peptideNames,
       "Peptide Dosages": peptideDosages,
+      "Peptide Frequencies": peptideFrequencies,
+      "Peptide Routes": peptideRoutes,
+      "Peptide Vial Sizes": peptideVials,
       "Peptide Durations": peptideDurations,
       Supplements: supplements,
       "Required Lab Tests": labTests,
       "Recommended Lab Tests": recLabTests,
+      "Custom Lab Tests": customLabs,
+      "Lab Notes": recs?.lab_notes || "",
       "Safety Flags": safetyFlags,
-      "Clinical Summary": recs?.clinical_summary || "",
       "Doctor Notes": c.doctor_notes || recs?.doctor_note || "",
       "Next Steps": c.next_steps || recs?.next_steps || "",
       "Patient Guidelines": c.patient_guidelines || recs?.patient_guidelines || "",
