@@ -78,7 +78,7 @@ export function exportWeightLossCSV(consultations: WeightLossConsultationRow[]) 
       esc(treatment.notes || ""),
       treatment.bloodTestRequired ? "YES" : "NO",
       esc(prescribedMedication),
-      esc(recs.doctorSuggestions || ""),
+      
       esc(treatment.doctorSuggestions || recs.doctorSuggestions || ""),
       esc(recs.patientGuide || treatment.patientGuide || ""),
       esc(followUpDate.toLocaleDateString()),
