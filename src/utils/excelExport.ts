@@ -66,7 +66,6 @@ export function exportWeightLossExcel(consultations: ConsultationRow[]) {
       "Medication Prescribed": prescribedMedication,
       "Blood Test Level": treatment.bloodTestLevel || recs.bloodTestLevel || "none",
       "Treatment Notes": treatment.notes || "",
-      "Clinical Summary": recs.doctorSuggestions || "",
       "Doctor Notes": c.doctor_notes || "",
       "Patient Guide": recs.patientGuide || treatment.patientGuide || "",
       "Follow-up Date": followUpDate.toLocaleDateString(),
