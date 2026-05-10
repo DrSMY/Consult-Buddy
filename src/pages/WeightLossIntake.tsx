@@ -76,6 +76,9 @@ export default function WeightLossIntake() {
   const [followupSearch, setFollowupSearch] = useState("");
   const [loadingFollowups, setLoadingFollowups] = useState(false);
   const [selectedPrevConsultation, setSelectedPrevConsultation] = useState<any>(null);
+  const [allConsultations, setAllConsultations] = useState<any[]>([]);
+  const [matchedPatient, setMatchedPatient] = useState<PatientGroup | null>(null);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   const totalSteps = 4;
   const progress = ((step + 1) / totalSteps) * 100;
 
