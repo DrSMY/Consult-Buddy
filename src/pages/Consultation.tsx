@@ -23,6 +23,7 @@ import { printPatientGuide } from "@/utils/printGuide";
 import { sendGuideAsWhatsappText } from "@/utils/guideWhatsappText";
 import ShareGuideDialog from "@/components/ShareGuideDialog";
 import { getProtocolOptions, extractMl, extractVialMl, inferFrequency, type ProtocolOption } from "@/data/peptideProtocolOptions";
+import CrossProgramHistoryStrip from "@/components/CrossProgramHistoryStrip";
 
 interface PeptideRec {
   name: string;
