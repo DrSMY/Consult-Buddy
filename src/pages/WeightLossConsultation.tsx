@@ -331,6 +331,10 @@ export default function WeightLossConsultation() {
         <div className="flex flex-col lg:flex-row gap-6 max-w-6xl mx-auto">
           {/* Main Content */}
           <div className="flex-1 space-y-6 min-w-0">
+            <CrossProgramHistoryStrip
+              mobile={patient?.mobileNumber || ""}
+              currentId={consultation.id}
+            />
             {/* Clinical Record */}
             <Card>
               <CardHeader className="pb-3">
