@@ -41,13 +41,16 @@ export default function PatientIntake() {
     }
   }, [roles, loading]);
 
-  const [flowType, setFlowType] = useState<"new" | "followup" | null>(null);
+  const [flowType, setFlowType] = useState<"new" | "followup" | "existing" | null>(null);
   const [previousConsultations, setPreviousConsultations] = useState<any[]>([]);
   const [followupSearch, setFollowupSearch] = useState("");
   const [loadingFollowups, setLoadingFollowups] = useState(false);
   const [selectedPrevConsultation, setSelectedPrevConsultation] = useState<any>(null);
   const [followupNotes, setFollowupNotes] = useState("");
   const [followupSideEffects, setFollowupSideEffects] = useState("");
+  const [matchedPatient, setMatchedPatient] = useState<import("@/utils/patientIdentity").PatientGroup | null>(null);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [allConsultations, setAllConsultations] = useState<any[]>([]);
 
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
   const [gateAnswers, setGateAnswers] = useState<Record<string, "yes" | "no" | null>>({});
