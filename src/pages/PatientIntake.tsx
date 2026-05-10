@@ -1,5 +1,6 @@
 import { useState, useRef, useCallback, useEffect } from "react";
-import { useNavigate, useParams } from "react-router-dom";
+import { useNavigate, useParams, useSearchParams } from "react-router-dom";
+import { saveDraftConsultation, loadDraftConsultation, hasMinimumIdentity } from "@/utils/consultationDraft";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -30,6 +31,8 @@ export default function PatientIntake() {
   const { user, roles, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [draftId, setDraftId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && roles.length > 0 && !isClinician(roles)) {
@@ -71,12 +74,87 @@ export default function PatientIntake() {
       .select("*")
       .eq("program", programId || "peptides")
       .eq("user_id", user.id)
+      .neq("status", "incomplete")
       .order("created_at", { ascending: false })
       .then(({ data }) => {
         setPreviousConsultations(data || []);
         setLoadingFollowups(false);
       });
   }, [flowType, user, programId]);
+
+  // Resume from a draft if URL has ?draft=<id>
+  useEffect(() => {
+    const id = searchParams.get("draft");
+    if (!id || draftId === id || !user) return;
+    (async () => {
+      const row = await loadDraftConsultation(id);
+      if (!row || row.user_id !== user.id) return;
+      const intake = (row.intake_answers as Record<string, any>) || {};
+      setDraftId(row.id);
+      setFlowType((intake.flowType as any) || "new");
+      setPatientName(row.patient_name || "");
+      const prefilled: Record<string, string | string[]> = {};
+      const prefilledOther: Record<string, string> = {};
+      const prefilledNotes: Record<string, string> = {};
+      const prefilledGates: Record<string, "yes" | "no" | null> = {};
+      for (const [k, v] of Object.entries(intake)) {
+        if (["flowType", "followupData", "previousConsultationId", "previousProtocol", "__draftStep"].includes(k)) continue;
+        if (k.endsWith("_other")) prefilledOther[k.replace(/_other$/, "")] = String(v ?? "");
+        else if (k.endsWith("_notes")) prefilledNotes[k.replace(/_notes$/, "")] = String(v ?? "");
+        else prefilled[k] = v as any;
+      }
+      for (const k of Object.keys(prefilled)) {
+        if (Array.isArray(prefilled[k]) && (prefilled[k] as string[]).length > 0) prefilledGates[k] = "yes";
+      }
+      setAnswers(prefilled);
+      setOtherText(prefilledOther);
+      setNotes(prefilledNotes);
+      setGateAnswers(prefilledGates);
+      if (typeof intake.__draftStep === "number") setCurrentStep(intake.__draftStep);
+      toast({ title: "Resumed", description: `Continuing intake for ${row.patient_name || "patient"}` });
+    })();
+  }, [searchParams, user, draftId, toast]);
+
+  // Build current intake_answers payload (mirrors handleSubmit structure)
+  const buildIntakePayload = useCallback((): Record<string, any> => {
+    const finalAnswers: Record<string, any> = { ...answers };
+    for (const [id, gate] of Object.entries(gateAnswers)) {
+      if (gate === "no") finalAnswers[id] = [];
+    }
+    for (const [id, text] of Object.entries(otherText)) {
+      if (text.trim()) finalAnswers[`${id}_other`] = text.trim();
+    }
+    for (const [id, note] of Object.entries(notes)) {
+      if (note.trim()) finalAnswers[`${id}_notes`] = note.trim();
+    }
+    finalAnswers.flowType = flowType || "new";
+    finalAnswers.__draftStep = currentStep;
+    return finalAnswers;
+  }, [answers, gateAnswers, otherText, notes, flowType, currentStep]);
+
+  // Auto-save draft once name + mobile are present, debounced
+  useEffect(() => {
+    if (!user || saving) return;
+    const mobile = (answers["mobile_number"] as string) || "";
+    if (!hasMinimumIdentity(patientName, mobile)) return;
+    const handle = setTimeout(async () => {
+      const id = await saveDraftConsultation({
+        draftId,
+        userId: user.id,
+        program: programId || "peptides",
+        patientName: patientName.trim(),
+        intakeAnswers: buildIntakePayload(),
+      });
+      if (id && id !== draftId) {
+        setDraftId(id);
+        const next = new URLSearchParams(searchParams);
+        next.set("draft", id);
+        setSearchParams(next, { replace: true });
+      }
+    }, 1500);
+    return () => clearTimeout(handle);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patientName, answers, gateAnswers, otherText, notes, currentStep, flowType, user, draftId, programId]);
 
   const filteredPrevConsultations = previousConsultations.filter(c =>
     !followupSearch || c.patient_name?.toLowerCase().includes(followupSearch.toLowerCase())
@@ -285,23 +363,44 @@ export default function PatientIntake() {
       finalAnswers.flowType = "new";
     }
 
-    const { data, error } = await supabase
-      .from("consultations")
-      .insert({
-        user_id: user.id,
-        patient_name: patientName,
-        program: programId || "peptides",
-        intake_answers: finalAnswers as any,
-        status: "review",
-      })
-      .select("id")
-      .single();
+    // Strip the draft-only marker from the persisted payload
+    delete (finalAnswers as any).__draftStep;
 
-    if (error) {
-      toast({ title: "Error saving", description: error.message, variant: "destructive" });
+    let consultationId = draftId;
+    if (draftId) {
+      const { error } = await supabase
+        .from("consultations")
+        .update({
+          patient_name: patientName,
+          intake_answers: finalAnswers as any,
+          status: "review",
+        })
+        .eq("id", draftId);
+      if (error) {
+        toast({ title: "Error saving", description: error.message, variant: "destructive" });
+        setSaving(false);
+        return;
+      }
     } else {
-      navigate(`/consultation/${data.id}`);
+      const { data, error } = await supabase
+        .from("consultations")
+        .insert({
+          user_id: user.id,
+          patient_name: patientName,
+          program: programId || "peptides",
+          intake_answers: finalAnswers as any,
+          status: "review",
+        })
+        .select("id")
+        .single();
+      if (error) {
+        toast({ title: "Error saving", description: error.message, variant: "destructive" });
+        setSaving(false);
+        return;
+      }
+      consultationId = data.id;
     }
+    navigate(`/consultation/${consultationId}`);
     setSaving(false);
   };
 

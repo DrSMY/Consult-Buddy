@@ -1,5 +1,6 @@
 import { useState, useEffect, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
+import { saveDraftConsultation, loadDraftConsultation, hasMinimumIdentity } from "@/utils/consultationDraft";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
@@ -37,6 +38,8 @@ export default function WeightLossIntake() {
   const { user, roles, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [draftId, setDraftId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && roles.length > 0 && !isClinician(roles)) {
@@ -110,12 +113,64 @@ export default function WeightLossIntake() {
       .select("*")
       .eq("program", "weight-loss")
       .eq("user_id", user.id)
+      .neq("status", "incomplete")
       .order("created_at", { ascending: false })
       .then(({ data }) => {
         setPreviousConsultations(data || []);
         setLoadingFollowups(false);
       });
   }, [flowType, user]);
+
+  // Resume from a draft if URL has ?draft=<id>
+  useEffect(() => {
+    const id = searchParams.get("draft");
+    if (!id || draftId === id || !user) return;
+    (async () => {
+      const row = await loadDraftConsultation(id);
+      if (!row || row.user_id !== user.id) return;
+      const intake = (row.intake_answers as any) || {};
+      setDraftId(row.id);
+      setFlowType((intake.flowType as FlowType) || "new");
+      if (intake.patient) setPatient({ ...createEmptyPatient(), ...intake.patient });
+      if (intake.treatment) setTreatment({ ...createEmptyTreatment(), ...intake.treatment });
+      if (intake.followupData) setFollowup({ ...createEmptyFollowup(), ...intake.followupData });
+      if (typeof intake.__draftStep === "number") setStep(intake.__draftStep);
+      if (row.doctor_notes) setDoctorNotes(row.doctor_notes);
+      toast({ title: "Resumed", description: `Continuing intake for ${row.patient_name || "patient"}` });
+    })();
+  }, [searchParams, user, draftId, toast]);
+
+  // Auto-save draft once name + mobile are present, debounced
+  useEffect(() => {
+    if (!user || saving) return;
+    if (!hasMinimumIdentity(patient.name, patient.mobileNumber)) return;
+    const handle = setTimeout(async () => {
+      const intakeAnswers: any = {
+        patient,
+        treatment,
+        flowType: flowType || "new",
+        __draftStep: step,
+        ...(flowType === "followup"
+          ? { followupData: followup, previousConsultationId: selectedPrevConsultation?.id }
+          : {}),
+      };
+      const id = await saveDraftConsultation({
+        draftId,
+        userId: user.id,
+        program: "weight-loss",
+        patientName: patient.name.trim(),
+        intakeAnswers,
+      });
+      if (id && id !== draftId) {
+        setDraftId(id);
+        const next = new URLSearchParams(searchParams);
+        next.set("draft", id);
+        setSearchParams(next, { replace: true });
+      }
+    }, 1500);
+    return () => clearTimeout(handle);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patient, treatment, followup, flowType, step, user, draftId]);
 
   const handleSelectPreviousPatient = (consultation: any) => {
     setSelectedPrevConsultation(consultation);
@@ -234,32 +289,54 @@ export default function WeightLossIntake() {
 
     const intakeAnswers = { patient, treatment, flowType, ...(flowType === "followup" ? { followupData: followup, previousConsultationId: selectedPrevConsultation?.id } : {}) };
 
-    const { data, error } = await supabase
-      .from("consultations")
-      .insert({
-        user_id: user.id,
-        patient_name: patient.name,
-        program: "weight-loss",
-        intake_answers: intakeAnswers as any,
-        doctor_notes: doctorNotes || null,
-        ai_recommendations: {
-          doctorSuggestions: treatment.doctorSuggestions,
-          patientGuide: treatment.patientGuide,
-          medication: treatment.medication,
-          dose: treatment.dose,
-          bloodTestLevel: treatment.bloodTestLevel,
-        } as any,
-        status: "completed",
-      })
-      .select("id")
-      .single();
+    const aiRecs = {
+      doctorSuggestions: treatment.doctorSuggestions,
+      patientGuide: treatment.patientGuide,
+      medication: treatment.medication,
+      dose: treatment.dose,
+      bloodTestLevel: treatment.bloodTestLevel,
+    } as any;
 
-    if (error) {
-      toast({ title: "Error saving", description: error.message, variant: "destructive" });
+    let consultationId = draftId;
+    if (draftId) {
+      const { error } = await supabase
+        .from("consultations")
+        .update({
+          patient_name: patient.name,
+          intake_answers: intakeAnswers as any,
+          doctor_notes: doctorNotes || null,
+          ai_recommendations: aiRecs,
+          status: "completed",
+        })
+        .eq("id", draftId);
+      if (error) {
+        toast({ title: "Error saving", description: error.message, variant: "destructive" });
+        setSaving(false);
+        return;
+      }
     } else {
-      toast({ title: "Consultation saved" });
-      navigate(`/consultation/${data.id}`);
+      const { data, error } = await supabase
+        .from("consultations")
+        .insert({
+          user_id: user.id,
+          patient_name: patient.name,
+          program: "weight-loss",
+          intake_answers: intakeAnswers as any,
+          doctor_notes: doctorNotes || null,
+          ai_recommendations: aiRecs,
+          status: "completed",
+        })
+        .select("id")
+        .single();
+      if (error) {
+        toast({ title: "Error saving", description: error.message, variant: "destructive" });
+        setSaving(false);
+        return;
+      }
+      consultationId = data.id;
     }
+    toast({ title: "Consultation saved" });
+    navigate(`/consultation/${consultationId}`);
     setSaving(false);
   };
 
