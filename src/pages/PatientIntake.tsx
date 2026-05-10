@@ -362,23 +362,44 @@ export default function PatientIntake() {
       finalAnswers.flowType = "new";
     }
 
-    const { data, error } = await supabase
-      .from("consultations")
-      .insert({
-        user_id: user.id,
-        patient_name: patientName,
-        program: programId || "peptides",
-        intake_answers: finalAnswers as any,
-        status: "review",
-      })
-      .select("id")
-      .single();
+    // Strip the draft-only marker from the persisted payload
+    delete (finalAnswers as any).__draftStep;
 
-    if (error) {
-      toast({ title: "Error saving", description: error.message, variant: "destructive" });
+    let consultationId = draftId;
+    if (draftId) {
+      const { error } = await supabase
+        .from("consultations")
+        .update({
+          patient_name: patientName,
+          intake_answers: finalAnswers as any,
+          status: "review",
+        })
+        .eq("id", draftId);
+      if (error) {
+        toast({ title: "Error saving", description: error.message, variant: "destructive" });
+        setSaving(false);
+        return;
+      }
     } else {
-      navigate(`/consultation/${data.id}`);
+      const { data, error } = await supabase
+        .from("consultations")
+        .insert({
+          user_id: user.id,
+          patient_name: patientName,
+          program: programId || "peptides",
+          intake_answers: finalAnswers as any,
+          status: "review",
+        })
+        .select("id")
+        .single();
+      if (error) {
+        toast({ title: "Error saving", description: error.message, variant: "destructive" });
+        setSaving(false);
+        return;
+      }
+      consultationId = data.id;
     }
+    navigate(`/consultation/${consultationId}`);
     setSaving(false);
   };
 
