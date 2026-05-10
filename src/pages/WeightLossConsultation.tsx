@@ -24,6 +24,7 @@ import { printPatientGuide } from "@/utils/printGuide";
 import { sendGuideAsWhatsappText } from "@/utils/guideWhatsappText";
 import { buildEmrOutput } from "@/utils/emrOutput";
 import ShareGuideDialog from "@/components/ShareGuideDialog";
+import CrossProgramHistoryStrip from "@/components/CrossProgramHistoryStrip";
 
 const MEDICATION_OPTIONS: MedicationType[] = ["Mounjaro", "Wegovy", "Ozempic", "Rybelsus", "Other"];
 
