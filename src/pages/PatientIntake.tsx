@@ -12,7 +12,7 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { intakeQuestions, getVisibleQuestions, intakeSections } from "@/data/intakeQuestions";
-import { ArrowLeft, ArrowRight, Mic, MicOff, Check, Ruler, Weight as WeightIcon, Wand2, RefreshCw, MessageCircle, UserPlus, History, Search, AlertTriangle, Loader2, Pill, StickyNote, Users } from "lucide-react";
+import { ArrowLeft, ArrowRight, Mic, MicOff, Check, Ruler, Weight as WeightIcon, Wand2, RefreshCw, MessageCircle, UserPlus, History, Search, AlertTriangle, Loader2, Pill, StickyNote, Users, Save } from "lucide-react";
 import { openWhatsApp } from "@/utils/whatsapp";
 import type { IntakeQuestion } from "@/data/intakeQuestions";
 import AppHeader from "@/components/AppHeader";
@@ -397,6 +397,34 @@ export default function PatientIntake() {
       toast({ title: "Smart Fill failed", description: "Could not parse the input.", variant: "destructive" });
     }
     setIsParsing(false);
+  };
+
+  const handleSaveDraft = async () => {
+    if (!user) return;
+    const mobile = (answers["mobile_number"] as string) || "";
+    if (!hasMinimumIdentity(patientName, mobile)) {
+      toast({
+        title: "Name & mobile required",
+        description: "Enter the patient's name and mobile number to save a draft.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setSaving(true);
+    const id = await saveDraftConsultation({
+      draftId,
+      userId: user.id,
+      program: programId || "peptides",
+      patientName: patientName.trim(),
+      intakeAnswers: buildIntakePayload(),
+    });
+    setSaving(false);
+    if (id) {
+      toast({ title: "Draft saved", description: "You can resume this intake from the dashboard." });
+      navigate("/dashboard");
+    } else {
+      toast({ title: "Save failed", description: "Could not save draft. Try again.", variant: "destructive" });
+    }
   };
 
   const handleSubmit = async () => {
@@ -1127,19 +1155,24 @@ export default function PatientIntake() {
           </CardContent>
         </Card>
 
-        <div className="flex justify-between mt-6">
+        <div className="flex flex-wrap justify-between gap-2 mt-6">
           <Button variant="outline" onClick={() => setCurrentStep((s) => Math.max(0, s - 1))} disabled={currentStep === 0}>
             <ArrowLeft className="h-4 w-4 mr-1" /> Back
           </Button>
-          {currentStep < sections.length - 1 ? (
-            <Button onClick={handleNext}>
-              Next <ArrowRight className="h-4 w-4 ml-1" />
+          <div className="flex flex-wrap gap-2 ml-auto">
+            <Button variant="secondary" onClick={handleSaveDraft} disabled={saving}>
+              <Save className="h-4 w-4 mr-1" /> Save Draft & Exit
             </Button>
-          ) : (
-            <Button onClick={handleSubmit} disabled={saving || !patientName.trim()}>
-              {saving ? "Saving..." : "Submit & Get Recommendations"}
-            </Button>
-          )}
+            {currentStep < sections.length - 1 ? (
+              <Button onClick={handleNext}>
+                Next <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
+            ) : (
+              <Button onClick={handleSubmit} disabled={saving || !patientName.trim()}>
+                {saving ? "Saving..." : "Submit & Get Recommendations"}
+              </Button>
+            )}
+          </div>
         </div>
         </div>
 
