@@ -65,6 +65,7 @@ export default function ProgramPrescriptionStats({ program }: Props) {
       .from("consultations")
       .select("ai_recommendations, created_at")
       .eq("program", program)
+      .neq("status", "incomplete")
       .order("created_at", { ascending: false })
       .limit(1000)
       .then(({ data }) => {
