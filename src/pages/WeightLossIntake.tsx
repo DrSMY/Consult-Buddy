@@ -38,7 +38,7 @@ import {
   type PatientGroup,
 } from "@/utils/patientIdentity";
 
-type FlowType = "new" | "followup" | null;
+type FlowType = "new" | "followup" | "existing" | null;
 
 const isClinician = (roles: string[]) => roles.includes("doctor") || roles.includes("nurse");
 
