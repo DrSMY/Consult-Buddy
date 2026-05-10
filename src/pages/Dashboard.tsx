@@ -93,6 +93,7 @@ export default function Dashboard() {
 
         {clinician && <DashboardStats section="charts" />}
         {clinician && <DashboardStats section="kpis" />}
+        {clinician && <IncompleteIntakesList />}
       </main>
     </div>
   );
