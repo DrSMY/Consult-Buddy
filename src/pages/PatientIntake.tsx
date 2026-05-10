@@ -93,6 +93,73 @@ export default function PatientIntake() {
       });
   }, [flowType, user, programId]);
 
+  // Load ALL consultations across programs once — used for cross-program patient detection.
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("consultations")
+      .select("id, patient_name, program, status, created_at, intake_answers")
+      .order("created_at", { ascending: false })
+      .then(({ data }) => setAllConsultations(data || []));
+  }, [user]);
+
+  // Apply demographics + medical history from a known patient onto current intake state.
+  const applyExistingPatient = useCallback((group: PatientGroup) => {
+    const pre = buildDemographicsPrefill(group);
+    if (!pre) return;
+    setPatientName(String(pre.name || ""));
+    const next: Record<string, string | string[]> = {};
+    if (pre.mobile) next.mobile_number = String(pre.mobile);
+    if (pre.bookingRef) next.booking_ref = String(pre.bookingRef);
+    if (pre.age) next.age = String(pre.age);
+    if (pre.gender) next.gender = String(pre.gender);
+    if (pre.height) next.height = String(pre.height);
+    if (pre.weight) next.weight = String(pre.weight);
+    const chronic = Array.isArray(pre.chronicIllnesses)
+      ? pre.chronicIllnesses
+      : pre.chronicIllnesses
+        ? String(pre.chronicIllnesses).split(/[,;\n]/).map(s => s.trim()).filter(Boolean)
+        : [];
+    const allergies = Array.isArray(pre.allergies)
+      ? pre.allergies
+      : pre.allergies
+        ? String(pre.allergies).split(/[,;\n]/).map(s => s.trim()).filter(Boolean)
+        : [];
+    if (chronic.length) next.health_conditions = chronic;
+    if (allergies.length) next.allergies = allergies;
+    setAnswers(prev => ({ ...prev, ...next }));
+    setGateAnswers(prev => ({
+      ...prev,
+      ...(chronic.length ? { health_conditions: "yes" as const } : {}),
+      ...(allergies.length ? { allergies: "yes" as const } : {}),
+    }));
+    setMatchedPatient(group);
+    setBannerDismissed(true);
+    setFlowType("new");
+    toast({
+      title: "Patient loaded",
+      description: `Demographics and medical history from ${programLabel(pre.source.program)} (${new Date(pre.source.date).toLocaleDateString()}) applied.`,
+    });
+  }, [toast]);
+
+  // Auto-detect: when typing in the New Patient form, if mobile matches an existing
+  // patient we haven't already linked, surface a small banner.
+  useEffect(() => {
+    if (flowType !== "new" || matchedPatient || bannerDismissed) return;
+    const mobile = (answers["mobile_number"] as string) || "";
+    const key = normalizeMobile(mobile);
+    if (!key) return;
+    const groups = groupConsultationsByPatient(allConsultations as any);
+    const hit = groups.find(g => g.mobileKey === key);
+    if (hit && (!draftId || hit.consultations.some(c => c.id !== draftId))) {
+      // Filter out the current draft from the match's visit list.
+      const filtered = { ...hit, consultations: hit.consultations.filter(c => c.id !== draftId) };
+      if (filtered.consultations.length > 0) {
+        setMatchedPatient(filtered);
+      }
+    }
+  }, [answers, allConsultations, flowType, matchedPatient, bannerDismissed, draftId]);
+
   // Resume from a draft if URL has ?draft=<id>
   useEffect(() => {
     const id = searchParams.get("draft");
