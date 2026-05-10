@@ -12,13 +12,21 @@ import { Badge } from "@/components/ui/badge";
 import { Textarea } from "@/components/ui/textarea";
 import { useToast } from "@/hooks/use-toast";
 import { intakeQuestions, getVisibleQuestions, intakeSections } from "@/data/intakeQuestions";
-import { ArrowLeft, ArrowRight, Mic, MicOff, Check, Ruler, Weight as WeightIcon, Wand2, RefreshCw, MessageCircle, UserPlus, History, Search, AlertTriangle, Loader2, Pill, StickyNote } from "lucide-react";
+import { ArrowLeft, ArrowRight, Mic, MicOff, Check, Ruler, Weight as WeightIcon, Wand2, RefreshCw, MessageCircle, UserPlus, History, Search, AlertTriangle, Loader2, Pill, StickyNote, Users } from "lucide-react";
 import { openWhatsApp } from "@/utils/whatsapp";
 import type { IntakeQuestion } from "@/data/intakeQuestions";
 import AppHeader from "@/components/AppHeader";
 import LivePeptideSuggestions from "@/components/LivePeptideSuggestions";
 import PatientSummaryCard from "@/components/PatientSummaryCard";
 import ProgramPrescriptionStats from "@/components/ProgramPrescriptionStats";
+import ExistingPatientPicker from "@/components/ExistingPatientPicker";
+import {
+  buildDemographicsPrefill,
+  groupConsultationsByPatient,
+  normalizeMobile,
+  programLabel,
+  type PatientGroup,
+} from "@/utils/patientIdentity";
 import { CalendarDays, Clock } from "lucide-react";
 
 // Mandatory question IDs that must be answered
@@ -41,13 +49,16 @@ export default function PatientIntake() {
     }
   }, [roles, loading]);
 
-  const [flowType, setFlowType] = useState<"new" | "followup" | null>(null);
+  const [flowType, setFlowType] = useState<"new" | "followup" | "existing" | null>(null);
   const [previousConsultations, setPreviousConsultations] = useState<any[]>([]);
   const [followupSearch, setFollowupSearch] = useState("");
   const [loadingFollowups, setLoadingFollowups] = useState(false);
   const [selectedPrevConsultation, setSelectedPrevConsultation] = useState<any>(null);
   const [followupNotes, setFollowupNotes] = useState("");
   const [followupSideEffects, setFollowupSideEffects] = useState("");
+  const [matchedPatient, setMatchedPatient] = useState<import("@/utils/patientIdentity").PatientGroup | null>(null);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
+  const [allConsultations, setAllConsultations] = useState<any[]>([]);
 
   const [answers, setAnswers] = useState<Record<string, string | string[]>>({});
   const [gateAnswers, setGateAnswers] = useState<Record<string, "yes" | "no" | null>>({});
@@ -81,6 +92,73 @@ export default function PatientIntake() {
         setLoadingFollowups(false);
       });
   }, [flowType, user, programId]);
+
+  // Load ALL consultations across programs once — used for cross-program patient detection.
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("consultations")
+      .select("id, patient_name, program, status, created_at, intake_answers")
+      .order("created_at", { ascending: false })
+      .then(({ data }) => setAllConsultations(data || []));
+  }, [user]);
+
+  // Apply demographics + medical history from a known patient onto current intake state.
+  const applyExistingPatient = useCallback((group: PatientGroup) => {
+    const pre = buildDemographicsPrefill(group);
+    if (!pre) return;
+    setPatientName(String(pre.name || ""));
+    const next: Record<string, string | string[]> = {};
+    if (pre.mobile) next.mobile_number = String(pre.mobile);
+    if (pre.bookingRef) next.booking_ref = String(pre.bookingRef);
+    if (pre.age) next.age = String(pre.age);
+    if (pre.gender) next.gender = String(pre.gender);
+    if (pre.height) next.height = String(pre.height);
+    if (pre.weight) next.weight = String(pre.weight);
+    const chronic = Array.isArray(pre.chronicIllnesses)
+      ? pre.chronicIllnesses
+      : pre.chronicIllnesses
+        ? String(pre.chronicIllnesses).split(/[,;\n]/).map(s => s.trim()).filter(Boolean)
+        : [];
+    const allergies = Array.isArray(pre.allergies)
+      ? pre.allergies
+      : pre.allergies
+        ? String(pre.allergies).split(/[,;\n]/).map(s => s.trim()).filter(Boolean)
+        : [];
+    if (chronic.length) next.health_conditions = chronic;
+    if (allergies.length) next.allergies = allergies;
+    setAnswers(prev => ({ ...prev, ...next }));
+    setGateAnswers(prev => ({
+      ...prev,
+      ...(chronic.length ? { health_conditions: "yes" as const } : {}),
+      ...(allergies.length ? { allergies: "yes" as const } : {}),
+    }));
+    setMatchedPatient(group);
+    setBannerDismissed(true);
+    setFlowType("new");
+    toast({
+      title: "Patient loaded",
+      description: `Demographics and medical history from ${programLabel(pre.source.program)} (${new Date(pre.source.date).toLocaleDateString()}) applied.`,
+    });
+  }, [toast]);
+
+  // Auto-detect: when typing in the New Patient form, if mobile matches an existing
+  // patient we haven't already linked, surface a small banner.
+  useEffect(() => {
+    if (flowType !== "new" || matchedPatient || bannerDismissed) return;
+    const mobile = (answers["mobile_number"] as string) || "";
+    const key = normalizeMobile(mobile);
+    if (!key) return;
+    const groups = groupConsultationsByPatient(allConsultations as any);
+    const hit = groups.find(g => g.mobileKey === key);
+    if (hit && (!draftId || hit.consultations.some(c => c.id !== draftId))) {
+      // Filter out the current draft from the match's visit list.
+      const filtered = { ...hit, consultations: hit.consultations.filter(c => c.id !== draftId) };
+      if (filtered.consultations.length > 0) {
+        setMatchedPatient(filtered);
+      }
+    }
+  }, [answers, allConsultations, flowType, matchedPatient, bannerDismissed, draftId]);
 
   // Resume from a draft if URL has ?draft=<id>
   useEffect(() => {
@@ -613,7 +691,7 @@ export default function PatientIntake() {
             <h2 className="text-xl sm:text-2xl font-bold">Select Encounter Type</h2>
             <p className="text-sm sm:text-base text-muted-foreground mt-1 sm:mt-2">Choose how to proceed with this patient.</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6 mb-4 sm:mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-8">
             <Card
               className="cursor-pointer group hover:shadow-lg hover:border-primary/40 hover:-translate-y-0.5 transition-all"
               onClick={() => setFlowType("new")}
@@ -646,10 +724,37 @@ export default function PatientIntake() {
                 </div>
               </CardContent>
             </Card>
+            <Card
+              className="cursor-pointer group hover:shadow-lg hover:border-primary/40 hover:-translate-y-0.5 transition-all"
+              onClick={() => setFlowType("existing")}
+            >
+              <CardContent className="p-4 sm:p-8 flex flex-row sm:flex-col items-center text-left sm:text-center gap-3 sm:gap-4">
+                <div className="h-11 w-11 sm:h-14 sm:w-14 shrink-0 rounded-xl bg-accent/30 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <Users className="h-5 w-5 sm:h-7 sm:w-7 text-accent-foreground" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-base sm:text-lg font-bold">Existing Patient</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
+                    Pull up a patient seen in any program — demographics & history pre-fill.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           </div>
           <ProgramPrescriptionStats program="peptides" />
         </main>
       </div>
+    );
+  }
+
+  // ---- EXISTING PATIENT (cross-program) PICKER ----
+  if (flowType === "existing") {
+    return (
+      <ExistingPatientPicker
+        targetProgram={programId || "peptides"}
+        onBack={() => setFlowType(null)}
+        onSelect={applyExistingPatient}
+      />
     );
   }
 
@@ -752,6 +857,30 @@ export default function PatientIntake() {
           </div>
           <Progress value={progress} className="h-2" />
         </div>
+
+        {/* Existing-patient auto-detect banner */}
+        {currentStep === 0 && matchedPatient && !bannerDismissed && (
+          <Card className="mb-4 border-primary/40 bg-primary/5">
+            <CardContent className="p-3 flex items-center gap-3">
+              <Users className="h-5 w-5 text-primary shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold">
+                  This number belongs to <span className="text-primary">{matchedPatient.displayName}</span>
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  Seen in {matchedPatient.programs.map(programLabel).join(" · ")} · {matchedPatient.consultations.length} prior visit
+                  {matchedPatient.consultations.length === 1 ? "" : "s"}. Use existing record to pre-fill demographics & history.
+                </p>
+              </div>
+              <Button size="sm" onClick={() => applyExistingPatient(matchedPatient)} className="shrink-0">
+                Use existing
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setBannerDismissed(true)} className="shrink-0">
+                Dismiss
+              </Button>
+            </CardContent>
+          </Card>
+        )}
 
         {/* Smart Fill */}
         {currentStep === 0 && (

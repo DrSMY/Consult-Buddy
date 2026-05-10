@@ -23,6 +23,7 @@ import { printPatientGuide } from "@/utils/printGuide";
 import { sendGuideAsWhatsappText } from "@/utils/guideWhatsappText";
 import ShareGuideDialog from "@/components/ShareGuideDialog";
 import { getProtocolOptions, extractMl, extractVialMl, inferFrequency, type ProtocolOption } from "@/data/peptideProtocolOptions";
+import CrossProgramHistoryStrip from "@/components/CrossProgramHistoryStrip";
 
 interface PeptideRec {
   name: string;
@@ -1029,6 +1030,12 @@ SCOPE Certified Physician`;
       <main className="container mx-auto max-w-6xl px-4 py-6">
         <div className="flex flex-col lg:flex-row gap-6">
         <div className="flex-1 min-w-0">
+        <div className="mb-4">
+          <CrossProgramHistoryStrip
+            mobile={(consultation?.intake_answers as any)?.mobile_number || ""}
+            currentId={consultation?.id}
+          />
+        </div>
         {/* Follow-up Visit Context */}
         {consultation?.intake_answers?.flowType === "followup" && (() => {
           const prev = consultation.intake_answers.previousProtocol || {};

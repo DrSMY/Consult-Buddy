@@ -17,7 +17,7 @@ import {
   CalendarDays, Ruler, Weight as WeightIcon, Calculator, Flame, Utensils,
   TrendingDown, Info, ClipboardList, Pill, StickyNote, FileText, Sparkles,
   BookOpen, Loader2, FlaskConical, Check, Wand2, RefreshCw, Copy, ClipboardCheck,
-  Activity, Zap, ThermometerSnowflake, User, Search, AlertTriangle, MessageCircle,
+  Activity, Zap, ThermometerSnowflake, User, Search, AlertTriangle, MessageCircle, Users,
 } from "lucide-react";
 import {
   type GLP1Patient, type TreatmentPlan, type MedicationType, type FollowupData,
@@ -29,8 +29,16 @@ import {
 import AppHeader from "@/components/AppHeader";
 import { openWhatsApp } from "@/utils/whatsapp";
 import ProgramPrescriptionStats from "@/components/ProgramPrescriptionStats";
+import ExistingPatientPicker from "@/components/ExistingPatientPicker";
+import {
+  buildDemographicsPrefill,
+  groupConsultationsByPatient,
+  normalizeMobile,
+  programLabel,
+  type PatientGroup,
+} from "@/utils/patientIdentity";
 
-type FlowType = "new" | "followup" | null;
+type FlowType = "new" | "followup" | "existing" | null;
 
 const isClinician = (roles: string[]) => roles.includes("doctor") || roles.includes("nurse");
 
@@ -68,6 +76,9 @@ export default function WeightLossIntake() {
   const [followupSearch, setFollowupSearch] = useState("");
   const [loadingFollowups, setLoadingFollowups] = useState(false);
   const [selectedPrevConsultation, setSelectedPrevConsultation] = useState<any>(null);
+  const [allConsultations, setAllConsultations] = useState<any[]>([]);
+  const [matchedPatient, setMatchedPatient] = useState<PatientGroup | null>(null);
+  const [bannerDismissed, setBannerDismissed] = useState(false);
   const totalSteps = 4;
   const progress = ((step + 1) / totalSteps) * 100;
 
@@ -120,6 +131,60 @@ export default function WeightLossIntake() {
         setLoadingFollowups(false);
       });
   }, [flowType, user]);
+
+  // Load ALL consultations across programs for cross-program patient detection.
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("consultations")
+      .select("id, patient_name, program, status, created_at, intake_answers")
+      .order("created_at", { ascending: false })
+      .then(({ data }) => setAllConsultations(data || []));
+  }, [user]);
+
+  const applyExistingPatient = useCallback((group: PatientGroup) => {
+    const pre = buildDemographicsPrefill(group);
+    if (!pre) return;
+    setPatient(p => ({
+      ...p,
+      name: String(pre.name || p.name),
+      mobileNumber: String(pre.mobile || p.mobileNumber),
+      bookingId: String(pre.bookingRef || p.bookingId),
+      age: pre.age ? Number(pre.age) || (pre.age as any) : p.age,
+      gender: (pre.gender as Gender) || p.gender,
+      height: pre.height ? Number(pre.height) || (pre.height as any) : p.height,
+      weight: pre.weight ? Number(pre.weight) || (pre.weight as any) : p.weight,
+      chronicIllnesses: Array.isArray(pre.chronicIllnesses)
+        ? pre.chronicIllnesses.join(", ")
+        : (pre.chronicIllnesses as string) || p.chronicIllnesses,
+      allergies: Array.isArray(pre.allergies)
+        ? pre.allergies.join(", ")
+        : (pre.allergies as string) || p.allergies,
+      medications: pre.medications || p.medications,
+      allergyNotes: pre.allergyNotes || p.allergyNotes,
+    }));
+    setMatchedPatient(group);
+    setBannerDismissed(true);
+    setFlowType("new");
+    setStep(0);
+    toast({
+      title: "Patient loaded",
+      description: `Demographics and history from ${programLabel(pre.source.program)} (${new Date(pre.source.date).toLocaleDateString()}) applied.`,
+    });
+  }, [toast]);
+
+  // Auto-detect: in New Patient flow, surface a banner when the typed mobile matches an existing patient.
+  useEffect(() => {
+    if (flowType !== "new" || matchedPatient || bannerDismissed) return;
+    const key = normalizeMobile(patient.mobileNumber);
+    if (!key) return;
+    const groups = groupConsultationsByPatient(allConsultations as any);
+    const hit = groups.find(g => g.mobileKey === key);
+    if (hit) {
+      const filtered = { ...hit, consultations: hit.consultations.filter(c => c.id !== draftId) };
+      if (filtered.consultations.length > 0) setMatchedPatient(filtered);
+    }
+  }, [patient.mobileNumber, allConsultations, flowType, matchedPatient, bannerDismissed, draftId]);
 
   // Resume from a draft if URL has ?draft=<id>
   useEffect(() => {
@@ -363,7 +428,7 @@ export default function WeightLossIntake() {
             <h2 className="text-xl sm:text-2xl font-bold">Select Encounter Type</h2>
             <p className="text-sm sm:text-base text-muted-foreground mt-1 sm:mt-2">Choose how to proceed with this patient.</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6 mb-4 sm:mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-8">
             <Card
               className="cursor-pointer group hover:shadow-lg hover:border-primary/40 hover:-translate-y-0.5 transition-all"
               onClick={() => setFlowType("new")}
@@ -396,10 +461,37 @@ export default function WeightLossIntake() {
                 </div>
               </CardContent>
             </Card>
+            <Card
+              className="cursor-pointer group hover:shadow-lg hover:border-primary/40 hover:-translate-y-0.5 transition-all"
+              onClick={() => setFlowType("existing")}
+            >
+              <CardContent className="p-4 sm:p-8 flex flex-row sm:flex-col items-center text-left sm:text-center gap-3 sm:gap-4">
+                <div className="h-11 w-11 sm:h-14 sm:w-14 shrink-0 rounded-xl bg-accent/30 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <Users className="h-5 w-5 sm:h-7 sm:w-7 text-accent-foreground" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-base sm:text-lg font-bold">Existing Patient</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
+                    Pull up a patient seen in any program — demographics & history pre-fill.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           </div>
           <ProgramPrescriptionStats program="weight-loss" />
         </main>
       </div>
+    );
+  }
+
+  // ---- EXISTING PATIENT (cross-program) PICKER ----
+  if (flowType === "existing") {
+    return (
+      <ExistingPatientPicker
+        targetProgram="weight-loss"
+        onBack={() => setFlowType(null)}
+        onSelect={applyExistingPatient}
+      />
     );
   }
 
@@ -598,6 +690,29 @@ export default function WeightLossIntake() {
         {/* STEP 0: Identity */}
         {step === 0 && (
           <div className="space-y-6">
+            {/* Existing-patient auto-detect banner */}
+            {matchedPatient && !bannerDismissed && (
+              <Card className="border-primary/40 bg-primary/5">
+                <CardContent className="p-3 flex items-center gap-3">
+                  <Users className="h-5 w-5 text-primary shrink-0" />
+                  <div className="flex-1 min-w-0">
+                    <p className="text-sm font-semibold">
+                      This number belongs to <span className="text-primary">{matchedPatient.displayName}</span>
+                    </p>
+                    <p className="text-[11px] text-muted-foreground">
+                      Seen in {matchedPatient.programs.map(programLabel).join(" · ")} · {matchedPatient.consultations.length} prior visit
+                      {matchedPatient.consultations.length === 1 ? "" : "s"}. Use existing record to pre-fill demographics & history.
+                    </p>
+                  </div>
+                  <Button size="sm" onClick={() => applyExistingPatient(matchedPatient)} className="shrink-0">
+                    Use existing
+                  </Button>
+                  <Button size="sm" variant="ghost" onClick={() => setBannerDismissed(true)} className="shrink-0">
+                    Dismiss
+                  </Button>
+                </CardContent>
+              </Card>
+            )}
             {/* Smart Fill */}
             <Card className="border-primary/20 bg-primary/5">
               <CardContent className="p-4">
