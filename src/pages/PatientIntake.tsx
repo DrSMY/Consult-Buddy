@@ -724,10 +724,37 @@ export default function PatientIntake() {
                 </div>
               </CardContent>
             </Card>
+            <Card
+              className="cursor-pointer group hover:shadow-lg hover:border-primary/40 hover:-translate-y-0.5 transition-all"
+              onClick={() => setFlowType("existing")}
+            >
+              <CardContent className="p-4 sm:p-8 flex flex-row sm:flex-col items-center text-left sm:text-center gap-3 sm:gap-4">
+                <div className="h-11 w-11 sm:h-14 sm:w-14 shrink-0 rounded-xl bg-accent/30 flex items-center justify-center group-hover:scale-105 transition-transform">
+                  <Users className="h-5 w-5 sm:h-7 sm:w-7 text-accent-foreground" />
+                </div>
+                <div className="min-w-0">
+                  <h3 className="text-base sm:text-lg font-bold">Existing Patient</h3>
+                  <p className="text-xs sm:text-sm text-muted-foreground mt-0.5 sm:mt-1">
+                    Pull up a patient seen in any program — demographics & history pre-fill.
+                  </p>
+                </div>
+              </CardContent>
+            </Card>
           </div>
           <ProgramPrescriptionStats program="peptides" />
         </main>
       </div>
+    );
+  }
+
+  // ---- EXISTING PATIENT (cross-program) PICKER ----
+  if (flowType === "existing") {
+    return (
+      <ExistingPatientPicker
+        targetProgram={programId || "peptides"}
+        onBack={() => setFlowType(null)}
+        onSelect={applyExistingPatient}
+      />
     );
   }
 
