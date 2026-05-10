@@ -17,7 +17,7 @@ import {
   CalendarDays, Ruler, Weight as WeightIcon, Calculator, Flame, Utensils,
   TrendingDown, Info, ClipboardList, Pill, StickyNote, FileText, Sparkles,
   BookOpen, Loader2, FlaskConical, Check, Wand2, RefreshCw, Copy, ClipboardCheck,
-  Activity, Zap, ThermometerSnowflake, User, Search, AlertTriangle, MessageCircle, Users,
+  Activity, Zap, ThermometerSnowflake, User, Search, AlertTriangle, MessageCircle, Users, Save,
 } from "lucide-react";
 import {
   type GLP1Patient, type TreatmentPlan, type MedicationType, type FollowupData,
@@ -343,6 +343,42 @@ export default function WeightLossIntake() {
     navigator.clipboard.writeText(text);
     setCopiedSection(section);
     setTimeout(() => setCopiedSection(null), 2000);
+  };
+
+  const handleSaveDraft = async () => {
+    if (!user) return;
+    if (!hasMinimumIdentity(patient.name, patient.mobileNumber)) {
+      toast({
+        title: "Name & mobile required",
+        description: "Enter the patient's name and mobile number to save a draft.",
+        variant: "destructive",
+      });
+      return;
+    }
+    setSaving(true);
+    const intakeAnswers: any = {
+      patient,
+      treatment,
+      flowType: flowType || "new",
+      __draftStep: step,
+      ...(flowType === "followup"
+        ? { followupData: followup, previousConsultationId: selectedPrevConsultation?.id }
+        : {}),
+    };
+    const id = await saveDraftConsultation({
+      draftId,
+      userId: user.id,
+      program: "weight-loss",
+      patientName: patient.name.trim(),
+      intakeAnswers,
+    });
+    setSaving(false);
+    if (id) {
+      toast({ title: "Draft saved", description: "You can resume this intake from the dashboard." });
+      navigate("/dashboard");
+    } else {
+      toast({ title: "Save failed", description: "Could not save draft. Try again.", variant: "destructive" });
+    }
   };
 
   const handleSubmit = async () => {
@@ -1370,7 +1406,7 @@ export default function WeightLossIntake() {
         )}
 
         {/* Navigation */}
-        <div className="flex justify-between mt-6">
+        <div className="flex flex-wrap justify-between gap-2 mt-6">
           <Button
             variant="outline"
             onClick={() => {
@@ -1381,19 +1417,24 @@ export default function WeightLossIntake() {
             <ArrowLeft className="h-4 w-4 mr-1" /> Back
           </Button>
 
-          {step < 3 ? (
-            <Button
-              onClick={() => setStep(s => s + 1)}
-              disabled={step === 0 && !isIdentityValid}
-            >
-              Next <ArrowRight className="h-4 w-4 ml-1" />
+          <div className="flex flex-wrap gap-2 ml-auto">
+            <Button variant="secondary" onClick={handleSaveDraft} disabled={saving}>
+              <Save className="h-4 w-4 mr-1" /> Save Draft & Exit
             </Button>
-          ) : (
-            <Button onClick={handleSubmit} disabled={saving || !isTreatmentComplete}>
-              {saving ? "Saving..." : "Confirm & Save Encounter"}
-              <Check className="h-4 w-4 ml-1" />
-            </Button>
-          )}
+            {step < 3 ? (
+              <Button
+                onClick={() => setStep(s => s + 1)}
+                disabled={step === 0 && !isIdentityValid}
+              >
+                Next <ArrowRight className="h-4 w-4 ml-1" />
+              </Button>
+            ) : (
+              <Button onClick={handleSubmit} disabled={saving || !isTreatmentComplete}>
+                {saving ? "Saving..." : "Confirm & Save Encounter"}
+                <Check className="h-4 w-4 ml-1" />
+              </Button>
+            )}
+          </div>
         </div>
           </div>
 
