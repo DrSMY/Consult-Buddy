@@ -81,6 +81,39 @@ export default function PatientIntake() {
       });
   }, [flowType, user, programId]);
 
+  // Resume from a draft if URL has ?draft=<id>
+  useEffect(() => {
+    const id = searchParams.get("draft");
+    if (!id || draftId === id || !user) return;
+    (async () => {
+      const row = await loadDraftConsultation(id);
+      if (!row || row.user_id !== user.id) return;
+      const intake = (row.intake_answers as Record<string, any>) || {};
+      setDraftId(row.id);
+      setFlowType((intake.flowType as any) || "new");
+      setPatientName(row.patient_name || "");
+      const prefilled: Record<string, string | string[]> = {};
+      const prefilledOther: Record<string, string> = {};
+      const prefilledNotes: Record<string, string> = {};
+      const prefilledGates: Record<string, "yes" | "no" | null> = {};
+      for (const [k, v] of Object.entries(intake)) {
+        if (["flowType", "followupData", "previousConsultationId", "previousProtocol", "__draftStep"].includes(k)) continue;
+        if (k.endsWith("_other")) prefilledOther[k.replace(/_other$/, "")] = String(v ?? "");
+        else if (k.endsWith("_notes")) prefilledNotes[k.replace(/_notes$/, "")] = String(v ?? "");
+        else prefilled[k] = v as any;
+      }
+      for (const k of Object.keys(prefilled)) {
+        if (Array.isArray(prefilled[k]) && (prefilled[k] as string[]).length > 0) prefilledGates[k] = "yes";
+      }
+      setAnswers(prefilled);
+      setOtherText(prefilledOther);
+      setNotes(prefilledNotes);
+      setGateAnswers(prefilledGates);
+      if (typeof intake.__draftStep === "number") setCurrentStep(intake.__draftStep);
+      toast({ title: "Resumed", description: `Continuing intake for ${row.patient_name || "patient"}` });
+    })();
+  }, [searchParams, user, draftId, toast]);
+
   const filteredPrevConsultations = previousConsultations.filter(c =>
     !followupSearch || c.patient_name?.toLowerCase().includes(followupSearch.toLowerCase())
   );
