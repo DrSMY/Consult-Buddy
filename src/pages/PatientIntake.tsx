@@ -114,6 +114,47 @@ export default function PatientIntake() {
     })();
   }, [searchParams, user, draftId, toast]);
 
+  // Build current intake_answers payload (mirrors handleSubmit structure)
+  const buildIntakePayload = useCallback((): Record<string, any> => {
+    const finalAnswers: Record<string, any> = { ...answers };
+    for (const [id, gate] of Object.entries(gateAnswers)) {
+      if (gate === "no") finalAnswers[id] = [];
+    }
+    for (const [id, text] of Object.entries(otherText)) {
+      if (text.trim()) finalAnswers[`${id}_other`] = text.trim();
+    }
+    for (const [id, note] of Object.entries(notes)) {
+      if (note.trim()) finalAnswers[`${id}_notes`] = note.trim();
+    }
+    finalAnswers.flowType = flowType || "new";
+    finalAnswers.__draftStep = currentStep;
+    return finalAnswers;
+  }, [answers, gateAnswers, otherText, notes, flowType, currentStep]);
+
+  // Auto-save draft once name + mobile are present, debounced
+  useEffect(() => {
+    if (!user || saving) return;
+    const mobile = (answers["mobile_number"] as string) || "";
+    if (!hasMinimumIdentity(patientName, mobile)) return;
+    const handle = setTimeout(async () => {
+      const id = await saveDraftConsultation({
+        draftId,
+        userId: user.id,
+        program: programId || "peptides",
+        patientName: patientName.trim(),
+        intakeAnswers: buildIntakePayload(),
+      });
+      if (id && id !== draftId) {
+        setDraftId(id);
+        const next = new URLSearchParams(searchParams);
+        next.set("draft", id);
+        setSearchParams(next, { replace: true });
+      }
+    }, 1500);
+    return () => clearTimeout(handle);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patientName, answers, gateAnswers, otherText, notes, currentStep, flowType, user, draftId, programId]);
+
   const filteredPrevConsultations = previousConsultations.filter(c =>
     !followupSearch || c.patient_name?.toLowerCase().includes(followupSearch.toLowerCase())
   );
