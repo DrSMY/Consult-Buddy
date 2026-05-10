@@ -37,6 +37,7 @@ export default function DashboardStats({ section = "all" }: { section?: Section 
     supabase
       .from("consultations")
       .select("created_at, program")
+      .neq("status", "incomplete")
       .gte("created_at", start.toISOString())
       .order("created_at", { ascending: true })
       .then(({ data }) => setRows((data as Row[]) || []));
