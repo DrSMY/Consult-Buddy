@@ -691,7 +691,7 @@ export default function PatientIntake() {
             <h2 className="text-xl sm:text-2xl font-bold">Select Encounter Type</h2>
             <p className="text-sm sm:text-base text-muted-foreground mt-1 sm:mt-2">Choose how to proceed with this patient.</p>
           </div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 sm:gap-6 mb-4 sm:mb-8">
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 sm:gap-4 mb-4 sm:mb-8">
             <Card
               className="cursor-pointer group hover:shadow-lg hover:border-primary/40 hover:-translate-y-0.5 transition-all"
               onClick={() => setFlowType("new")}
