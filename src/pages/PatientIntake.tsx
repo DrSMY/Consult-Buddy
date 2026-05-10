@@ -74,6 +74,7 @@ export default function PatientIntake() {
       .select("*")
       .eq("program", programId || "peptides")
       .eq("user_id", user.id)
+      .neq("status", "incomplete")
       .order("created_at", { ascending: false })
       .then(({ data }) => {
         setPreviousConsultations(data || []);
