@@ -288,32 +288,54 @@ export default function WeightLossIntake() {
 
     const intakeAnswers = { patient, treatment, flowType, ...(flowType === "followup" ? { followupData: followup, previousConsultationId: selectedPrevConsultation?.id } : {}) };
 
-    const { data, error } = await supabase
-      .from("consultations")
-      .insert({
-        user_id: user.id,
-        patient_name: patient.name,
-        program: "weight-loss",
-        intake_answers: intakeAnswers as any,
-        doctor_notes: doctorNotes || null,
-        ai_recommendations: {
-          doctorSuggestions: treatment.doctorSuggestions,
-          patientGuide: treatment.patientGuide,
-          medication: treatment.medication,
-          dose: treatment.dose,
-          bloodTestLevel: treatment.bloodTestLevel,
-        } as any,
-        status: "completed",
-      })
-      .select("id")
-      .single();
+    const aiRecs = {
+      doctorSuggestions: treatment.doctorSuggestions,
+      patientGuide: treatment.patientGuide,
+      medication: treatment.medication,
+      dose: treatment.dose,
+      bloodTestLevel: treatment.bloodTestLevel,
+    } as any;
 
-    if (error) {
-      toast({ title: "Error saving", description: error.message, variant: "destructive" });
+    let consultationId = draftId;
+    if (draftId) {
+      const { error } = await supabase
+        .from("consultations")
+        .update({
+          patient_name: patient.name,
+          intake_answers: intakeAnswers as any,
+          doctor_notes: doctorNotes || null,
+          ai_recommendations: aiRecs,
+          status: "completed",
+        })
+        .eq("id", draftId);
+      if (error) {
+        toast({ title: "Error saving", description: error.message, variant: "destructive" });
+        setSaving(false);
+        return;
+      }
     } else {
-      toast({ title: "Consultation saved" });
-      navigate(`/consultation/${data.id}`);
+      const { data, error } = await supabase
+        .from("consultations")
+        .insert({
+          user_id: user.id,
+          patient_name: patient.name,
+          program: "weight-loss",
+          intake_answers: intakeAnswers as any,
+          doctor_notes: doctorNotes || null,
+          ai_recommendations: aiRecs,
+          status: "completed",
+        })
+        .select("id")
+        .single();
+      if (error) {
+        toast({ title: "Error saving", description: error.message, variant: "destructive" });
+        setSaving(false);
+        return;
+      }
+      consultationId = data.id;
     }
+    toast({ title: "Consultation saved" });
+    navigate(`/consultation/${consultationId}`);
     setSaving(false);
   };
 
