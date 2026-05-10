@@ -6,6 +6,7 @@ import { useNavigate } from "react-router-dom";
 import AppHeader from "@/components/AppHeader";
 import { useToast } from "@/hooks/use-toast";
 import DashboardStats from "@/components/DashboardStats";
+import IncompleteIntakesList from "@/components/IncompleteIntakesList";
 
 const isClinician = (roles: string[]) => roles.includes("doctor") || roles.includes("nurse");
 
