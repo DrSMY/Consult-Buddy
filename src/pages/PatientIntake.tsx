@@ -858,6 +858,30 @@ export default function PatientIntake() {
           <Progress value={progress} className="h-2" />
         </div>
 
+        {/* Existing-patient auto-detect banner */}
+        {currentStep === 0 && matchedPatient && !bannerDismissed && (
+          <Card className="mb-4 border-primary/40 bg-primary/5">
+            <CardContent className="p-3 flex items-center gap-3">
+              <Users className="h-5 w-5 text-primary shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="text-sm font-semibold">
+                  This number belongs to <span className="text-primary">{matchedPatient.displayName}</span>
+                </p>
+                <p className="text-[11px] text-muted-foreground">
+                  Seen in {matchedPatient.programs.map(programLabel).join(" · ")} · {matchedPatient.consultations.length} prior visit
+                  {matchedPatient.consultations.length === 1 ? "" : "s"}. Use existing record to pre-fill demographics & history.
+                </p>
+              </div>
+              <Button size="sm" onClick={() => applyExistingPatient(matchedPatient)} className="shrink-0">
+                Use existing
+              </Button>
+              <Button size="sm" variant="ghost" onClick={() => setBannerDismissed(true)} className="shrink-0">
+                Dismiss
+              </Button>
+            </CardContent>
+          </Card>
+        )}
+
         {/* Smart Fill */}
         {currentStep === 0 && (
           <Card className="mb-4 border-primary/30 bg-gradient-to-r from-primary/10 to-accent/5 shadow-sm">
