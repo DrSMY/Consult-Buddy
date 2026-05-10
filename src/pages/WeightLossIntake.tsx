@@ -113,6 +113,7 @@ export default function WeightLossIntake() {
       .select("*")
       .eq("program", "weight-loss")
       .eq("user_id", user.id)
+      .neq("status", "incomplete")
       .order("created_at", { ascending: false })
       .then(({ data }) => {
         setPreviousConsultations(data || []);
