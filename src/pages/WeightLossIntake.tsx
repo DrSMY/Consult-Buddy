@@ -17,7 +17,7 @@ import {
   CalendarDays, Ruler, Weight as WeightIcon, Calculator, Flame, Utensils,
   TrendingDown, Info, ClipboardList, Pill, StickyNote, FileText, Sparkles,
   BookOpen, Loader2, FlaskConical, Check, Wand2, RefreshCw, Copy, ClipboardCheck,
-  Activity, Zap, ThermometerSnowflake, User, Search, AlertTriangle, MessageCircle,
+  Activity, Zap, ThermometerSnowflake, User, Search, AlertTriangle, MessageCircle, Users,
 } from "lucide-react";
 import {
   type GLP1Patient, type TreatmentPlan, type MedicationType, type FollowupData,
@@ -29,6 +29,14 @@ import {
 import AppHeader from "@/components/AppHeader";
 import { openWhatsApp } from "@/utils/whatsapp";
 import ProgramPrescriptionStats from "@/components/ProgramPrescriptionStats";
+import ExistingPatientPicker from "@/components/ExistingPatientPicker";
+import {
+  buildDemographicsPrefill,
+  groupConsultationsByPatient,
+  normalizeMobile,
+  programLabel,
+  type PatientGroup,
+} from "@/utils/patientIdentity";
 
 type FlowType = "new" | "followup" | null;
 
