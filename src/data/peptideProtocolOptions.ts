@@ -461,7 +461,8 @@ export function inferFrequency(time: string): string | null {
   const t = time.toLowerCase();
   if (t.includes("twice daily") || t.includes("twice a day")) return "daily"; // 2x daily handled elsewhere
   if (t.includes("once daily") || t.includes("daily")) return "daily";
-  if (t.includes("every 3 days") || t.includes("every other day")) return "every other day";
+  if (t.includes("every 3 days")) return "every 3 days";
+  if (t.includes("every other day")) return "every other day";
   if (t.includes("5 days on")) return "5 days per week";
   if (t.includes("3 times weekly") || t.includes("3x weekly") || t.includes("3 times a week")) return "3 times per week";
   if (t.includes("twice a week") || t.includes("2x weekly")) return "2x per week";

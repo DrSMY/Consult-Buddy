@@ -43,6 +43,7 @@ interface PeptideRec {
 const FREQUENCY_OPTIONS = [
   { label: "Daily", value: "daily", factor: 1 },
   { label: "Every other day", value: "every other day", factor: 0.5 },
+  { label: "Every 3 days", value: "every 3 days", factor: 1 / 3 },
   { label: "5 days per week", value: "5 days per week", factor: 5 / 7 },
   { label: "3 times per week", value: "3 times per week", factor: 3 / 7 },
   { label: "3x per week", value: "3x per week", factor: 3 / 7 },
