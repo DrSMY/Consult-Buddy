@@ -179,6 +179,7 @@ export default function PatientFiles() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All ({statusCounts.all || 0})</SelectItem>
+              <SelectItem value="incomplete">Incomplete ({statusCounts.incomplete || 0})</SelectItem>
               <SelectItem value="intake">Intake ({statusCounts.intake || 0})</SelectItem>
               <SelectItem value="review">Review ({statusCounts.review || 0})</SelectItem>
               <SelectItem value="completed">Completed ({statusCounts.completed || 0})</SelectItem>
@@ -206,8 +207,10 @@ export default function PatientFiles() {
                   key={c.id}
                   className="hover:border-primary/30 hover:shadow-sm transition-all cursor-pointer"
                   onClick={() => {
-                    if (c.program === "weight-loss") {
-                      // For completed weight-loss, go to consultation view; for others navigate to intake for editing
+                    if (c.status === "incomplete") {
+                      const path = c.program === "weight-loss" ? "/program/weight-loss" : "/program/peptides";
+                      navigate(`${path}?draft=${c.id}`);
+                    } else if (c.program === "weight-loss") {
                       if (c.status === "completed") {
                         navigate(`/weight-loss/${c.id}`);
                       } else {
@@ -227,7 +230,7 @@ export default function PatientFiles() {
                         <h3 className="font-semibold truncate">{c.patient_name || "Unnamed Patient"}</h3>
                         <Badge
                           variant={c.status === "completed" ? "default" : c.status === "review" ? "secondary" : "outline"}
-                          className="text-[10px] shrink-0"
+                          className={`text-[10px] shrink-0 ${c.status === "incomplete" ? "border-amber-400/60 bg-amber-500/15 text-amber-700 dark:text-amber-300" : ""}`}
                         >
                           {c.status}
                         </Badge>
@@ -268,6 +271,7 @@ export default function PatientFiles() {
               <Select value={editForm.status} onValueChange={(v) => setEditForm((f) => ({ ...f, status: v }))}>
                 <SelectTrigger><SelectValue /></SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="incomplete">Incomplete</SelectItem>
                   <SelectItem value="intake">Intake</SelectItem>
                   <SelectItem value="review">Review</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>
