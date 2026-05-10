@@ -132,6 +132,60 @@ export default function WeightLossIntake() {
       });
   }, [flowType, user]);
 
+  // Load ALL consultations across programs for cross-program patient detection.
+  useEffect(() => {
+    if (!user) return;
+    supabase
+      .from("consultations")
+      .select("id, patient_name, program, status, created_at, intake_answers")
+      .order("created_at", { ascending: false })
+      .then(({ data }) => setAllConsultations(data || []));
+  }, [user]);
+
+  const applyExistingPatient = useCallback((group: PatientGroup) => {
+    const pre = buildDemographicsPrefill(group);
+    if (!pre) return;
+    setPatient(p => ({
+      ...p,
+      name: String(pre.name || p.name),
+      mobileNumber: String(pre.mobile || p.mobileNumber),
+      bookingId: String(pre.bookingRef || p.bookingId),
+      age: pre.age ? Number(pre.age) || (pre.age as any) : p.age,
+      gender: (pre.gender as Gender) || p.gender,
+      height: pre.height ? Number(pre.height) || (pre.height as any) : p.height,
+      weight: pre.weight ? Number(pre.weight) || (pre.weight as any) : p.weight,
+      chronicIllnesses: Array.isArray(pre.chronicIllnesses)
+        ? pre.chronicIllnesses.join(", ")
+        : (pre.chronicIllnesses as string) || p.chronicIllnesses,
+      allergies: Array.isArray(pre.allergies)
+        ? pre.allergies.join(", ")
+        : (pre.allergies as string) || p.allergies,
+      medications: pre.medications || p.medications,
+      allergyNotes: pre.allergyNotes || p.allergyNotes,
+    }));
+    setMatchedPatient(group);
+    setBannerDismissed(true);
+    setFlowType("new");
+    setStep(0);
+    toast({
+      title: "Patient loaded",
+      description: `Demographics and history from ${programLabel(pre.source.program)} (${new Date(pre.source.date).toLocaleDateString()}) applied.`,
+    });
+  }, [toast]);
+
+  // Auto-detect: in New Patient flow, surface a banner when the typed mobile matches an existing patient.
+  useEffect(() => {
+    if (flowType !== "new" || matchedPatient || bannerDismissed) return;
+    const key = normalizeMobile(patient.mobileNumber);
+    if (!key) return;
+    const groups = groupConsultationsByPatient(allConsultations as any);
+    const hit = groups.find(g => g.mobileKey === key);
+    if (hit) {
+      const filtered = { ...hit, consultations: hit.consultations.filter(c => c.id !== draftId) };
+      if (filtered.consultations.length > 0) setMatchedPatient(filtered);
+    }
+  }, [patient.mobileNumber, allConsultations, flowType, matchedPatient, bannerDismissed, draftId]);
+
   // Resume from a draft if URL has ?draft=<id>
   useEffect(() => {
     const id = searchParams.get("draft");
