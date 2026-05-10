@@ -120,6 +120,57 @@ export default function WeightLossIntake() {
       });
   }, [flowType, user]);
 
+  // Resume from a draft if URL has ?draft=<id>
+  useEffect(() => {
+    const id = searchParams.get("draft");
+    if (!id || draftId === id || !user) return;
+    (async () => {
+      const row = await loadDraftConsultation(id);
+      if (!row || row.user_id !== user.id) return;
+      const intake = (row.intake_answers as any) || {};
+      setDraftId(row.id);
+      setFlowType((intake.flowType as FlowType) || "new");
+      if (intake.patient) setPatient({ ...createEmptyPatient(), ...intake.patient });
+      if (intake.treatment) setTreatment({ ...createEmptyTreatment(), ...intake.treatment });
+      if (intake.followupData) setFollowup({ ...createEmptyFollowup(), ...intake.followupData });
+      if (typeof intake.__draftStep === "number") setStep(intake.__draftStep);
+      if (row.doctor_notes) setDoctorNotes(row.doctor_notes);
+      toast({ title: "Resumed", description: `Continuing intake for ${row.patient_name || "patient"}` });
+    })();
+  }, [searchParams, user, draftId, toast]);
+
+  // Auto-save draft once name + mobile are present, debounced
+  useEffect(() => {
+    if (!user || saving) return;
+    if (!hasMinimumIdentity(patient.name, patient.mobileNumber)) return;
+    const handle = setTimeout(async () => {
+      const intakeAnswers: any = {
+        patient,
+        treatment,
+        flowType: flowType || "new",
+        __draftStep: step,
+        ...(flowType === "followup"
+          ? { followupData: followup, previousConsultationId: selectedPrevConsultation?.id }
+          : {}),
+      };
+      const id = await saveDraftConsultation({
+        draftId,
+        userId: user.id,
+        program: "weight-loss",
+        patientName: patient.name.trim(),
+        intakeAnswers,
+      });
+      if (id && id !== draftId) {
+        setDraftId(id);
+        const next = new URLSearchParams(searchParams);
+        next.set("draft", id);
+        setSearchParams(next, { replace: true });
+      }
+    }, 1500);
+    return () => clearTimeout(handle);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [patient, treatment, followup, flowType, step, user, draftId]);
+
   const handleSelectPreviousPatient = (consultation: any) => {
     setSelectedPrevConsultation(consultation);
     const prevPatient = consultation.intake_answers?.patient;
