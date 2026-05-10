@@ -38,6 +38,8 @@ export default function WeightLossIntake() {
   const { user, roles, loading } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [searchParams, setSearchParams] = useSearchParams();
+  const [draftId, setDraftId] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && roles.length > 0 && !isClinician(roles)) {
