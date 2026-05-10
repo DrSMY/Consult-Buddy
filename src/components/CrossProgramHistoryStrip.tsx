@@ -65,7 +65,7 @@ export default function CrossProgramHistoryStrip({ mobile, currentId }: Props) {
           {items.map((c) => {
             const target =
               c.program === "weight-loss"
-                ? `/weight-loss/consultation/${c.id}`
+                ? `/weight-loss/${c.id}`
                 : `/consultation/${c.id}`;
             return (
               <button
