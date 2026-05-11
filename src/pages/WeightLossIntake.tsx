@@ -1445,9 +1445,44 @@ export default function WeightLossIntake() {
           {/* Patient Summary Sidebar - visible throughout */}
           <aside className="w-full lg:w-72 shrink-0 space-y-4">
             <PatientSummary />
+            <Card className="lg:sticky lg:top-[22rem] lg:self-start">
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs font-bold uppercase tracking-wider flex items-center gap-2 text-muted-foreground">
+                  <Pill className="h-3.5 w-3.5" /> Medication Reference
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  {REFERENCE_MEDS.map((m) => {
+                    const active = treatment.medication === m;
+                    return (
+                      <Button
+                        key={m}
+                        type="button"
+                        variant="outline"
+                        size="sm"
+                        onClick={() => setRefMed(m)}
+                        className={`justify-start gap-1.5 h-auto py-2 text-xs ${active ? "border-primary text-primary bg-primary/5" : ""}`}
+                      >
+                        <Info className="h-3 w-3 shrink-0" />
+                        <span className="truncate">{m}</span>
+                      </Button>
+                    );
+                  })}
+                </div>
+                <p className="text-[10px] text-muted-foreground leading-snug">
+                  Tap any medication to view DarDoc protocol.
+                </p>
+              </CardContent>
+            </Card>
           </aside>
         </div>
       </main>
+      <MedicationDetailSheet
+        medicationName={refMed}
+        open={!!refMed}
+        onOpenChange={(o) => { if (!o) setRefMed(null); }}
+      />
     </div>
   );
 }
