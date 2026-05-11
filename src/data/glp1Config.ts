@@ -134,6 +134,7 @@ export function getDoseOptions(med: MedicationType): string[] {
     case "Wegovy": return WEGOVY_DOSES;
     case "Ozempic": return OZEMPIC_DOSES;
     case "Rybelsus": return RYBELSUS_DOSES;
+    case "Foundayo": return FOUNDAYO_DOSES;
     default: return [];
   }
 }
