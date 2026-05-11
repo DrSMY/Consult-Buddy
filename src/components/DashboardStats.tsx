@@ -117,8 +117,8 @@ export default function DashboardStats({ section = "all" }: { section?: Section 
 
   const hasDistribution = distribution.some((d) => d.value > 0);
 
-  const PEPTIDE_COLOR = "hsl(152 60% 40%)"; // green
-  const WL_COLOR = "hsl(43 74% 49%)"; // gold
+  const PEPTIDE_COLOR = "hsl(43 74% 49%)"; // gold
+  const WL_COLOR = "hsl(174 50% 32%)"; // dark teal
 
   const chartConfig = {
     peptides: { label: "Peptides", color: PEPTIDE_COLOR },
