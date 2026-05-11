@@ -51,6 +51,7 @@ export default function WeightLossIntake() {
   const { toast } = useToast();
   const [searchParams, setSearchParams] = useSearchParams();
   const [draftId, setDraftId] = useState<string | null>(null);
+  const [refMed, setRefMed] = useState<string | null>(null);
 
   useEffect(() => {
     if (!loading && roles.length > 0 && !isClinician(roles)) {
