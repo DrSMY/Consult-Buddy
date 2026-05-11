@@ -325,23 +325,9 @@ export default function WeightLossConsultation() {
   return (
     <div className="min-h-screen gradient-surface">
       <AppHeader title="Weight Loss Consultation" subtitle={consultation.patient_name} showBack>
-        <div className="flex items-center gap-1.5 flex-wrap justify-end">
-          {["Wegovy", "Mounjaro", "Foundayo", "Rybelsus"].map((m) => (
-            <Button
-              key={m}
-              variant="outline"
-              size="sm"
-              className="text-[10px] px-2 h-7 gap-1 border-primary/30 text-primary hover:bg-primary/10"
-              onClick={() => setRefMed(m)}
-              title={`View ${m} reference`}
-            >
-              <Info className="h-3 w-3" /> {m}
-            </Button>
-          ))}
-          <Button variant="outline" size="sm" className="text-xs px-2 sm:px-3" onClick={openEditDialog}>
-            <Pencil className="h-3 w-3 mr-1" /> Edit
-          </Button>
-        </div>
+        <Button variant="outline" size="sm" className="text-xs px-2 sm:px-3" onClick={openEditDialog}>
+          <Pencil className="h-3 w-3 mr-1" /> Edit
+        </Button>
       </AppHeader>
 
       <main className="container mx-auto px-4 py-6 animate-fade-in">
