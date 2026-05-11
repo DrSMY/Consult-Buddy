@@ -14,7 +14,7 @@ export enum ActivityLevel {
   VeryActive = "Very Active",
 }
 
-export type MedicationType = "Mounjaro" | "Wegovy" | "Ozempic" | "Rybelsus" | "Foundayo" | "Other";
+export type MedicationType = "Mounjaro" | "Wegovy" | "Ozempic" | "Rybelsus" | "Foundayo" | "None" | "Other";
 
 export const MOUNJARO_DOSES = ["2.5mg", "5mg", "7.5mg", "10mg", "12.5mg", "15mg"];
 export const WEGOVY_DOSES = ["0.25mg", "0.5mg", "1mg", "1.7mg", "2.4mg"];
