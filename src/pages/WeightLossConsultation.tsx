@@ -594,6 +594,37 @@ export default function WeightLossConsultation() {
               </CardContent>
             </Card>
 
+            {/* Medication Reference */}
+            <Card>
+              <CardHeader className="pb-2">
+                <CardTitle className="text-xs font-bold uppercase tracking-wider flex items-center gap-2 text-muted-foreground">
+                  <Pill className="h-3.5 w-3.5" /> Medication Reference
+                </CardTitle>
+              </CardHeader>
+              <CardContent className="space-y-2">
+                <div className="grid grid-cols-2 gap-2">
+                  {["Wegovy", "Mounjaro", "Foundayo", "Rybelsus"].map((m) => {
+                    const active = medName === m;
+                    return (
+                      <Button
+                        key={m}
+                        variant="outline"
+                        size="sm"
+                        className={`text-[11px] h-8 gap-1 justify-start ${active ? "border-primary text-primary bg-primary/5" : "border-primary/30 text-primary hover:bg-primary/10"}`}
+                        onClick={() => setRefMed(m)}
+                        title={`View ${m} reference`}
+                      >
+                        <Info className="h-3 w-3 shrink-0" /> {m}
+                      </Button>
+                    );
+                  })}
+                </div>
+                <p className="text-[10px] text-muted-foreground text-center pt-1">
+                  Tap any medication to view DarDoc protocol.
+                </p>
+              </CardContent>
+            </Card>
+
             {/* Talking Points */}
             {talkingPoints.map((section, idx) => (
               <Card key={idx} className={`border ${section.color}`}>
