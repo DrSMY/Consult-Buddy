@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   FileText, User, Copy, ClipboardCheck, ArrowLeft, Activity, Utensils, Zap, ThermometerSnowflake,
   Weight, Ruler, Heart, Flame, TrendingDown, Pill, AlertTriangle, MessageSquare, Scale, Loader2, Sparkles,
-  StickyNote, FlaskConical, MessageCircle, Printer, Send, Pencil,
+  StickyNote, FlaskConical, MessageCircle, Printer, Send, Pencil, Info,
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import PatientGuideDisplay from "@/components/PatientGuideDisplay";
@@ -25,8 +25,10 @@ import { sendGuideAsWhatsappText } from "@/utils/guideWhatsappText";
 import { buildEmrOutput } from "@/utils/emrOutput";
 import ShareGuideDialog from "@/components/ShareGuideDialog";
 import CrossProgramHistoryStrip from "@/components/CrossProgramHistoryStrip";
+import MedicationDetailSheet from "@/components/MedicationDetailSheet";
 
-const MEDICATION_OPTIONS: MedicationType[] = ["Mounjaro", "Wegovy", "Ozempic", "Rybelsus", "Other"];
+const MEDICATION_OPTIONS: MedicationType[] = ["Mounjaro", "Wegovy", "Foundayo", "Rybelsus", "Ozempic", "Other"];
+const REFERENCE_MEDS = new Set(["Mounjaro", "Wegovy", "Foundayo", "Rybelsus"]);
 
 export default function WeightLossConsultation() {
   const { id } = useParams();
