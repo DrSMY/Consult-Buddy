@@ -456,7 +456,7 @@ export default function WeightLossIntake() {
   const isIdentityValid = flowType === "followup"
     ? patient.name && patient.mobileNumber
     : patient.name && patient.mobileNumber && patient.age && patient.height && patient.weight;
-  const isTreatmentComplete = treatment.medication !== "" && (treatment.medication === "Other" ? !!treatment.otherDetail : !!treatment.dose);
+  const isTreatmentComplete = treatment.medication !== "" && (treatment.medication === "Other" || treatment.medication === "None" ? !!treatment.otherDetail : !!treatment.dose);
 
   // ---- SELECTION SCREEN ----
   if (flowType === null) {
