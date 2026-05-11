@@ -723,6 +723,12 @@ export default function WeightLossConsultation() {
           }}
         />
       )}
+
+      <MedicationDetailSheet
+        medicationName={refMed}
+        open={!!refMed}
+        onOpenChange={(o) => !o && setRefMed(null)}
+      />
     </div>
   );
 }
