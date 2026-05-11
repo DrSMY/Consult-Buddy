@@ -270,6 +270,69 @@ export type Database = {
         }
         Relationships: []
       }
+      weight_loss_medications: {
+        Row: {
+          administration: string | null
+          available_doses: string | null
+          category: string | null
+          common_side_effects: string | null
+          contraindications: string | null
+          created_at: string
+          how_it_works_patient: string | null
+          how_to_use: string | null
+          id: string
+          indications_uae: string | null
+          key_advantages: string | null
+          mechanism_of_action: string | null
+          missed_dose: string | null
+          name: string
+          scientific_information: string | null
+          storage_handling: string | null
+          updated_at: string
+          what_to_expect: string | null
+        }
+        Insert: {
+          administration?: string | null
+          available_doses?: string | null
+          category?: string | null
+          common_side_effects?: string | null
+          contraindications?: string | null
+          created_at?: string
+          how_it_works_patient?: string | null
+          how_to_use?: string | null
+          id?: string
+          indications_uae?: string | null
+          key_advantages?: string | null
+          mechanism_of_action?: string | null
+          missed_dose?: string | null
+          name: string
+          scientific_information?: string | null
+          storage_handling?: string | null
+          updated_at?: string
+          what_to_expect?: string | null
+        }
+        Update: {
+          administration?: string | null
+          available_doses?: string | null
+          category?: string | null
+          common_side_effects?: string | null
+          contraindications?: string | null
+          created_at?: string
+          how_it_works_patient?: string | null
+          how_to_use?: string | null
+          id?: string
+          indications_uae?: string | null
+          key_advantages?: string | null
+          mechanism_of_action?: string | null
+          missed_dose?: string | null
+          name?: string
+          scientific_information?: string | null
+          storage_handling?: string | null
+          updated_at?: string
+          what_to_expect?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never

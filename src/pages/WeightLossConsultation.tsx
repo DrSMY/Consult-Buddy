@@ -14,7 +14,7 @@ import { useToast } from "@/hooks/use-toast";
 import {
   FileText, User, Copy, ClipboardCheck, ArrowLeft, Activity, Utensils, Zap, ThermometerSnowflake,
   Weight, Ruler, Heart, Flame, TrendingDown, Pill, AlertTriangle, MessageSquare, Scale, Loader2, Sparkles,
-  StickyNote, FlaskConical, MessageCircle, Printer, Send, Pencil,
+  StickyNote, FlaskConical, MessageCircle, Printer, Send, Pencil, Info,
 } from "lucide-react";
 import AppHeader from "@/components/AppHeader";
 import PatientGuideDisplay from "@/components/PatientGuideDisplay";
@@ -25,8 +25,10 @@ import { sendGuideAsWhatsappText } from "@/utils/guideWhatsappText";
 import { buildEmrOutput } from "@/utils/emrOutput";
 import ShareGuideDialog from "@/components/ShareGuideDialog";
 import CrossProgramHistoryStrip from "@/components/CrossProgramHistoryStrip";
+import MedicationDetailSheet from "@/components/MedicationDetailSheet";
 
-const MEDICATION_OPTIONS: MedicationType[] = ["Mounjaro", "Wegovy", "Ozempic", "Rybelsus", "Other"];
+const MEDICATION_OPTIONS: MedicationType[] = ["Mounjaro", "Wegovy", "Foundayo", "Rybelsus", "Ozempic", "Other"];
+const REFERENCE_MEDS = new Set(["Mounjaro", "Wegovy", "Foundayo", "Rybelsus"]);
 
 export default function WeightLossConsultation() {
   const { id } = useParams();
@@ -44,6 +46,7 @@ export default function WeightLossConsultation() {
   const [editBloodTest, setEditBloodTest] = useState<BloodTestLevel>("none");
   const [editNotes, setEditNotes] = useState("");
   const [editDoctorNotes, setEditDoctorNotes] = useState("");
+  const [refMed, setRefMed] = useState<string | null>(null);
 
   const { data: consultation, isLoading } = useQuery({
     queryKey: ["weight-loss-consultation", id],
@@ -551,7 +554,20 @@ export default function WeightLossConsultation() {
                   <div className="border-t pt-3">
                     <div className="flex justify-between items-center">
                       <span className="text-[11px] text-muted-foreground flex items-center gap-1"><Pill className="h-3 w-3" /> Rx</span>
-                      <Badge className="text-[10px]">{medName} {dose}</Badge>
+                      {REFERENCE_MEDS.has(medName) ? (
+                        <button
+                          type="button"
+                          onClick={() => setRefMed(medName)}
+                          className="inline-flex"
+                          title="View medication reference"
+                        >
+                          <Badge className="text-[10px] gap-1 cursor-pointer hover:bg-primary/80">
+                            {medName} {dose} <Info className="h-2.5 w-2.5" />
+                          </Badge>
+                        </button>
+                      ) : (
+                        <Badge className="text-[10px]">{medName} {dose}</Badge>
+                      )}
                     </div>
                   </div>
                 )}
@@ -610,12 +626,25 @@ export default function WeightLossConsultation() {
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label>Medication</Label>
+              <div className="flex items-center justify-between">
+                <Label>Medication</Label>
+                {editMed && REFERENCE_MEDS.has(editMed) && (
+                  <button
+                    type="button"
+                    onClick={() => setRefMed(editMed)}
+                    className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline"
+                  >
+                    <Info className="h-3 w-3" /> View {editMed} reference
+                  </button>
+                )}
+              </div>
               <Select value={editMed} onValueChange={(v) => { setEditMed(v as MedicationType); setEditDose(""); }}>
                 <SelectTrigger><SelectValue placeholder="Select medication" /></SelectTrigger>
                 <SelectContent>
                   {MEDICATION_OPTIONS.map((m) => (
-                    <SelectItem key={m} value={m}>{m}</SelectItem>
+                    <SelectItem key={m} value={m}>
+                      {m}{REFERENCE_MEDS.has(m) ? " ⓘ" : ""}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
@@ -694,6 +723,12 @@ export default function WeightLossConsultation() {
           }}
         />
       )}
+
+      <MedicationDetailSheet
+        medicationName={refMed}
+        open={!!refMed}
+        onOpenChange={(o) => !o && setRefMed(null)}
+      />
     </div>
   );
 }
