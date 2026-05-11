@@ -27,7 +27,10 @@ import {
   generateClinicalSuggestion,
 } from "@/data/glp1Config";
 import AppHeader from "@/components/AppHeader";
+import MedicationDetailSheet from "@/components/MedicationDetailSheet";
 import { openWhatsApp } from "@/utils/whatsapp";
+
+const REFERENCE_MEDS = ["Wegovy", "Mounjaro", "Foundayo", "Rybelsus"] as const;
 import ProgramPrescriptionStats from "@/components/ProgramPrescriptionStats";
 import ExistingPatientPicker from "@/components/ExistingPatientPicker";
 import {
