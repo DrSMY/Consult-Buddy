@@ -626,12 +626,25 @@ export default function WeightLossConsultation() {
           </DialogHeader>
           <div className="space-y-4 py-2">
             <div className="space-y-2">
-              <Label>Medication</Label>
+              <div className="flex items-center justify-between">
+                <Label>Medication</Label>
+                {editMed && REFERENCE_MEDS.has(editMed) && (
+                  <button
+                    type="button"
+                    onClick={() => setRefMed(editMed)}
+                    className="inline-flex items-center gap-1 text-[11px] text-primary hover:underline"
+                  >
+                    <Info className="h-3 w-3" /> View {editMed} reference
+                  </button>
+                )}
+              </div>
               <Select value={editMed} onValueChange={(v) => { setEditMed(v as MedicationType); setEditDose(""); }}>
                 <SelectTrigger><SelectValue placeholder="Select medication" /></SelectTrigger>
                 <SelectContent>
                   {MEDICATION_OPTIONS.map((m) => (
-                    <SelectItem key={m} value={m}>{m}</SelectItem>
+                    <SelectItem key={m} value={m}>
+                      {m}{REFERENCE_MEDS.has(m) ? " ⓘ" : ""}
+                    </SelectItem>
                   ))}
                 </SelectContent>
               </Select>
