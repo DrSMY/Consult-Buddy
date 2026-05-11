@@ -456,7 +456,7 @@ export default function WeightLossIntake() {
   const isIdentityValid = flowType === "followup"
     ? patient.name && patient.mobileNumber
     : patient.name && patient.mobileNumber && patient.age && patient.height && patient.weight;
-  const isTreatmentComplete = treatment.medication !== "" && (treatment.medication === "Other" ? !!treatment.otherDetail : !!treatment.dose);
+  const isTreatmentComplete = treatment.medication !== "" && (treatment.medication === "Other" || treatment.medication === "None" ? !!treatment.otherDetail : !!treatment.dose);
 
   // ---- SELECTION SCREEN ----
   if (flowType === null) {
@@ -1195,7 +1195,7 @@ export default function WeightLossIntake() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                  {(["Mounjaro", "Wegovy", "Ozempic", "Rybelsus", "Other"] as MedicationType[]).map(med => (
+                  {(["Wegovy", "Mounjaro", "Rybelsus", "Foundayo", "None"] as MedicationType[]).map(med => (
                     <div
                       key={med}
                       onClick={() => updateTreatment("medication", med)}
@@ -1208,12 +1208,12 @@ export default function WeightLossIntake() {
                       <div className={`w-3 h-3 rounded-full border flex items-center justify-center ${treatment.medication === med ? "border-primary bg-primary" : "border-muted-foreground/40"}`}>
                         {treatment.medication === med && <Check className="h-2 w-2 text-primary-foreground" />}
                       </div>
-                      <span className="text-xs font-bold">{med}</span>
+                      <span className="text-xs font-bold">{med === "None" ? "No Medication" : med}</span>
                     </div>
                   ))}
                 </div>
 
-                {treatment.medication && treatment.medication !== "Other" && (
+                {treatment.medication && treatment.medication !== "Other" && treatment.medication !== "None" && (
                   <div className="animate-fade-in">
                     <Label>Prescribed Dose ({treatment.medication})</Label>
                     <select
@@ -1233,6 +1233,19 @@ export default function WeightLossIntake() {
                   <div className="animate-fade-in">
                     <Label>Specify Treatment</Label>
                     <Input value={treatment.otherDetail} onChange={e => updateTreatment("otherDetail", e.target.value)} placeholder="Enter medication name..." className="mt-1" />
+                  </div>
+                )}
+
+                {treatment.medication === "None" && (
+                  <div className="animate-fade-in">
+                    <Label>Reason for No Medication</Label>
+                    <Textarea
+                      rows={3}
+                      value={treatment.otherDetail}
+                      onChange={e => updateTreatment("otherDetail", e.target.value)}
+                      placeholder="e.g. Patient declined, contraindication, BMI not meeting criteria, deferred pending labs..."
+                      className="mt-1"
+                    />
                   </div>
                 )}
               </CardContent>
