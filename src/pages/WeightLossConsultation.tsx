@@ -554,7 +554,20 @@ export default function WeightLossConsultation() {
                   <div className="border-t pt-3">
                     <div className="flex justify-between items-center">
                       <span className="text-[11px] text-muted-foreground flex items-center gap-1"><Pill className="h-3 w-3" /> Rx</span>
-                      <Badge className="text-[10px]">{medName} {dose}</Badge>
+                      {REFERENCE_MEDS.has(medName) ? (
+                        <button
+                          type="button"
+                          onClick={() => setRefMed(medName)}
+                          className="inline-flex"
+                          title="View medication reference"
+                        >
+                          <Badge className="text-[10px] gap-1 cursor-pointer hover:bg-primary/80">
+                            {medName} {dose} <Info className="h-2.5 w-2.5" />
+                          </Badge>
+                        </button>
+                      ) : (
+                        <Badge className="text-[10px]">{medName} {dose}</Badge>
+                      )}
                     </div>
                   </div>
                 )}
