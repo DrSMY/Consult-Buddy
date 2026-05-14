@@ -134,7 +134,7 @@ serve(async (req) => {
         body: JSON.stringify({
           model: "google/gemini-3-flash-preview",
           messages: [
-            { role: "system", content: "Extract patient data from raw text. Return ONLY valid JSON with fields: name, mobileNumber, bookingId (booking reference number), bookingTime, age, gender (Male/Female/Other), height (in cm), weight (in kg), chronicIllnesses, medications, allergies. Only include fields you can extract. Do not invent data." },
+            { role: "system", content: `Extract patient data from raw text. Return ONLY valid JSON with fields: name, mobileNumber, bookingId (booking reference number), bookingTime, dateOfBirth (ISO YYYY-MM-DD if a DOB is present in any format like DD/MM/YYYY, MM/DD/YYYY, or written), age (integer years), gender (Male/Female/Other), height (in cm), weight (in kg), chronicIllnesses, medications, allergies. If a date of birth is present, ALWAYS return dateOfBirth in YYYY-MM-DD format and compute age as the integer number of completed years between dateOfBirth and today (${new Date().toISOString().slice(0,10)}); do NOT just copy a year. Assume DD/MM/YYYY for ambiguous numeric dates. Only include fields you can extract. Do not invent data.` },
             { role: "user", content: rawText },
           ],
           tools: [{
