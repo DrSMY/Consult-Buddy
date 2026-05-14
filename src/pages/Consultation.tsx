@@ -759,7 +759,7 @@ ${SEP}
 • Report any unusual side effects or symptoms promptly.
 
 👨‍⚕️ Prepared By:
-Dr Sami M. Yesuf`;
+Dr Sami M. Yesuf — DarDoc Healthcare`;
 
     // Nurse Instructions
     const nurseLines = selectedRecs.map((p) => {
