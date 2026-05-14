@@ -134,7 +134,7 @@ serve(async (req) => {
         body: JSON.stringify({
           model: "google/gemini-3-flash-preview",
           messages: [
-            { role: "system", content: "Extract patient data from raw text. Return ONLY valid JSON with fields: name, mobileNumber, bookingId (booking reference number), bookingTime, age, gender (Male/Female/Other), height (in cm), weight (in kg), chronicIllnesses, medications, allergies. Only include fields you can extract. Do not invent data." },
+            { role: "system", content: `Extract patient data from raw text. Return ONLY valid JSON with fields: name, mobileNumber, bookingId (booking reference number), bookingTime, dateOfBirth (ISO YYYY-MM-DD if a DOB is present in any format like DD/MM/YYYY, MM/DD/YYYY, or written), age (integer years), gender (Male/Female/Other), height (in cm), weight (in kg), chronicIllnesses, medications, allergies. If a date of birth is present, ALWAYS return dateOfBirth in YYYY-MM-DD format and compute age as the integer number of completed years between dateOfBirth and today (${new Date().toISOString().slice(0,10)}); do NOT just copy a year. Assume DD/MM/YYYY for ambiguous numeric dates. Only include fields you can extract. Do not invent data.` },
             { role: "user", content: rawText },
           ],
           tools: [{
@@ -149,7 +149,8 @@ serve(async (req) => {
                   bookingId: { type: "string", description: "Booking reference number" },
                   mobileNumber: { type: "string" },
                   bookingTime: { type: "string" },
-                  age: { type: "number" },
+                  dateOfBirth: { type: "string", description: "ISO YYYY-MM-DD" },
+                  age: { type: "number", description: "Integer years; if dateOfBirth is provided, must equal completed years from DOB to today" },
                   gender: { type: "string", enum: ["Male", "Female", "Other"] },
                   height: { type: "number", description: "Height in cm" },
                   weight: { type: "number", description: "Weight in kg" },
@@ -173,7 +174,20 @@ serve(async (req) => {
       const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
       if (!toolCall) throw new Error("No tool call in response");
 
-      return new Response(JSON.stringify(JSON.parse(toolCall.function.arguments)), {
+      const parsed = JSON.parse(toolCall.function.arguments);
+      // Authoritative age computation from DOB to avoid model arithmetic mistakes
+      if (parsed.dateOfBirth) {
+        const dob = new Date(parsed.dateOfBirth);
+        if (!isNaN(dob.getTime())) {
+          const today = new Date();
+          let age = today.getFullYear() - dob.getFullYear();
+          const m = today.getMonth() - dob.getMonth();
+          if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+          if (age >= 0 && age < 130) parsed.age = age;
+        }
+      }
+
+      return new Response(JSON.stringify(parsed), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
