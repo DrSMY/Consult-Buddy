@@ -322,6 +322,7 @@ ${tBloodTestLevel === "required" ? "REQUIRED: Complete Weight Loss Blood Test (h
 
 Sign as:
 Dr Sami M. Yesuf
+DarDoc Healthcare
 SCOPE Certified Physician`;
       } else {
         const lifestyleGreeting = `Hi ${salutation} ${pName}, this is your personalized guide for a healthy lifestyle and sustainable weight management journey with us${tMedication === "Other" ? ` alongside your ${tOtherDetail} treatment` : ""}.`;
