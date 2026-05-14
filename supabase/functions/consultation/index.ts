@@ -355,6 +355,7 @@ ${tBloodTestLevel === "required" ? "Note: Please complete the required lab test:
 
 Sign as:
 Dr Sami M. Yesuf
+DarDoc Healthcare
 SCOPE Certified Physician`;
       }
 
