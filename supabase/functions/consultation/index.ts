@@ -276,51 +276,188 @@ SCOPE Certified Physician
 
 IMPORTANT: Keep this guide SHORT and to the point. Do not repeat full new-patient education.`;
       } else if (isGlp1) {
-        const greeting = `Hi ${salutation} ${pName}, this is a guide for you to start your journey with us and take the medication as advised.`;
+        const greeting = `Hello ${salutation} ${pName},\n\nWelcome to your weight loss journey with us. Please read the guide below carefully and follow the medication instructions as advised.`;
+
+        const medFrequencyLine = isOral
+          ? "• Daily oral tablet\n• Take once daily on an empty stomach, at the same time each day"
+          : "• Weekly subcutaneous injection\n• Take once weekly on the same day each week";
 
         const storageSection = isOral
-          ? "::: STORAGE INSTRUCTIONS :::\nStore in a dry place at room temperature (below 30°C). Keep in original blister pack until used to protect from moisture."
-          : "::: STORAGE INSTRUCTIONS :::\nRefrigeration (2-8°C), room temp limits (30°C for 21 days), do not freeze, protect from light.";
+          ? `::: STORAGE INSTRUCTIONS :::
+• Store ${medName} tablets in a dry place at room temperature (below 30°C)
+• Keep tablets in their original blister pack until use to protect from moisture
+• Do not store in the bathroom or other humid areas
+• Keep out of reach of children`
+          : `::: STORAGE INSTRUCTIONS :::
+• Store ${medName} pens in the refrigerator between 2°C–8°C
+• Pens may remain at room temperature (up to 30°C) for up to 21 days if necessary
+• Do not freeze the medication
+• Keep the pen in its original carton to protect it from light`;
 
         const adminSection = isOral
-          ? `::: HOW TO TAKE :::\nTake one tablet daily on an empty stomach. Swallow whole with a small sip of water (no more than 4oz/120ml). Wait at least 30 minutes before your first food, drink, or other oral medications.`
-          : `::: HOW TO INJECT :::\nStep-by-step instructions for ${medName}. Rotate sites. ${videoLink ? `Include this video link: ${videoLink}` : ""}`;
+          ? `::: HOW TO TAKE YOUR MEDICATION :::
+Take one tablet daily on an empty stomach
 
-        prompt = `Create a professional Patient-Centered Care Guide for ${pName} starting ${medName} ${dose}.
-CRITICAL INSTRUCTION: Start exactly with: "${greeting}"
+Swallow whole with a small sip of water (no more than 4oz / 120ml)
 
-Follow this structure strictly:
+Do not split, crush, or chew the tablet
 
-::: INTRODUCTION :::
-Purpose of guide, medication name (${medName} ${dose}), explanation of GLP-1/GIP receptor agonists (appetite reduction, delayed gastric emptying, metabolism), and the medical journey ahead.
+Wait at least 30 minutes before any food, drink, or other oral medication
 
-::: PATIENT SUMMARY :::
-Weight: ${pWeight}kg, Height: ${pHeight}cm, BMI: ${pBmi?.toFixed?.(1) || "N/A"}.
-Estimated Daily Calories for Weight Loss: ${pWeightLossCalories ? Math.round(pWeightLossCalories) : "---"} kcal/day.
+Take at the same time each day for best results`
+          : `::: HOW TO INJECT :::
+Wash your hands thoroughly
+
+Clean the injection site (abdomen, thigh, or upper arm) using an alcohol swab
+
+Remove the pen cap
+
+Press the pen firmly against the skin until injection begins
+
+Hold firmly until the yellow indicator stops moving and the second click is heard
+
+Rotate injection sites weekly to minimize irritation
+${videoLink ? `\n🎥 Injection Video Guide:\n${videoLink}` : ""}`;
+
+        const howItWorksSection = isOral
+          ? `::: HOW ${medName.toUpperCase()} WORKS :::
+${medName} is an oral GLP-1 receptor agonist that works by:
+
+• Reducing appetite and cravings
+• Increasing feelings of fullness
+• Slowing stomach emptying
+• Supporting metabolic health and sustainable weight loss
+
+This treatment works best when combined with proper nutrition, hydration, and lifestyle adjustments.`
+          : `::: HOW ${medName.toUpperCase()} WORKS :::
+${medName} is a GLP-1 receptor agonist that works by:
+
+• Reducing appetite and cravings
+• Increasing feelings of fullness
+• Slowing stomach emptying
+• Supporting metabolic health and sustainable weight loss
+
+This treatment works best when combined with proper nutrition, hydration, and lifestyle adjustments.`;
+
+        const followUpLab = tBloodTestLevel === "required"
+          ? `🧪 Required Baseline Test:\n\nWeight Loss Blood Test\n\nhttps://www.dardoc.com/dubai/lab-test/weight-loss-blood-test`
+          : tBloodTestLevel === "recommended"
+          ? `🧪 Recommended Baseline Test:\n\nWeight Loss Blood Test\n\nhttps://www.dardoc.com/dubai/lab-test/weight-loss-blood-test`
+          : "";
+
+        prompt = `Create a Weight Loss Patient Guide for ${pName} starting ${medName} ${dose}.
+CRITICAL: Output EXACTLY the structure below. Do not add or remove sections. Do not rephrase headings. Use the section delimiters \`::: TITLE :::\` exactly as shown. Preserve emojis and bullet symbols (• and ✔) exactly. Do not invent new content beyond what is asked.
+
+Start exactly with this greeting (verbatim, including the blank line):
+${greeting}
+
+Then output the following sections in this exact order:
+
+::: MEDICATION PRESCRIBED :::
+${medName} ${dose}
+
+${medFrequencyLine}
+
+::: YOUR SUMMARY :::
+• Weight: ${pWeight} kg
+• Height: ${pHeight} cm
+• BMI: ${pBmi?.toFixed?.(1) || "N/A"}
+• Daily Calorie Target for Weight Loss: ${pWeightLossCalories ? Math.round(pWeightLossCalories) : "---"} kcal/day
+
+Maintaining this calorie target is important for achieving the best results while on the starting dose.
+
+${howItWorksSection}
 
 ${storageSection}
 
 ${adminSection}
 
 ::: NUTRITION & DIET STRUCTURE :::
-Protein Target: ${protMin}–${protMax} g/day.
-Hydration: 2–3 liters/day.
-Macronutrient distribution:
-• Protein: 40–50%
-• Fiber-rich whole foods: 40–50%
-• Carbohydrates: <20% (low-GI grains)
+To preserve muscle mass and optimize fat loss:
+
+• Protein Target: ${protMin}–${protMax} g/day
+• Hydration: 2–3 liters water daily
+• Protein Intake: 40–50% of meals
+• Fiber-Rich Foods: 40–50% of meals
+• Carbohydrates: Keep below 20% and focus on low-GI sources
+
+Recommended foods include:
+
+✔ Lean meats
+✔ Fish
+✔ Eggs
+✔ Tofu & legumes
+✔ Leafy greens & vegetables
+✔ Quinoa / steel-cut oats
+
+::: GLP-1 SUCCESS TIPS & REMINDERS :::
+🌱 Losing even 5% of your body weight can significantly help reduce the risk of:
+
+• Type 2 diabetes
+• High blood pressure
+• Fatty liver disease
+• Sleep apnea
+• Heart disease and stroke
+• Joint and back pain
+
+💡 GLP-1 medications are not a quick fix — they are tools to help you build sustainable long-term habits.
+
+The longer you stay consistent with:
+
+• Proper nutrition
+• Protein intake
+• Hydration
+• Physical activity
+• Sleep and lifestyle correction
+
+…the more likely you are to achieve healthy, long-lasting weight loss and maintain your progress.
+
+🏃 Focus on progress, not perfection.
+
+Small consistent improvements every week create major long-term health changes.
+
+💪 Preserve muscle while losing fat.
+
+Aim for:
+
+• Adequate protein intake
+• Regular walking
+• Strength or resistance training 2–3 times weekly
+
+💧 Hydration is important.
+
+Many side effects improve simply by:
+
+• Drinking enough water
+• Increasing fiber intake
+• Avoiding overeating and greasy foods
+
+📉 Weight loss is not always perfectly linear.
+
+Some weeks may be slower than others — consistency matters more than rapid short-term changes.
 
 ::: COMMON SIDE EFFECTS & MANAGEMENT :::
-Nausea, constipation, diarrhea, heartburn with home management tips.
+• Nausea: Eat smaller meals and avoid greasy or spicy foods
+• Constipation: Increase fiber, water intake, and walking
+• Diarrhea: Stay hydrated and consume bland foods
+• Heartburn: Avoid late meals and reduce caffeine intake
 
-::: RED-FLAG SYMPTOMS :::
-Severe abdominal pain, persistent vomiting, dehydration. Advise when to seek urgent care.
+::: SEEK URGENT MEDICAL ATTENTION IF YOU EXPERIENCE :::
+• Severe or persistent abdominal pain
+• Persistent vomiting preventing fluid intake
+• Severe dehydration, dizziness, or dark urine
 
 ::: FOLLOW-UP PLAN :::
-Mandatory review after 4th dose. Assess tolerance and response.
-${tBloodTestLevel === "required" ? "REQUIRED: Complete Weight Loss Blood Test (https://www.dardoc.com/dubai/lab-test/weight-loss-blood-test)" : tBloodTestLevel === "recommended" ? "RECOMMENDED: Weight Loss Blood Test (https://www.dardoc.com/dubai/lab-test/weight-loss-blood-test)" : ""}
+A mandatory medical review is required after your 4th dose to assess:
 
-Sign as:
+• Medication tolerance
+• Weight loss progress
+• Side effects
+• Possible dose escalation
+${followUpLab ? `\n${followUpLab}` : ""}
+
+End the guide with this signature on its own lines (no section delimiter):
+
 Dr Sami M. Yesuf
 DarDoc Healthcare
 SCOPE Certified Physician`;
