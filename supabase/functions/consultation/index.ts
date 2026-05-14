@@ -271,6 +271,7 @@ ${tBloodTestLevel === "required" ? "REQUIRED: Complete Weight Loss Blood Test (h
 
 Sign as:
 Dr Sami M. Yesuf
+DarDoc Healthcare
 SCOPE Certified Physician
 
 IMPORTANT: Keep this guide SHORT and to the point. Do not repeat full new-patient education.`;
