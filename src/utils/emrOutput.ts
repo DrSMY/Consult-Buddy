@@ -75,7 +75,7 @@ export function buildEmrOutput(input: EmrInput): string {
   }
   lines.push("Monitor weight, side effects, and compliance.");
   lines.push("");
-  lines.push("Physician: Dr Sami M. Yesuf");
+  lines.push("Physician: Dr Sami M. Yesuf — DarDoc Healthcare");
 
   return lines.join("\n");
 }

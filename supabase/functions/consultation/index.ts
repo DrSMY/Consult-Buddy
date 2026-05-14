@@ -271,6 +271,7 @@ ${tBloodTestLevel === "required" ? "REQUIRED: Complete Weight Loss Blood Test (h
 
 Sign as:
 Dr Sami M. Yesuf
+DarDoc Healthcare
 SCOPE Certified Physician
 
 IMPORTANT: Keep this guide SHORT and to the point. Do not repeat full new-patient education.`;
@@ -321,6 +322,7 @@ ${tBloodTestLevel === "required" ? "REQUIRED: Complete Weight Loss Blood Test (h
 
 Sign as:
 Dr Sami M. Yesuf
+DarDoc Healthcare
 SCOPE Certified Physician`;
       } else {
         const lifestyleGreeting = `Hi ${salutation} ${pName}, this is your personalized guide for a healthy lifestyle and sustainable weight management journey with us${tMedication === "Other" ? ` alongside your ${tOtherDetail} treatment` : ""}.`;
@@ -353,6 +355,7 @@ ${tBloodTestLevel === "required" ? "Note: Please complete the required lab test:
 
 Sign as:
 Dr Sami M. Yesuf
+DarDoc Healthcare
 SCOPE Certified Physician`;
       }
 
@@ -550,7 +553,7 @@ Suggest additional lab tests, additional supplements, lab order notes, and clini
 Write three pieces of content for this finalized plan:
 1. clinical_summary — concise (4–8 sentences) physician-facing rationale: why these specific chosen peptides fit this patient's goals & history, expected synergies, and key monitoring points.
 2. doctor_note — internal narrative clinical notes (8–15 sentences) covering: presenting goals, relevant history/contraindications considered, prescribed regimen rationale (cite each chosen peptide by name with its actual prescribed dose/frequency), supplement rationale, lab plan rationale, and follow-up plan.
-3. patient_guidelines — warm, plain-language patient-facing guide. Address the patient by name. Cover: a brief intro, what each prescribed peptide does for them (using their actual prescribed dose/frequency in plain language), what to expect in the first weeks, lifestyle reminders, supplement reminders, lab test reminders, red-flag symptoms, and follow-up. Use clear short paragraphs and bullet lines starting with "- ". Plain text only — no HTML, no markdown fences. Sign as "Dr Sami M. Yesuf, SCOPE Certified Physician".
+3. patient_guidelines — warm, plain-language patient-facing guide. Address the patient by name. Cover: a brief intro, what each prescribed peptide does for them (using their actual prescribed dose/frequency in plain language), what to expect in the first weeks, lifestyle reminders, supplement reminders, lab test reminders, red-flag symptoms, and follow-up. Use clear short paragraphs and bullet lines starting with "- ". Plain text only — no HTML, no markdown fences. Sign as "Dr Sami M. Yesuf, DarDoc Healthcare, SCOPE Certified Physician".
 
 Also produce next_steps (short bulleted action list for the patient).`;
 

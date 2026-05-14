@@ -714,7 +714,7 @@ export default function Consultation() {
       ? finalLabTests.map((t) => `• ${t}`).join("\n")
       : "None required";
 
-    const doctorNote = `🏥 DOCTOR NOTE — PEPTIDOC CONSULTATION
+    const doctorNote = `🏥 DOCTOR NOTE — CONSULTATION
 
 👤 Patient Name: ${dnName}
 🆔 Booking ID: ${dnBookingId}
@@ -759,7 +759,7 @@ ${SEP}
 • Report any unusual side effects or symptoms promptly.
 
 👨‍⚕️ Prepared By:
-Dr Sami M. Yesuf`;
+Dr Sami M. Yesuf — DarDoc Healthcare`;
 
     // Nurse Instructions
     const nurseLines = selectedRecs.map((p) => {
@@ -843,7 +843,7 @@ ${labLines || "None required"}${labNotes ? `\nNotes: ${labNotes}` : ""}
 • Schedule follow-up appointment as per treatment duration
 • Monitor for any side effects and report immediately
 
-Physician: Dr Sami M. Yesuf`;
+Physician: Dr Sami M. Yesuf — DarDoc Healthcare`;
 
     // Build rich patient guide using quick-start guides from database
     // If AI has regenerated a personalised intro based on the chosen peptides, prefer it.
@@ -937,6 +937,7 @@ ${labLines || "As directed by your doctor"}
 
 Warm regards,
 Dr Sami M. Yesuf
+DarDoc Healthcare
 Medical Director
 SCOPE Certified Physician`;
 
@@ -2222,7 +2223,7 @@ SCOPE Certified Physician`;
                             const name = consultation.patient_name || "Patient";
                             const now = new Date();
                             const time = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                            const msg = `Dear ${name},\n\nWe attempted to contact you at your scheduled appointment time (${time}) today for your Peptide therapy consultation, but were unable to reach you.\n\nPlease reply with your preferred time and availability for a call back (today or tomorrow), and we will arrange it.\n\nKind regards,\n\nDr Sami M. Yesuf\nScope Certified Physician`;
+                            const msg = `Dear ${name},\n\nWe attempted to contact you at your scheduled appointment time (${time}) today for your Peptide therapy consultation, but were unable to reach you.\n\nPlease reply with your preferred time and availability for a call back (today or tomorrow), and we will arrange it.\n\nKind regards,\n\nDr Sami M. Yesuf\nDarDoc Healthcare\nScope Certified Physician`;
                             openWhatsApp(phone, msg);
                           }}
                           disabled={!intake.mobile_number && !intake.phone}
