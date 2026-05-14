@@ -665,19 +665,101 @@ export default function Consultation() {
     const labLabel = labTier === "advanced" ? "Advanced/Comprehensive Panel" : "Basic Panel";
     const labLines = finalLabTests.map((t) => `• ${t}`).join("\n");
 
-    const doctorNote = `DOCTOR NOTE — ${consultation?.patient_name || "Patient"}
+    // Build rich, formatted doctor note
+    const intakeForNote: any = consultation?.intake_answers || {};
+    const dnName = consultation?.patient_name || intakeForNote.name || "Patient";
+    const dnBookingId = intakeForNote.booking_ref || intakeForNote.bookingId || "[ADD BOOKING ID]";
+    const dnMobile = intakeForNote.mobile_number || intakeForNote.mobileNumber || "—";
+    const dnGender = intakeForNote.gender || "—";
+    const dnAge = intakeForNote.age ? `${intakeForNote.age} years` : "—";
+    const dnHeight = intakeForNote.height ? `${Math.round(Number(intakeForNote.height))} cm` : "—";
+    const dnWeight = intakeForNote.weight ? `${Math.round(Number(intakeForNote.weight))} kg` : "—";
+    const dnBmiVal = (intakeForNote.height && intakeForNote.weight)
+      ? Number(intakeForNote.weight) / ((Number(intakeForNote.height) / 100) ** 2)
+      : null;
+    const dnBmiCat = dnBmiVal == null ? "" :
+      dnBmiVal < 18.5 ? "Underweight" :
+      dnBmiVal < 25 ? "Normal" :
+      dnBmiVal < 30 ? "Overweight" : "Obese";
+    const dnBmi = dnBmiVal ? `${dnBmiVal.toFixed(1)} (${dnBmiCat})` : "—";
 
---- PRESCRIBED MEDICATIONS ---
-${medsLines || "None selected"}
+    const SEP = "━━━━━━━━━━━━━━━━━━";
 
---- SUPPLEMENTS ---
-${suppLines || "None selected"}
+    const dnMedBlocks = selectedRecs.map((p) => {
+      const freqLabel = FREQUENCY_OPTIONS.find((f) => f.value === p.frequency)?.label || p.frequency || "—";
+      const totalInjections = (p.vial_size_ml && p.dose_per_injection_ml)
+        ? Math.floor(p.vial_size_ml / p.dose_per_injection_ml)
+        : null;
+      const sentenceParts = [`${p.name} — ${p.dosage}`];
+      if (p.administration) sentenceParts.push(p.administration);
+      if (freqLabel && freqLabel !== "—") sentenceParts.push(freqLabel);
+      if (p.duration) sentenceParts.push(`for ${p.duration}`);
+      const sentence = sentenceParts.join(", ").replace(", for ", " for ") + ".";
 
---- BLOOD WORK (${labLabel}) ---
-${labLines || "None required"}${labNotes ? `\n\nLab Notes: ${labNotes}` : ""}
+      const bullets: string[] = [];
+      if (p.dosage) bullets.push(`• Dose: ${p.dosage}`);
+      if (freqLabel && freqLabel !== "—") bullets.push(`• Frequency: ${freqLabel}`);
+      if (p.duration) bullets.push(`• Duration: ${p.duration}`);
+      if (totalInjections != null) bullets.push(`• Supply: ${totalInjections} injections`);
+      if (p.vial_size_ml) bullets.push(`• Vial Size: ${p.vial_size_ml} ml`);
 
---- CLINICAL NOTES ---
-${recommendations.clinical_summary || ""}`;
+      return `🔹 ${p.name}\n\nPrescription:\n${sentence}\n\n${bullets.join("\n")}`;
+    }).join(`\n\n${SEP}\n\n`);
+
+    const dnSuppBlocks = selectedSupps.length
+      ? selectedSupps.map((s) => `🔹 ${s.name}\n${s.dosage}${s.reason ? `\n\nPurpose: ${s.reason}` : ""}`).join(`\n\n${SEP}\n\n`)
+      : "None";
+
+    const dnLabLines = finalLabTests.length
+      ? finalLabTests.map((t) => `• ${t}`).join("\n")
+      : "None required";
+
+    const doctorNote = `🏥 DOCTOR NOTE — PEPTIDOC CONSULTATION
+
+👤 Patient Name: ${dnName}
+🆔 Booking ID: ${dnBookingId}
+📱 Mobile Number: ${dnMobile}
+👨 Gender: ${dnGender}
+🎂 Age: ${dnAge}
+📏 Height: ${dnHeight}
+⚖️ Weight: ${dnWeight}
+📊 BMI: ${dnBmi}
+
+${SEP}
+💉 PRESCRIBED MEDICATIONS
+${SEP}
+
+${dnMedBlocks || "None selected"}
+
+${SEP}
+💊 SUPPLEMENTS
+${SEP}
+
+${dnSuppBlocks}
+
+${SEP}
+🧪 REQUESTED BLOOD WORK (${labLabel})
+${SEP}
+
+${dnLabLines}${labNotes ? `\n\nLab Notes: ${labNotes}` : ""}
+
+${SEP}
+🩺 CLINICAL SUMMARY
+${SEP}
+
+${recommendations.clinical_summary || "—"}
+
+${SEP}
+📌 PATIENT INSTRUCTIONS
+${SEP}
+
+• Store peptides refrigerated at 2–8°C.
+• Clean vial tops and injection sites with alcohol swabs before every injection.
+• Rotate injection sites regularly.
+• Report any unusual side effects or symptoms promptly.
+
+👨‍⚕️ Prepared By:
+Dr Sami M. Yesuf`;
 
     // Nurse Instructions
     const nurseLines = selectedRecs.map((p) => {
