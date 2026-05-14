@@ -362,6 +362,7 @@ export function buildLandingHtml(params: LandingParams): string {
       </div>
       <div class="doctor-info">
         <div class="doctor-name">Dr Sami M. Yesuf</div>
+        <div class="doctor-title">DarDoc Healthcare</div>
         <div class="doctor-title">Scope Certified Physician</div>
       </div>
     </section>
