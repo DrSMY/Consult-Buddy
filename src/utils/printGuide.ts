@@ -323,7 +323,7 @@ ${bodyHtml}
   <div class="signature-img"><img src="${signatureUrl}" alt="Dr Sami signature" /></div>
   <div>
     <div class="signature-name">Dr Sami M. Yesuf</div>
-    <div class="signature-title">Scope Certified Physician &middot; PeptiDOC</div>
+    <div class="signature-title">DarDoc Healthcare &middot; Scope Certified Physician &middot; PeptiDOC</div>
   </div>
 </div>
 
