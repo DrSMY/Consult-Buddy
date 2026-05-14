@@ -283,19 +283,19 @@ IMPORTANT: Keep this guide SHORT and to the point. Do not repeat full new-patien
           : "• Weekly subcutaneous injection\n• Take once weekly on the same day each week";
 
         const storageSection = isOral
-          ? `::: STORAGE INSTRUCTIONS :::
+          ? `::: 🧊 STORAGE INSTRUCTIONS :::
 • Store ${medName} tablets in a dry place at room temperature (below 30°C)
 • Keep tablets in their original blister pack until use to protect from moisture
 • Do not store in the bathroom or other humid areas
 • Keep out of reach of children`
-          : `::: STORAGE INSTRUCTIONS :::
+          : `::: 🧊 STORAGE INSTRUCTIONS :::
 • Store ${medName} pens in the refrigerator between 2°C–8°C
 • Pens may remain at room temperature (up to 30°C) for up to 21 days if necessary
 • Do not freeze the medication
 • Keep the pen in its original carton to protect it from light`;
 
         const adminSection = isOral
-          ? `::: HOW TO TAKE YOUR MEDICATION :::
+          ? `::: 💊 HOW TO TAKE YOUR MEDICATION :::
 Take one tablet daily on an empty stomach
 
 Swallow whole with a small sip of water (no more than 4oz / 120ml)
@@ -305,7 +305,7 @@ Do not split, crush, or chew the tablet
 Wait at least 30 minutes before any food, drink, or other oral medication
 
 Take at the same time each day for best results`
-          : `::: HOW TO INJECT :::
+          : `::: 💉 HOW TO INJECT :::
 Wash your hands thoroughly
 
 Clean the injection site (abdomen, thigh, or upper arm) using an alcohol swab
@@ -319,23 +319,48 @@ Hold firmly until the yellow indicator stops moving and the second click is hear
 Rotate injection sites weekly to minimize irritation
 ${videoLink ? `\n🎥 Injection Video Guide:\n${videoLink}` : ""}`;
 
-        const howItWorksSection = isOral
-          ? `::: HOW ${medName.toUpperCase()} WORKS :::
-${medName} is an oral GLP-1 receptor agonist that works by:
-
-• Reducing appetite and cravings
+        // Med-specific mechanism — differentiates Wegovy/Ozempic/Rybelsus (GLP-1 only)
+        // from Mounjaro (dual GLP-1 + GIP receptor agonist).
+        let mechanismIntro = "";
+        let mechanismBullets = "";
+        if (tMedication === "Mounjaro") {
+          mechanismIntro = `${medName} (tirzepatide) is a dual GIP and GLP-1 receptor agonist — the first medication of its kind. It activates two gut hormone pathways at the same time, which is why it often produces stronger appetite control and greater weight loss than GLP-1-only medications.`;
+          mechanismBullets = `• GLP-1 action: reduces appetite, slows stomach emptying, and improves satiety
+• GIP action: enhances insulin sensitivity, supports fat metabolism, and may further reduce food cravings
+• Combined effect: more effective blood sugar control and sustained weight loss
+• Supports long-term metabolic health when paired with lifestyle changes`;
+        } else if (tMedication === "Wegovy") {
+          mechanismIntro = `${medName} (semaglutide) is a once-weekly GLP-1 receptor agonist specifically approved for chronic weight management. It mimics a natural gut hormone (GLP-1) that regulates appetite and food intake.`;
+          mechanismBullets = `• Reducing appetite and cravings
 • Increasing feelings of fullness
 • Slowing stomach emptying
-• Supporting metabolic health and sustainable weight loss
-
-This treatment works best when combined with proper nutrition, hydration, and lifestyle adjustments.`
-          : `::: HOW ${medName.toUpperCase()} WORKS :::
-${medName} is a GLP-1 receptor agonist that works by:
-
-• Reducing appetite and cravings
+• Supporting metabolic health and sustainable weight loss`;
+        } else if (tMedication === "Ozempic") {
+          mechanismIntro = `${medName} (semaglutide) is a once-weekly GLP-1 receptor agonist. It mimics the natural GLP-1 hormone to regulate blood sugar and appetite, supporting steady weight loss alongside lifestyle changes.`;
+          mechanismBullets = `• Reducing appetite and cravings
 • Increasing feelings of fullness
 • Slowing stomach emptying
-• Supporting metabolic health and sustainable weight loss
+• Improving blood sugar control and metabolic health`;
+        } else if (tMedication === "Rybelsus") {
+          mechanismIntro = `${medName} (oral semaglutide) is the only GLP-1 receptor agonist available as a daily tablet. It works through the same GLP-1 pathway as injectable semaglutide, but is taken by mouth on an empty stomach for proper absorption.`;
+          mechanismBullets = `• Reducing appetite and cravings
+• Increasing feelings of fullness
+• Slowing stomach emptying
+• Supporting blood sugar control and gradual weight loss`;
+        } else {
+          mechanismIntro = `${medName} is a GLP-1 receptor agonist that mimics a natural gut hormone to regulate appetite and metabolism.`;
+          mechanismBullets = `• Reducing appetite and cravings
+• Increasing feelings of fullness
+• Slowing stomach emptying
+• Supporting metabolic health and sustainable weight loss`;
+        }
+
+        const howItWorksSection = `::: 💉 HOW ${medName.toUpperCase()} WORKS :::
+${mechanismIntro}
+
+It works by:
+
+${mechanismBullets}
 
 This treatment works best when combined with proper nutrition, hydration, and lifestyle adjustments.`;
 
@@ -346,19 +371,19 @@ This treatment works best when combined with proper nutrition, hydration, and li
           : "";
 
         prompt = `Create a Weight Loss Patient Guide for ${pName} starting ${medName} ${dose}.
-CRITICAL: Output EXACTLY the structure below. Do not add or remove sections. Do not rephrase headings. Use the section delimiters \`::: TITLE :::\` exactly as shown. Preserve emojis and bullet symbols (• and ✔) exactly. Do not invent new content beyond what is asked.
+CRITICAL: Output EXACTLY the structure below. Do not add or remove sections. Do not rephrase headings — keep emojis in the section titles exactly as written. Use the section delimiters \`::: TITLE :::\` exactly as shown. Preserve emojis and bullet symbols (• and ✔) exactly. Do not invent new content beyond what is asked. Do NOT change the mechanism-of-action wording in the HOW ${medName.toUpperCase()} WORKS section — output it verbatim.
 
 Start exactly with this greeting (verbatim, including the blank line):
 ${greeting}
 
 Then output the following sections in this exact order:
 
-::: MEDICATION PRESCRIBED :::
+::: 📌 MEDICATION PRESCRIBED :::
 ${medName} ${dose}
 
 ${medFrequencyLine}
 
-::: YOUR SUMMARY :::
+::: 📋 YOUR SUMMARY :::
 • Weight: ${pWeight} kg
 • Height: ${pHeight} cm
 • BMI: ${pBmi?.toFixed?.(1) || "N/A"}
@@ -372,7 +397,7 @@ ${storageSection}
 
 ${adminSection}
 
-::: NUTRITION & DIET STRUCTURE :::
+::: 🥗 NUTRITION & DIET STRUCTURE :::
 To preserve muscle mass and optimize fat loss:
 
 • Protein Target: ${protMin}–${protMax} g/day
@@ -390,7 +415,7 @@ Recommended foods include:
 ✔ Leafy greens & vegetables
 ✔ Quinoa / steel-cut oats
 
-::: GLP-1 SUCCESS TIPS & REMINDERS :::
+::: ✨ GLP-1 SUCCESS TIPS & REMINDERS :::
 🌱 Losing even 5% of your body weight can significantly help reduce the risk of:
 
 • Type 2 diabetes
@@ -436,18 +461,18 @@ Many side effects improve simply by:
 
 Some weeks may be slower than others — consistency matters more than rapid short-term changes.
 
-::: COMMON SIDE EFFECTS & MANAGEMENT :::
+::: ⚠ COMMON SIDE EFFECTS & MANAGEMENT :::
 • Nausea: Eat smaller meals and avoid greasy or spicy foods
 • Constipation: Increase fiber, water intake, and walking
 • Diarrhea: Stay hydrated and consume bland foods
 • Heartburn: Avoid late meals and reduce caffeine intake
 
-::: SEEK URGENT MEDICAL ATTENTION IF YOU EXPERIENCE :::
+::: 🚨 SEEK URGENT MEDICAL ATTENTION IF YOU EXPERIENCE :::
 • Severe or persistent abdominal pain
 • Persistent vomiting preventing fluid intake
 • Severe dehydration, dizziness, or dark urine
 
-::: FOLLOW-UP PLAN :::
+::: 📅 FOLLOW-UP PLAN :::
 A mandatory medical review is required after your 4th dose to assess:
 
 • Medication tolerance
