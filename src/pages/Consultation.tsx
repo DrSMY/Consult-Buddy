@@ -843,7 +843,7 @@ ${labLines || "None required"}${labNotes ? `\nNotes: ${labNotes}` : ""}
 • Schedule follow-up appointment as per treatment duration
 • Monitor for any side effects and report immediately
 
-Physician: Dr Sami M. Yesuf`;
+Physician: Dr Sami M. Yesuf — DarDoc Healthcare`;
 
     // Build rich patient guide using quick-start guides from database
     // If AI has regenerated a personalised intro based on the chosen peptides, prefer it.
