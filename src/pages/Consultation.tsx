@@ -738,7 +738,7 @@ ${SEP}
 ${dnSuppBlocks}
 
 ${SEP}
-🧪 REQUESTED BLOOD WORK (${labLabel})
+🧪 REQUESTED BLOOD WORK
 ${SEP}
 
 ${dnLabLines}${labNotes ? `\n\nLab Notes: ${labNotes}` : ""}
