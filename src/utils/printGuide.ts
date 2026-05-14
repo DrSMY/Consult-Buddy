@@ -310,6 +310,7 @@ export function buildGuideHtml(
   </div>
   <div class="letterhead-meta">
     <div class="letterhead-meta-name">Dr Sami M. Yesuf</div>
+    <div>DarDoc Healthcare</div>
     <div>Scope Certified Physician</div>
   </div>
 </div>
