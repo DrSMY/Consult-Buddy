@@ -174,7 +174,20 @@ serve(async (req) => {
       const toolCall = data.choices?.[0]?.message?.tool_calls?.[0];
       if (!toolCall) throw new Error("No tool call in response");
 
-      return new Response(JSON.stringify(JSON.parse(toolCall.function.arguments)), {
+      const parsed = JSON.parse(toolCall.function.arguments);
+      // Authoritative age computation from DOB to avoid model arithmetic mistakes
+      if (parsed.dateOfBirth) {
+        const dob = new Date(parsed.dateOfBirth);
+        if (!isNaN(dob.getTime())) {
+          const today = new Date();
+          let age = today.getFullYear() - dob.getFullYear();
+          const m = today.getMonth() - dob.getMonth();
+          if (m < 0 || (m === 0 && today.getDate() < dob.getDate())) age--;
+          if (age >= 0 && age < 130) parsed.age = age;
+        }
+      }
+
+      return new Response(JSON.stringify(parsed), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
