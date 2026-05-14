@@ -222,7 +222,7 @@ export default function SharedGuide() {
           <p className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">{programLabel}</p>
           <h1 className="mt-2 text-2xl font-bold text-foreground">Hello, {patientName}</h1>
           <p className="mx-auto mt-3 max-w-sm text-sm leading-6 text-muted-foreground">
-            Your personalized guide from Dr Sami M. Yesuf is ready. Open the styled online guide or save the PDF copy.
+            Your personalized guide from Dr Sami M. Yesuf — DarDoc Healthcare is ready. Open the styled online guide or save the PDF copy.
           </p>
         </div>
 
