@@ -937,6 +937,7 @@ ${labLines || "As directed by your doctor"}
 
 Warm regards,
 Dr Sami M. Yesuf
+DarDoc Healthcare
 Medical Director
 SCOPE Certified Physician`;
 
