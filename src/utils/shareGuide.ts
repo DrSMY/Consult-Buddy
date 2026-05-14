@@ -182,7 +182,7 @@ export async function generateAndShareGuide(
   // is kept as a fallback in case the short route fails for any reason.
   const message =
     `Hello ${patientName},\n\n` +
-    `Your ${PROGRAM_LABELS[program]} guide from Dr Sami M. Yesuf is ready.\n\n` +
+    `Your ${PROGRAM_LABELS[program]} guide from Dr Sami M. Yesuf — DarDoc Healthcare is ready.\n\n` +
     `View your guide: ${shortGuideUrl}\n\n` +
     `— PeptiDOC`;
   const whatsappUrl = `https://wa.me/${sanitizePhone(phone)}?text=${encodeURIComponent(message)}`;
