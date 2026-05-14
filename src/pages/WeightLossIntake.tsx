@@ -791,7 +791,7 @@ export default function WeightLossIntake() {
                     const phone = patient.mobileNumber || "";
                     const name = patient.name || "Patient";
                     const time = patient.bookingTime || new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    const msg = `Dear ${name},\n\nWe attempted to contact you at your scheduled appointment time (${time}) today for your Weight Loss Program — GLP-1 medication consultation, but were unable to reach you.\n\nPlease reply with your preferred time and availability for a call back (today or tomorrow), and we will arrange it.\n\nKind regards,\n\nDr Sami M. Yesuf\nScope Certified Physician`;
+                    const msg = `Dear ${name},\n\nWe attempted to contact you at your scheduled appointment time (${time}) today for your Weight Loss Program — GLP-1 medication consultation, but were unable to reach you.\n\nPlease reply with your preferred time and availability for a call back (today or tomorrow), and we will arrange it.\n\nKind regards,\n\nDr Sami M. Yesuf\nDarDoc Healthcare\nScope Certified Physician`;
                     openWhatsApp(phone, msg);
                   }}
                   disabled={!patient.mobileNumber}
