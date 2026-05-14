@@ -714,7 +714,7 @@ export default function Consultation() {
       ? finalLabTests.map((t) => `• ${t}`).join("\n")
       : "None required";
 
-    const doctorNote = `🏥 DOCTOR NOTE — PEPTIDOC CONSULTATION
+    const doctorNote = `🏥 DOCTOR NOTE — CONSULTATION
 
 👤 Patient Name: ${dnName}
 🆔 Booking ID: ${dnBookingId}
