@@ -39,6 +39,18 @@ const PatientSummaryCard = ({ patientName, intake, consultationDate }: PatientSu
             <div className="text-xs text-muted-foreground">{intake.mobile_number}</div>
           )}
         </div>
+        {consultationDate && (
+          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+            <CalendarDays className="h-3 w-3" />
+            <span>
+              {new Date(consultationDate).toLocaleDateString("en-GB", {
+                day: "2-digit",
+                month: "short",
+                year: "numeric",
+              })}
+            </span>
+          </div>
+        )}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {age && (
             <div className="bg-muted/50 rounded-lg p-2.5 text-center">
