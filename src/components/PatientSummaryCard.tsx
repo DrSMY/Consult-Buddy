@@ -33,23 +33,23 @@ const PatientSummaryCard = ({ patientName, intake, consultationDate }: PatientSu
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-3">
-        <div className="flex items-baseline justify-between flex-wrap gap-2">
+        <div className="flex items-center justify-between flex-wrap gap-2">
           <div className="text-sm font-semibold">{patientName}</div>
-          {intake.mobile_number && (
-            <div className="text-xs text-muted-foreground">{intake.mobile_number}</div>
+          {consultationDate && (
+            <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
+              <CalendarDays className="h-3 w-3" />
+              <span>
+                {new Date(consultationDate).toLocaleDateString("en-GB", {
+                  day: "2-digit",
+                  month: "short",
+                  year: "numeric",
+                })}
+              </span>
+            </div>
           )}
         </div>
-        {consultationDate && (
-          <div className="flex items-center gap-1.5 text-[11px] text-muted-foreground">
-            <CalendarDays className="h-3 w-3" />
-            <span>
-              {new Date(consultationDate).toLocaleDateString("en-GB", {
-                day: "2-digit",
-                month: "short",
-                year: "numeric",
-              })}
-            </span>
-          </div>
+        {intake.mobile_number && (
+          <div className="text-xs text-muted-foreground -mt-2">{intake.mobile_number}</div>
         )}
         <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
           {age && (
