@@ -1,6 +1,6 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Scale, Ruler, Weight, Activity } from "lucide-react";
+import { Scale, Ruler, Weight, Activity, CalendarDays } from "lucide-react";
 
 interface PatientSummaryCardProps {
   patientName: string;
