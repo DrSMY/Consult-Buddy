@@ -1322,6 +1322,7 @@ SCOPE Certified Physician`;
                   <PatientSummaryCard
                     patientName={consultation.patient_name}
                     intake={(consultation.intake_answers as Record<string, any>) || {}}
+                    consultationDate={consultation.created_at}
                   />
                 )}
 
