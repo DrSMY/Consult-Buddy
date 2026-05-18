@@ -5,9 +5,10 @@ import { Scale, Ruler, Weight, Activity } from "lucide-react";
 interface PatientSummaryCardProps {
   patientName: string;
   intake: Record<string, any>;
+  consultationDate?: string;
 }
 
-const PatientSummaryCard = ({ patientName, intake }: PatientSummaryCardProps) => {
+const PatientSummaryCard = ({ patientName, intake, consultationDate }: PatientSummaryCardProps) => {
   const age = intake.age ? Number(intake.age) : null;
   const gender = intake.gender || null;
   const heightVal = intake.height ? Number(intake.height) : null;
