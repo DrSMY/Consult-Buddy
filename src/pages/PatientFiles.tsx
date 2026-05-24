@@ -199,8 +199,28 @@ export default function PatientFiles() {
         ) : (
           <div className="space-y-2">
             {filtered.map((c) => {
-              const recs = c.ai_recommendations as any;
+              const recs = (c.ai_recommendations || {}) as any;
+              const intake = (c.intake_answers || {}) as any;
               const peptideCount = recs?.recommended_peptides?.length || 0;
+
+              // Derive last prescribed medication + dose
+              let lastRx: string | null = null;
+              if (c.program === "weight-loss") {
+                const t = intake.treatment || {};
+                const medName = t.medication === "Other" ? (t.otherDetail || "Other") : t.medication;
+                if (medName) lastRx = t.dose ? `${medName} ${t.dose}` : medName;
+              } else {
+                const peps = recs?.recommended_peptides || [];
+                if (peps.length > 0) {
+                  const p = peps[0];
+                  const name = p?.name || p?.peptide || p?.medication;
+                  const dose = p?.dose || p?.dosage || p?.prescribed_dose;
+                  if (name) {
+                    const extra = peps.length > 1 ? ` +${peps.length - 1}` : "";
+                    lastRx = `${name}${dose ? ` ${dose}` : ""}${extra}`;
+                  }
+                }
+              }
 
               return (
                 <Card
@@ -243,6 +263,13 @@ export default function PatientFiles() {
                         <span className="capitalize">{c.program}</span>
                         {peptideCount > 0 && <span>{peptideCount} peptide{peptideCount !== 1 ? "s" : ""}</span>}
                       </div>
+                      {lastRx && (
+                        <div className="mt-1.5">
+                          <Badge variant="secondary" className="text-[10px] font-medium bg-primary/10 text-primary border-primary/20 max-w-full truncate">
+                            💊 {lastRx}
+                          </Badge>
+                        </div>
+                      )}
                     </div>
                     <Button variant="ghost" size="icon" className="shrink-0" onClick={(e) => openEdit(c, e)}>
                       <Pencil className="h-4 w-4" />
