@@ -193,6 +193,28 @@ export default function PatientIntake() {
     })();
   }, [searchParams, user, draftId, toast]);
 
+  // Start a follow-up directly from URL ?followup=<id>
+  useEffect(() => {
+    const id = searchParams.get("followup");
+    if (!id || !user || selectedPrevConsultation?.id === id) return;
+    (async () => {
+      const { data } = await supabase
+        .from("consultations")
+        .select("*")
+        .eq("id", id)
+        .eq("program", "peptides")
+        .maybeSingle();
+      if (!data) {
+        toast({ title: "Previous consultation not found", variant: "destructive" });
+        return;
+      }
+      setFlowType("followup");
+      handleSelectPreviousPatient(data);
+      toast({ title: "Follow-up started", description: `Continuing care for ${data.patient_name}` });
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, user]);
+
   // Build current intake_answers payload (mirrors handleSubmit structure)
   const buildIntakePayload = useCallback((): Record<string, any> => {
     const finalAnswers: Record<string, any> = { ...answers };
