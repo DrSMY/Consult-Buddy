@@ -256,12 +256,18 @@ export default function PatientFiles() {
                           {c.status}
                         </Badge>
                       </div>
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5 flex-wrap">
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
                           {new Date(c.created_at).toLocaleDateString()}
                         </span>
                         <span className="capitalize">{c.program}</span>
+                        {(intake.mobile_number || intake.mobileNumber || intake?.patient?.mobileNumber) && (
+                          <span className="flex items-center gap-1">
+                            <Phone className="h-3 w-3" />
+                            {intake.mobile_number || intake.mobileNumber || intake?.patient?.mobileNumber}
+                          </span>
+                        )}
                         {peptideCount > 0 && <span>{peptideCount} peptide{peptideCount !== 1 ? "s" : ""}</span>}
                       </div>
                       {lastRx && (
