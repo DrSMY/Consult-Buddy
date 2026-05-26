@@ -335,6 +335,22 @@ export default function PatientFiles() {
                         </div>
                       </PopoverContent>
                     </Popover>
+                    {c.status !== "incomplete" && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0"
+                        title="Start follow-up consultation"
+                        aria-label="Start follow-up consultation"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const path = c.program === "weight-loss" ? "/program/weight-loss" : "/program/peptides";
+                          navigate(`${path}?followup=${c.id}`);
+                        }}
+                      >
+                        <RotateCw className="h-4 w-4" />
+                      </Button>
+                    )}
                     <Button variant="ghost" size="icon" className="shrink-0" onClick={(e) => openEdit(c, e)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
