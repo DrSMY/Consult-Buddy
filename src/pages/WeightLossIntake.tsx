@@ -209,6 +209,28 @@ export default function WeightLossIntake() {
     })();
   }, [searchParams, user, draftId, toast]);
 
+  // Start a follow-up directly from URL ?followup=<id>
+  useEffect(() => {
+    const id = searchParams.get("followup");
+    if (!id || !user || selectedPrevConsultation?.id === id) return;
+    (async () => {
+      const { data } = await supabase
+        .from("consultations")
+        .select("*")
+        .eq("id", id)
+        .eq("program", "weight-loss")
+        .maybeSingle();
+      if (!data) {
+        toast({ title: "Previous consultation not found", variant: "destructive" });
+        return;
+      }
+      setFlowType("followup");
+      handleSelectPreviousPatient(data);
+      toast({ title: "Follow-up started", description: `Continuing care for ${data.patient_name}` });
+    })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [searchParams, user]);
+
   // Auto-save draft once name + mobile are present, debounced
   useEffect(() => {
     if (!user || saving) return;

@@ -10,7 +10,7 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
-import { Search, Download, FileText, Loader2, Calendar, User, Pencil, ChevronDown, Eye, Pill, Phone, Hash } from "lucide-react";
+import { Search, Download, FileText, Loader2, Calendar, User, Pencil, ChevronDown, Eye, Pill, Phone, Hash, RotateCw } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { exportWeightLossExcel, exportPeptideExcel } from "@/utils/excelExport";
@@ -256,12 +256,18 @@ export default function PatientFiles() {
                           {c.status}
                         </Badge>
                       </div>
-                      <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5">
+                      <div className="flex items-center gap-3 text-xs text-muted-foreground mt-0.5 flex-wrap">
                         <span className="flex items-center gap-1">
                           <Calendar className="h-3 w-3" />
                           {new Date(c.created_at).toLocaleDateString()}
                         </span>
                         <span className="capitalize">{c.program}</span>
+                        {(intake.mobile_number || intake.mobileNumber || intake?.patient?.mobileNumber) && (
+                          <span className="flex items-center gap-1">
+                            <Phone className="h-3 w-3" />
+                            {intake.mobile_number || intake.mobileNumber || intake?.patient?.mobileNumber}
+                          </span>
+                        )}
                         {peptideCount > 0 && <span>{peptideCount} peptide{peptideCount !== 1 ? "s" : ""}</span>}
                       </div>
                       {lastRx && (
@@ -329,6 +335,22 @@ export default function PatientFiles() {
                         </div>
                       </PopoverContent>
                     </Popover>
+                    {c.status !== "incomplete" && (
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        className="shrink-0"
+                        title="Start follow-up consultation"
+                        aria-label="Start follow-up consultation"
+                        onClick={(e) => {
+                          e.stopPropagation();
+                          const path = c.program === "weight-loss" ? "/program/weight-loss" : "/program/peptides";
+                          navigate(`${path}?followup=${c.id}`);
+                        }}
+                      >
+                        <RotateCw className="h-4 w-4" />
+                      </Button>
+                    )}
                     <Button variant="ghost" size="icon" className="shrink-0" onClick={(e) => openEdit(c, e)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
