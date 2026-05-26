@@ -273,6 +273,63 @@ export default function PatientFiles() {
                         </div>
                       )}
                     </div>
+                    <Popover>
+                      <PopoverTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="shrink-0"
+                          onClick={(e) => e.stopPropagation()}
+                          aria-label="Quick preview"
+                        >
+                          <Eye className="h-4 w-4" />
+                        </Button>
+                      </PopoverTrigger>
+                      <PopoverContent
+                        align="end"
+                        className="w-72 p-3 space-y-2"
+                        onClick={(e) => e.stopPropagation()}
+                      >
+                        <div className="flex items-center gap-2">
+                          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-full bg-primary/10">
+                            <User className="h-4 w-4 text-primary" />
+                          </div>
+                          <div className="min-w-0">
+                            <div className="font-semibold text-sm truncate">{c.patient_name || "Unnamed Patient"}</div>
+                            <div className="text-[11px] text-muted-foreground capitalize">{c.program} · {c.status}</div>
+                          </div>
+                        </div>
+                        <div className="space-y-1.5 text-xs">
+                          <div className="flex items-center gap-2 text-muted-foreground">
+                            <Calendar className="h-3.5 w-3.5" />
+                            <span>{new Date(c.created_at).toLocaleDateString(undefined, { day: "2-digit", month: "short", year: "numeric" })}</span>
+                          </div>
+                          {(intake.mobile_number || intake.mobileNumber) && (
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <Phone className="h-3.5 w-3.5" />
+                              <span>{intake.mobile_number || intake.mobileNumber}</span>
+                            </div>
+                          )}
+                          {(intake.booking_ref || intake.bookingId) && (
+                            <div className="flex items-center gap-2 text-muted-foreground">
+                              <Hash className="h-3.5 w-3.5" />
+                              <span className="truncate">{intake.booking_ref || intake.bookingId}</span>
+                            </div>
+                          )}
+                          <div className="pt-2 mt-1 border-t">
+                            <div className="text-[10px] uppercase tracking-wide text-muted-foreground mb-1">Last prescribed</div>
+                            {lastRx ? (
+                              <div className="flex items-start gap-2">
+                                <Pill className="h-3.5 w-3.5 mt-0.5 text-primary" />
+                                <span className="font-medium text-foreground">{lastRx}</span>
+                              </div>
+                            ) : (
+                              <div className="text-muted-foreground italic">No medication recorded</div>
+                            )}
+                          </div>
+                        </div>
+                      </PopoverContent>
+                    </Popover>
                     <Button variant="ghost" size="icon" className="shrink-0" onClick={(e) => openEdit(c, e)}>
                       <Pencil className="h-4 w-4" />
                     </Button>
