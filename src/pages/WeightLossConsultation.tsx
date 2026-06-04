@@ -604,7 +604,7 @@ export default function WeightLossConsultation() {
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="grid grid-cols-2 gap-2">
-                  {["Wegovy", "Mounjaro", "Foundayo", "Rybelsus"].map((m) => {
+                  {["Wegovy", "Wegovy Pill", "Mounjaro", "Foundayo", "Rybelsus"].map((m) => {
                     const active = medName === m;
                     return (
                       <Button
