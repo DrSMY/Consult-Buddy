@@ -1087,14 +1087,16 @@ export default function WeightLossIntake() {
                           <option value="">Select...</option>
                           <option value="Mounjaro">Mounjaro</option>
                           <option value="Wegovy">Wegovy</option>
+                          <option value="Wegovy Pill">Wegovy Pill</option>
                           <option value="Ozempic">Ozempic</option>
                           <option value="Rybelsus">Rybelsus</option>
+                          <option value="Foundayo">Foundayo</option>
                           <option value="Other">Other</option>
                         </select>
                       </div>
                       <div>
                         <Label className="text-[10px] uppercase font-bold text-muted-foreground">Last Dose</Label>
-                        {["Mounjaro", "Wegovy", "Ozempic", "Rybelsus"].includes(patient.previousMedication) ? (
+                        {["Mounjaro", "Wegovy", "Wegovy Pill", "Ozempic", "Rybelsus", "Foundayo"].includes(patient.previousMedication) ? (
                           <select
                             className="mt-1 flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-xs"
                             value={patient.previousDose}
