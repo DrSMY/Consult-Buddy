@@ -70,7 +70,7 @@ export function buildEmrOutput(input: EmrInput): string {
   const followUp = new Date(encounterDateObj);
   followUp.setDate(encounterDateObj.getDate() + 21);
   lines.push(`Follow-up Date: ${followUp.toLocaleDateString()}`);
-  if (treatment?.medication && ["Mounjaro", "Wegovy", "Ozempic", "Rybelsus"].includes(treatment.medication)) {
+  if (treatment?.medication && ["Mounjaro", "Wegovy", "Wegovy Pill", "Ozempic", "Rybelsus", "Foundayo"].includes(treatment.medication)) {
     lines.push("Titrate dose at next visit if tolerated well.");
   }
   lines.push("Monitor weight, side effects, and compliance.");
