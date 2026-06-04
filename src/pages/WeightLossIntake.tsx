@@ -1137,14 +1137,16 @@ export default function WeightLossIntake() {
                         <option value="">Select...</option>
                         <option value="Mounjaro">Mounjaro</option>
                         <option value="Wegovy">Wegovy</option>
+                        <option value="Wegovy Pill">Wegovy Pill</option>
                         <option value="Ozempic">Ozempic</option>
                         <option value="Rybelsus">Rybelsus</option>
+                        <option value="Foundayo">Foundayo</option>
                         <option value="Other">Other</option>
                       </select>
                     </div>
                     <div>
                       <Label className="text-xs font-bold text-muted-foreground uppercase">Previous Dose</Label>
-                      {followup.previousMedication && ["Mounjaro", "Wegovy", "Ozempic", "Rybelsus"].includes(followup.previousMedication) ? (
+                      {followup.previousMedication && ["Mounjaro", "Wegovy", "Wegovy Pill", "Ozempic", "Rybelsus", "Foundayo"].includes(followup.previousMedication) ? (
                         <select
                           className="mt-1 flex h-10 w-full rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring"
                           value={followup.previousDose}
