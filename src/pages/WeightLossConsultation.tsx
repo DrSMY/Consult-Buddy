@@ -27,8 +27,8 @@ import ShareGuideDialog from "@/components/ShareGuideDialog";
 import CrossProgramHistoryStrip from "@/components/CrossProgramHistoryStrip";
 import MedicationDetailSheet from "@/components/MedicationDetailSheet";
 
-const MEDICATION_OPTIONS: MedicationType[] = ["Mounjaro", "Wegovy", "Foundayo", "Rybelsus", "Ozempic", "Other"];
-const REFERENCE_MEDS = new Set(["Mounjaro", "Wegovy", "Foundayo", "Rybelsus"]);
+const MEDICATION_OPTIONS: MedicationType[] = ["Mounjaro", "Wegovy", "Wegovy Pill", "Foundayo", "Rybelsus", "Ozempic", "Other"];
+const REFERENCE_MEDS = new Set(["Mounjaro", "Wegovy", "Wegovy Pill", "Foundayo", "Rybelsus"]);
 
 export default function WeightLossConsultation() {
   const { id } = useParams();
@@ -244,10 +244,11 @@ export default function WeightLossConsultation() {
       medPoints.push("Store in refrigerator (2-8°C). Do not freeze.");
       if (medication === "Mounjaro") medPoints.push("Mounjaro targets both GIP and GLP-1 receptors for enhanced weight loss");
       if (medication === "Wegovy") medPoints.push("Wegovy is specifically FDA-approved for chronic weight management");
-    } else if (medication === "Rybelsus") {
+    } else if (medication === "Rybelsus" || medication === "Wegovy Pill") {
       medPoints.push(`${medName} is a daily oral GLP-1 tablet`);
-      medPoints.push("Take on empty stomach with ≤ 4oz plain water, 30 min before food");
+      medPoints.push("Take in the morning on empty stomach with ≤ ½ cup plain water, 30 min before food or other meds");
       medPoints.push("Store at room temperature. No refrigeration needed.");
+      if (medication === "Wegovy Pill") medPoints.push("Escalate every 30 days as tolerated: 1.5 → 4 → 9 → 25 mg (maintenance)");
     }
     if (dose) medPoints.push(`Current prescribed dose: ${dose}`);
     talkingPoints.push({
@@ -603,7 +604,7 @@ export default function WeightLossConsultation() {
               </CardHeader>
               <CardContent className="space-y-2">
                 <div className="grid grid-cols-2 gap-2">
-                  {["Wegovy", "Mounjaro", "Foundayo", "Rybelsus"].map((m) => {
+                  {["Wegovy", "Wegovy Pill", "Mounjaro", "Foundayo", "Rybelsus"].map((m) => {
                     const active = medName === m;
                     return (
                       <Button

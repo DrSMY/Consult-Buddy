@@ -14,10 +14,11 @@ export enum ActivityLevel {
   VeryActive = "Very Active",
 }
 
-export type MedicationType = "Mounjaro" | "Wegovy" | "Ozempic" | "Rybelsus" | "Foundayo" | "None" | "Other";
+export type MedicationType = "Mounjaro" | "Wegovy" | "Wegovy Pill" | "Ozempic" | "Rybelsus" | "Foundayo" | "None" | "Other";
 
 export const MOUNJARO_DOSES = ["2.5mg", "5mg", "7.5mg", "10mg", "12.5mg", "15mg"];
 export const WEGOVY_DOSES = ["0.25mg", "0.5mg", "1mg", "1.7mg", "2.4mg"];
+export const WEGOVY_PILL_DOSES = ["1.5mg", "4mg", "9mg", "25mg"];
 export const OZEMPIC_DOSES = ["0.25mg", "0.5mg", "1mg", "2mg"];
 export const RYBELSUS_DOSES = ["3mg", "7mg", "14mg"];
 export const FOUNDAYO_DOSES = ["0.8mg", "2.5mg", "5.5mg", "9mg", "14.5mg", "17.2mg"];
@@ -132,6 +133,7 @@ export function getDoseOptions(med: MedicationType): string[] {
   switch (med) {
     case "Mounjaro": return MOUNJARO_DOSES;
     case "Wegovy": return WEGOVY_DOSES;
+    case "Wegovy Pill": return WEGOVY_PILL_DOSES;
     case "Ozempic": return OZEMPIC_DOSES;
     case "Rybelsus": return RYBELSUS_DOSES;
     case "Foundayo": return FOUNDAYO_DOSES;
