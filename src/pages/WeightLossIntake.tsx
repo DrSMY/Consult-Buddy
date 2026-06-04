@@ -1221,7 +1221,7 @@ export default function WeightLossIntake() {
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-2 sm:grid-cols-5 gap-2">
-                  {(["Wegovy", "Mounjaro", "Rybelsus", "Foundayo", "None"] as MedicationType[]).map(med => (
+                  {(["Wegovy", "Wegovy Pill", "Mounjaro", "Rybelsus", "Foundayo", "None"] as MedicationType[]).map(med => (
                     <div
                       key={med}
                       onClick={() => updateTreatment("medication", med)}
