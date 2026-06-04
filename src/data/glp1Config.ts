@@ -133,6 +133,7 @@ export function getDoseOptions(med: MedicationType): string[] {
   switch (med) {
     case "Mounjaro": return MOUNJARO_DOSES;
     case "Wegovy": return WEGOVY_DOSES;
+    case "Wegovy Pill": return WEGOVY_PILL_DOSES;
     case "Ozempic": return OZEMPIC_DOSES;
     case "Rybelsus": return RYBELSUS_DOSES;
     case "Foundayo": return FOUNDAYO_DOSES;
