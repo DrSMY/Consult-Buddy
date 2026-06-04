@@ -27,8 +27,8 @@ import ShareGuideDialog from "@/components/ShareGuideDialog";
 import CrossProgramHistoryStrip from "@/components/CrossProgramHistoryStrip";
 import MedicationDetailSheet from "@/components/MedicationDetailSheet";
 
-const MEDICATION_OPTIONS: MedicationType[] = ["Mounjaro", "Wegovy", "Foundayo", "Rybelsus", "Ozempic", "Other"];
-const REFERENCE_MEDS = new Set(["Mounjaro", "Wegovy", "Foundayo", "Rybelsus"]);
+const MEDICATION_OPTIONS: MedicationType[] = ["Mounjaro", "Wegovy", "Wegovy Pill", "Foundayo", "Rybelsus", "Ozempic", "Other"];
+const REFERENCE_MEDS = new Set(["Mounjaro", "Wegovy", "Wegovy Pill", "Foundayo", "Rybelsus"]);
 
 export default function WeightLossConsultation() {
   const { id } = useParams();
