@@ -74,10 +74,10 @@ export default function WeightLossIntake() {
       ...p,
       ...(name ? { name } : {}),
       ...(mobile ? { mobileNumber: mobile } : {}),
-      ...(age ? { age } : {}),
+      ...(age ? { age: Number(age) } : {}),
       ...(gender ? { gender: gender as any } : {}),
-      ...(height ? { height } : {}),
-      ...(weight ? { weight } : {}),
+      ...(height ? { height: Number(height) } : {}),
+      ...(weight ? { weight: Number(weight) } : {}),
     }));
     setFlowType("new");
     if (appointmentId) {
