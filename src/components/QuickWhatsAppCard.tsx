@@ -7,22 +7,32 @@ import { useToast } from "@/hooks/use-toast";
 import { MessageCircle, Link2, Send } from "lucide-react";
 import { sanitizePhone } from "@/utils/whatsapp";
 
-const DEFAULT_MESSAGE = `📅 Your Consultation Appointment is Confirmed
+const DEFAULT_MESSAGE = `*🩺 Your Consultation Appointment is Confirmed*
 
-Thank you for booking your consultation.
+Dear Patient,
 
-To ensure a smooth and efficient appointment, we kindly request that you complete your patient profile and intake form before your scheduled consultation. This allows your doctor to review your information in advance and provide the best possible care during your appointment.
+Thank you for booking your consultation with *DarDoc Healthcare*. We're delighted to support you on your health journey. 🌿
 
-The intake form will only take a few minutes to complete and includes basic information such as your age, height, weight, and relevant health details.
+━━━━━━━━━━━━━━━
+*📋 Before Your Appointment*
+━━━━━━━━━━━━━━━
 
-👉 Please complete your intake form using the link below:
-🔗 {INTAKE_LINK}
+To make your consultation smooth and efficient, please complete your *patient profile & intake form* in advance. This allows your doctor to review your information ahead of time and deliver the *highest standard of care*.
 
-Completing your information before your appointment helps avoid delays and ensures your consultation can begin on time.
+⏱️ _Takes only a few minutes_
+📝 _Covers age, height, weight & key health details_
 
-We look forward to assisting you on your health journey.
+━━━━━━━━━━━━━━━
+*🔗 Complete Your Intake*
+━━━━━━━━━━━━━━━
 
-— DarDoc Healthcare`;
+👉 {INTAKE_LINK}
+
+✅ Finishing this *before* your appointment prevents delays and ensures your consultation starts right on time.
+
+We look forward to speaking with you soon. 💙
+
+— *DarDoc Healthcare*`;
 
 export default function QuickWhatsAppCard() {
   const { toast } = useToast();
