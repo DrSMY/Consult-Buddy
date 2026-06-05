@@ -217,9 +217,10 @@ serve(async (req) => {
       const tDose = sanitizeString(treatment_data.dose, 100);
       const tBloodTestLevel = sanitizeString(treatment_data.bloodTestLevel, 20);
 
-      const glp1Meds = ["Mounjaro", "Wegovy", "Ozempic", "Rybelsus"];
+      const glp1Meds = ["Mounjaro", "Wegovy", "Wegovy Pill", "Ozempic", "Rybelsus"];
       const isGlp1 = !!tMedication && glp1Meds.includes(tMedication);
-      const isOral = tMedication === "Rybelsus";
+      const isOral = tMedication === "Rybelsus" || tMedication === "Wegovy Pill";
+      const isWegovyPill = tMedication === "Wegovy Pill";
 
       const medName = tMedication === "Other"
         ? (tOtherDetail || "Custom Program")
@@ -256,7 +257,9 @@ Side effects reported: ${fSideEffects}.
 
 ::: MEDICATION REMINDER :::
 ${isOral
-  ? "Continue taking one tablet daily on an empty stomach. Swallow whole with a small sip of water. Wait 30 minutes before eating."
+  ? (tMedication === "Wegovy Pill"
+      ? `Continue ${medName} ${dose} once daily on an empty stomach. Swallow whole with ≤ ½ cup (120ml) of water and wait at least 30 minutes before food, drink, or other medications. Dose escalation plan: 1.5 → 4 → 9 → 25 mg, increasing every 30 days as tolerated. Refill 5–7 days before your current pack runs out to avoid a gap.`
+      : "Continue taking one tablet daily on an empty stomach. Swallow whole with a small sip of water. Wait 30 minutes before eating.")
   : `Continue ${medName} ${dose} injection once weekly on the same day. Rotate injection sites.`}
 
 ::: IMPORTANT REMINDERS :::
@@ -347,6 +350,12 @@ ${videoLink ? `\n🎥 Injection Video Guide:\n${videoLink}` : ""}`;
 • Increasing feelings of fullness
 • Slowing stomach emptying
 • Supporting blood sugar control and gradual weight loss`;
+        } else if (tMedication === "Wegovy Pill") {
+          mechanismIntro = `${medName} (oral semaglutide for weight management) is a daily GLP-1 receptor agonist tablet. It works through the same GLP-1 pathway as injectable Wegovy, but is taken by mouth on an empty stomach for proper absorption. Doses are escalated gradually to reach the 25 mg maintenance dose.`;
+          mechanismBullets = `• Reducing appetite and cravings
+• Increasing feelings of fullness
+• Slowing stomach emptying
+• Supporting sustained weight loss when combined with lifestyle changes`;
         } else {
           mechanismIntro = `${medName} is a GLP-1 receptor agonist that mimics a natural gut hormone to regulate appetite and metabolism.`;
           mechanismBullets = `• Reducing appetite and cravings
@@ -396,6 +405,28 @@ ${howItWorksSection}
 ${storageSection}
 
 ${adminSection}
+${isWegovyPill ? `
+::: 📈 DOSE ESCALATION & REFILL SCHEDULE :::
+${medName} is taken daily and the dose is increased gradually every 30 days as tolerated. Your current starting dose is ${dose}.
+
+Standard escalation plan:
+• Month 1: 1.5 mg once daily
+• Month 2: 4 mg once daily
+• Month 3: 9 mg once daily
+• Month 4 onwards: 25 mg once daily (maintenance dose)
+
+What to expect:
+• Appetite suppression and early satiety usually begin in the first 1–2 weeks
+• Most weight loss occurs gradually over 3–6 months as the dose is escalated
+• Mild nausea, reduced appetite, or constipation are most common in the first week of each new dose level and usually settle within a few days
+
+When to refill:
+• Order your next pack 5–7 days before you finish your current supply to avoid any treatment gap
+• Refill monthly — each pack contains a 30-day supply
+• Do NOT skip the escalation step unless advised by your doctor; moving up too quickly increases side effects
+• If you experience significant side effects, stay on the current dose for an additional month before escalating
+
+` : ""}
 
 ::: 🥗 NUTRITION & DIET STRUCTURE :::
 To preserve muscle mass and optimize fat loss:
