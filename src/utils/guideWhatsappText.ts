@@ -22,5 +22,6 @@ export function formatGuideForWhatsApp(text: string): string {
 export function sendGuideAsWhatsappText(phone: string, guideText: string, patientName?: string) {
   const header = patientName ? `Hi ${patientName.split(" ")[0]}, here is your personalised guide:\n\n` : "";
   const body = formatGuideForWhatsApp(guideText);
-  openWhatsApp(phone, header + body);
+  const signature = "\n\n— DarDoc Healthcare";
+  openWhatsApp(phone, header + body + signature);
 }

@@ -16,6 +16,8 @@ interface Props {
 
 type TemplateKey = "confirm_full" | "confirm_short" | "received_full" | "received_short";
 
+const SIGNATURE = "\n\n— DarDoc Healthcare";
+
 const buildTemplates = (name: string, intakeLink: string): Record<TemplateKey, { label: string; text: string }> => {
   const hi = `Hi ${name || "there"},`;
   return {
@@ -36,7 +38,7 @@ The intake form will only take a few minutes to complete and includes basic info
 
 Completing your information before your appointment helps avoid delays and ensures your consultation can begin on time.
 
-We look forward to assisting you on your health journey.`,
+We look forward to assisting you on your health journey.${SIGNATURE}`,
     },
     confirm_short: {
       label: "Appointment Confirmation (Short)",
@@ -47,7 +49,7 @@ To help your doctor prepare for your consultation and ensure your appointment st
 
 🔗 ${intakeLink}
 
-Thank you for your cooperation.`,
+Thank you for your cooperation.${SIGNATURE}`,
     },
     received_full: {
       label: "Intake Received (Full)",
@@ -63,7 +65,7 @@ Your information has been successfully submitted and is now available for your d
 
 If you need to update any information before your appointment, please contact our team as soon as possible.
 
-We look forward to speaking with you and supporting your healthcare journey.`,
+We look forward to speaking with you and supporting your healthcare journey.${SIGNATURE}`,
     },
     received_short: {
       label: "Intake Received (Short)",
@@ -74,7 +76,7 @@ Thank you for completing your intake form. Your information has been received an
 
 📞 Your appointment will commence on time, and the doctor will call you directly for your consultation.
 
-We look forward to assisting you.`,
+We look forward to assisting you.${SIGNATURE}`,
     },
   };
 };
