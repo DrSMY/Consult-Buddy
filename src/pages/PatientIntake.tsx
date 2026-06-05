@@ -49,6 +49,31 @@ export default function PatientIntake() {
     }
   }, [roles, loading]);
 
+  // Prefill from appointment query params
+  useEffect(() => {
+    const name = searchParams.get("name");
+    const mobile = searchParams.get("mobile");
+    const age = searchParams.get("age");
+    const gender = searchParams.get("gender");
+    const height = searchParams.get("height");
+    const weight = searchParams.get("weight");
+    const appointmentId = searchParams.get("appointment_id");
+    if (!name && !mobile && !appointmentId) return;
+    if (name) setPatientName(name);
+    setAnswers((prev) => ({
+      ...prev,
+      ...(mobile ? { mobile_number: mobile } : {}),
+      ...(age ? { age } : {}),
+      ...(gender ? { gender } : {}),
+      ...(height ? { height } : {}),
+      ...(weight ? { weight } : {}),
+    }));
+    setFlowType("new");
+    if (appointmentId) {
+      supabase.from("appointments").update({ status: "assigned", assigned_program: "peptides" }).eq("id", appointmentId).then(() => {});
+    }
+  }, []);
+
   const [flowType, setFlowType] = useState<"new" | "followup" | "existing" | null>(null);
   const [previousConsultations, setPreviousConsultations] = useState<any[]>([]);
   const [followupSearch, setFollowupSearch] = useState("");

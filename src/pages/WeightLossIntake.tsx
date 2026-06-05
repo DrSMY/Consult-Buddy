@@ -60,6 +60,31 @@ export default function WeightLossIntake() {
     }
   }, [roles, loading]);
 
+  // Prefill from appointment query params
+  useEffect(() => {
+    const name = searchParams.get("name");
+    const mobile = searchParams.get("mobile");
+    const age = searchParams.get("age");
+    const gender = searchParams.get("gender");
+    const height = searchParams.get("height");
+    const weight = searchParams.get("weight");
+    const appointmentId = searchParams.get("appointment_id");
+    if (!name && !mobile && !appointmentId) return;
+    setPatient((p) => ({
+      ...p,
+      ...(name ? { name } : {}),
+      ...(mobile ? { mobileNumber: mobile } : {}),
+      ...(age ? { age: Number(age) } : {}),
+      ...(gender ? { gender: gender as any } : {}),
+      ...(height ? { height: Number(height) } : {}),
+      ...(weight ? { weight: Number(weight) } : {}),
+    }));
+    setFlowType("new");
+    if (appointmentId) {
+      supabase.from("appointments").update({ status: "assigned", assigned_program: "weight-loss" }).eq("id", appointmentId).then(() => {});
+    }
+  }, []);
+
 
   const [flowType, setFlowType] = useState<FlowType>(null);
   const [step, setStep] = useState(0); // 0=identity, 1=clinical, 2=treatment, 3=summary
