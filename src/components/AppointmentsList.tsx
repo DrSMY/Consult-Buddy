@@ -124,6 +124,15 @@ export default function AppointmentsList() {
           </div>
         )}
       </CardContent>
+      {waTarget && (
+        <AppointmentWhatsAppDialog
+          open={!!waTarget}
+          onOpenChange={(o) => !o && setWaTarget(null)}
+          patientName={waTarget.full_name}
+          phone={waTarget.mobile_number}
+          appointmentId={waTarget.id}
+        />
+      )}
     </Card>
   );
 }
