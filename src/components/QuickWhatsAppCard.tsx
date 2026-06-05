@@ -20,7 +20,9 @@ The intake form will only take a few minutes to complete and includes basic info
 
 Completing your information before your appointment helps avoid delays and ensures your consultation can begin on time.
 
-We look forward to assisting you on your health journey.`;
+We look forward to assisting you on your health journey.
+
+— DarDoc Healthcare`;
 
 export default function QuickWhatsAppCard() {
   const { toast } = useToast();
