@@ -49,7 +49,7 @@ export default function Dashboard() {
           <p className="text-sm sm:text-base text-muted-foreground">Select a consultation program to begin.</p>
         </div>
 
-        {clinician && <QuickWhatsAppCard />}
+
 
         <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 max-w-2xl mb-6 sm:mb-8">
           {programs.map((program) => {
