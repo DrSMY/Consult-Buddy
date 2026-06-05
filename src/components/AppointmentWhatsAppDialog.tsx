@@ -23,60 +23,66 @@ const buildTemplates = (name: string, intakeLink: string): Record<TemplateKey, {
   return {
     confirm_full: {
       label: "Appointment Confirmation (Full)",
-      text: `📅 Your Consultation Appointment is Confirmed
+      text: `*🩺 Your Consultation Appointment is Confirmed*
 
 ${hi}
 
-Thank you for booking your consultation.
+Thank you for booking your consultation with *DarDoc Healthcare*. We're delighted to support you on your health journey. 🌿
 
-To ensure a smooth and efficient appointment, we kindly request that you complete your patient profile and intake form before your scheduled consultation. This allows your doctor to review your information in advance and provide the best possible care during your appointment.
+━━━━━━━━━━━━━━━
+*📋 Before Your Appointment*
+━━━━━━━━━━━━━━━
 
-The intake form will only take a few minutes to complete and includes basic information such as your age, height, weight, and relevant health details.
+Please complete your *patient profile & intake form* in advance so your doctor can review your details and deliver the *highest standard of care*.
 
-👉 Please complete your intake form using the link below:
-🔗 ${intakeLink}
+⏱️ _Takes only a few minutes_
+📝 _Covers age, height, weight & key health details_
 
-Completing your information before your appointment helps avoid delays and ensures your consultation can begin on time.
+━━━━━━━━━━━━━━━
+*🔗 Complete Your Intake*
+━━━━━━━━━━━━━━━
 
-We look forward to assisting you on your health journey.${SIGNATURE}`,
+👉 ${intakeLink}
+
+✅ Completing this *before* your appointment prevents delays and ensures your consultation starts right on time.
+
+We look forward to speaking with you soon. 💙${SIGNATURE}`,
     },
     confirm_short: {
       label: "Appointment Confirmation (Short)",
-      text: `Appointment Confirmed ✅
+      text: `*✅ Appointment Confirmed*
 
 ${hi}
-To help your doctor prepare for your consultation and ensure your appointment starts on time, please complete your patient intake form using the link below:
+To help your doctor prepare and ensure your appointment starts on time, please complete your *patient intake form*:
 
 🔗 ${intakeLink}
 
-Thank you for your cooperation.${SIGNATURE}`,
+Thank you for your cooperation. 💙${SIGNATURE}`,
     },
     received_full: {
       label: "Intake Received (Full)",
-      text: `✅ Thank You – Your Information Has Been Received
+      text: `*✅ Thank You — Your Information Has Been Received*
 
 ${hi}
 
-Thank you for completing your intake form.
+Thank you for completing your intake form. Your information has been successfully submitted and is now ready for your doctor to review prior to your consultation.
 
-Your information has been successfully submitted and is now available for your doctor to review prior to your consultation.
+📞 *Your appointment will commence on time* — the doctor will contact you directly at your scheduled time.
 
-📞 Your appointment will commence on time, and the doctor will contact you directly for your scheduled consultation.
+ℹ️ _If you need to update anything before your appointment, please contact our team as soon as possible._
 
-If you need to update any information before your appointment, please contact our team as soon as possible.
-
-We look forward to speaking with you and supporting your healthcare journey.${SIGNATURE}`,
+We look forward to supporting your healthcare journey. 🌿${SIGNATURE}`,
     },
     received_short: {
       label: "Intake Received (Short)",
-      text: `Intake Received ✅
+      text: `*✅ Intake Received*
 
 ${hi}
-Thank you for completing your intake form. Your information has been received and reviewed.
+Thank you for completing your intake form — your information has been received and reviewed.
 
-📞 Your appointment will commence on time, and the doctor will call you directly for your consultation.
+📞 *Your appointment will commence on time* and the doctor will call you directly.
 
-We look forward to assisting you.${SIGNATURE}`,
+We look forward to assisting you. 💙${SIGNATURE}`,
     },
   };
 };
