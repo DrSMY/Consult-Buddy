@@ -24,6 +24,7 @@ interface Appointment {
 export default function AppointmentsList() {
   const [items, setItems] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [waTarget, setWaTarget] = useState<Appointment | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
