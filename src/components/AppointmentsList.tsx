@@ -106,6 +106,9 @@ export default function AppointmentsList() {
                   </div>
                 </div>
                 <div className="flex gap-2 flex-wrap">
+                  <Button size="sm" variant="outline" onClick={() => setWaTarget(a)} disabled={!a.mobile_number}>
+                    <MessageCircle className="h-4 w-4 mr-1" /> WhatsApp
+                  </Button>
                   <Button size="sm" variant="outline" onClick={() => assign(a, "peptides")}>
                     <FlaskConical className="h-4 w-4 mr-1" /> Peptides
                   </Button>
