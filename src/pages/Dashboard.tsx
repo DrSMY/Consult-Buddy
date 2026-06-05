@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import DashboardStats from "@/components/DashboardStats";
 import IncompleteIntakesList from "@/components/IncompleteIntakesList";
 import AppointmentsList from "@/components/AppointmentsList";
+import QuickWhatsAppCard from "@/components/QuickWhatsAppCard";
 
 const isClinician = (roles: string[]) => roles.includes("doctor") || roles.includes("nurse");
 
