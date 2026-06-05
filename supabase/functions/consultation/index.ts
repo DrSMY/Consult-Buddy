@@ -348,6 +348,12 @@ ${videoLink ? `\n🎥 Injection Video Guide:\n${videoLink}` : ""}`;
 • Increasing feelings of fullness
 • Slowing stomach emptying
 • Supporting blood sugar control and gradual weight loss`;
+        } else if (tMedication === "Wegovy Pill") {
+          mechanismIntro = `${medName} (oral semaglutide for weight management) is a daily GLP-1 receptor agonist tablet. It works through the same GLP-1 pathway as injectable Wegovy, but is taken by mouth on an empty stomach for proper absorption. Doses are escalated gradually to reach the 25 mg maintenance dose.`;
+          mechanismBullets = `• Reducing appetite and cravings
+• Increasing feelings of fullness
+• Slowing stomach emptying
+• Supporting sustained weight loss when combined with lifestyle changes`;
         } else {
           mechanismIntro = `${medName} is a GLP-1 receptor agonist that mimics a natural gut hormone to regulate appetite and metabolism.`;
           mechanismBullets = `• Reducing appetite and cravings
