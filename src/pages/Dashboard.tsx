@@ -8,6 +8,7 @@ import { useToast } from "@/hooks/use-toast";
 import DashboardStats from "@/components/DashboardStats";
 import IncompleteIntakesList from "@/components/IncompleteIntakesList";
 import AppointmentsList from "@/components/AppointmentsList";
+import QuickWhatsAppCard from "@/components/QuickWhatsAppCard";
 
 const isClinician = (roles: string[]) => roles.includes("doctor") || roles.includes("nurse");
 
@@ -47,6 +48,8 @@ export default function Dashboard() {
           </div>
           <p className="text-sm sm:text-base text-muted-foreground">Select a consultation program to begin.</p>
         </div>
+
+        {clinician && <QuickWhatsAppCard />}
 
         <div className="grid gap-3 sm:gap-4 sm:grid-cols-2 max-w-2xl mb-6 sm:mb-8">
           {programs.map((program) => {
