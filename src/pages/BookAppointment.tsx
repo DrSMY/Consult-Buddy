@@ -75,8 +75,9 @@ export default function BookAppointment() {
             <div className="mx-auto h-14 w-14 rounded-full bg-primary/10 flex items-center justify-center mb-2">
               <CheckCircle2 className="h-7 w-7 text-primary" />
             </div>
-            <CardTitle>Request Received</CardTitle>
-            <CardDescription>Thank you. Our team will reach out shortly to confirm your appointment.</CardDescription>
+            <CardTitle className="text-lg leading-relaxed whitespace-pre-line">
+              {`✅ Thank you for completing your intake form.\n\n📅 Your appointment with DarDoc Healthcare is confirmed.\n\nYour doctor will contact you directly at your scheduled appointment time using the phone number you provided.\n\nPlease keep your phone available and nearby.\n\nWe look forward to speaking with you.`}
+            </CardTitle>
           </CardHeader>
         </Card>
       </div>
