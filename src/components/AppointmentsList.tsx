@@ -3,9 +3,10 @@ import { supabase } from "@/integrations/supabase/client";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
-import { CalendarClock, FlaskConical, Scale, Phone, Copy, Trash2 } from "lucide-react";
+import { CalendarClock, FlaskConical, Scale, Phone, Copy, Trash2, MessageCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { useToast } from "@/hooks/use-toast";
+import AppointmentWhatsAppDialog from "./AppointmentWhatsAppDialog";
 
 interface Appointment {
   id: string;
@@ -23,6 +24,7 @@ interface Appointment {
 export default function AppointmentsList() {
   const [items, setItems] = useState<Appointment[]>([]);
   const [loading, setLoading] = useState(true);
+  const [waTarget, setWaTarget] = useState<Appointment | null>(null);
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -104,6 +106,9 @@ export default function AppointmentsList() {
                   </div>
                 </div>
                 <div className="flex gap-2 flex-wrap">
+                  <Button size="sm" variant="outline" onClick={() => setWaTarget(a)} disabled={!a.mobile_number}>
+                    <MessageCircle className="h-4 w-4 mr-1" /> WhatsApp
+                  </Button>
                   <Button size="sm" variant="outline" onClick={() => assign(a, "peptides")}>
                     <FlaskConical className="h-4 w-4 mr-1" /> Peptides
                   </Button>
@@ -119,6 +124,15 @@ export default function AppointmentsList() {
           </div>
         )}
       </CardContent>
+      {waTarget && (
+        <AppointmentWhatsAppDialog
+          open={!!waTarget}
+          onOpenChange={(o) => !o && setWaTarget(null)}
+          patientName={waTarget.full_name}
+          phone={waTarget.mobile_number}
+          appointmentId={waTarget.id}
+        />
+      )}
     </Card>
   );
 }
