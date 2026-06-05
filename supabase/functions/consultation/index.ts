@@ -257,7 +257,9 @@ Side effects reported: ${fSideEffects}.
 
 ::: MEDICATION REMINDER :::
 ${isOral
-  ? "Continue taking one tablet daily on an empty stomach. Swallow whole with a small sip of water. Wait 30 minutes before eating."
+  ? (tMedication === "Wegovy Pill"
+      ? `Continue ${medName} ${dose} once daily on an empty stomach. Swallow whole with ≤ ½ cup (120ml) of water and wait at least 30 minutes before food, drink, or other medications. Dose escalation plan: 1.5 → 4 → 9 → 25 mg, increasing every 30 days as tolerated. Refill 5–7 days before your current pack runs out to avoid a gap.`
+      : "Continue taking one tablet daily on an empty stomach. Swallow whole with a small sip of water. Wait 30 minutes before eating.")
   : `Continue ${medName} ${dose} injection once weekly on the same day. Rotate injection sites.`}
 
 ::: IMPORTANT REMINDERS :::
