@@ -217,9 +217,10 @@ serve(async (req) => {
       const tDose = sanitizeString(treatment_data.dose, 100);
       const tBloodTestLevel = sanitizeString(treatment_data.bloodTestLevel, 20);
 
-      const glp1Meds = ["Mounjaro", "Wegovy", "Ozempic", "Rybelsus"];
+      const glp1Meds = ["Mounjaro", "Wegovy", "Wegovy Pill", "Ozempic", "Rybelsus"];
       const isGlp1 = !!tMedication && glp1Meds.includes(tMedication);
-      const isOral = tMedication === "Rybelsus";
+      const isOral = tMedication === "Rybelsus" || tMedication === "Wegovy Pill";
+      const isWegovyPill = tMedication === "Wegovy Pill";
 
       const medName = tMedication === "Other"
         ? (tOtherDetail || "Custom Program")
