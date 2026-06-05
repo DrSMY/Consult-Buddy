@@ -403,6 +403,28 @@ ${howItWorksSection}
 ${storageSection}
 
 ${adminSection}
+${isWegovyPill ? `
+::: 📈 DOSE ESCALATION & REFILL SCHEDULE :::
+${medName} is taken daily and the dose is increased gradually every 30 days as tolerated. Your current starting dose is ${dose}.
+
+Standard escalation plan:
+• Month 1: 1.5 mg once daily
+• Month 2: 4 mg once daily
+• Month 3: 9 mg once daily
+• Month 4 onwards: 25 mg once daily (maintenance dose)
+
+What to expect:
+• Appetite suppression and early satiety usually begin in the first 1–2 weeks
+• Most weight loss occurs gradually over 3–6 months as the dose is escalated
+• Mild nausea, reduced appetite, or constipation are most common in the first week of each new dose level and usually settle within a few days
+
+When to refill:
+• Order your next pack 5–7 days before you finish your current supply to avoid any treatment gap
+• Refill monthly — each pack contains a 30-day supply
+• Do NOT skip the escalation step unless advised by your doctor; moving up too quickly increases side effects
+• If you experience significant side effects, stay on the current dose for an additional month before escalating
+
+` : ""}
 
 ::: 🥗 NUTRITION & DIET STRUCTURE :::
 To preserve muscle mass and optimize fat loss:
