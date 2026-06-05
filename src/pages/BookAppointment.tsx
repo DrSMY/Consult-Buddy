@@ -49,7 +49,16 @@ export default function BookAppointment() {
       return;
     }
     setSubmitting(true);
-    const { error } = await supabase.from("appointments").insert([{ ...parsed.data, status: "pending" }]);
+    const d = parsed.data;
+    const { error } = await supabase.from("appointments").insert([{
+      full_name: d.full_name,
+      mobile_number: d.mobile_number,
+      gender: d.gender,
+      age: d.age,
+      height_cm: d.height_cm,
+      weight_kg: d.weight_kg,
+      status: "pending",
+    }]);
     setSubmitting(false);
     if (error) {
       toast({ title: "Could not submit", description: error.message, variant: "destructive" });
