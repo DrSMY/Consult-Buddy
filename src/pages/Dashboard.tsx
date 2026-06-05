@@ -95,9 +95,10 @@ export default function Dashboard() {
           })}
         </div>
 
-        {clinician && <AppointmentsList />}
         {clinician && <DashboardStats section="charts" />}
         {clinician && <DashboardStats section="kpis" />}
+        {clinician && <QuickWhatsAppCard />}
+        {clinician && <AppointmentsList />}
         {clinician && <IncompleteIntakesList />}
       </main>
     </div>
