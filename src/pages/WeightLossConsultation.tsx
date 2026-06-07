@@ -127,6 +127,15 @@ export default function WeightLossConsultation() {
 
   const saveEdit = async () => {
     if (!consultation) return;
+    const isNoMed = editMed === "None" || editMed === "";
+    if (isNoMed && !editNoMedReason.trim()) {
+      toast({
+        title: "Reason required",
+        description: "Please document why no medication is being prescribed.",
+        variant: "destructive",
+      });
+      return;
+    }
     setEditSaving(true);
     try {
       const intake = consultation.intake_answers as any;
@@ -138,32 +147,49 @@ export default function WeightLossConsultation() {
       const updatedTreatment = {
         ...(intake?.treatment || {}),
         medication: editMed,
-        dose: editDose,
+        dose: isNoMed ? "" : editDose,
         otherDetail: editOtherDetail,
         bloodTestLevel: editBloodTest,
         notes: editNotes,
+        noMedicationReason: isNoMed ? editNoMedReason.trim() : "",
       };
       const updatedIntake = { ...intake, treatment: updatedTreatment };
 
       // Regenerate clinical suggestion
-      const updatedSuggestion = generateClinicalSuggestion(
+      let updatedSuggestion = generateClinicalSuggestion(
         { ...patient, ...updatedTreatment },
         updatedTreatment,
         followupData
       );
+      if (isNoMed) {
+        const salutation = patient?.gender === "Female" ? "Ms" : "Mr";
+        updatedSuggestion = `booking ID ${patient?.bookingId || "N/A"} , ${salutation} ${patient?.name || ""} (${patient?.mobileNumber || "No phone"})\nNo GLP-1 medication prescribed at this visit.\nReason: ${editNoMedReason.trim()}${editNotes ? `\nNotes: ${editNotes}` : ""}`.trim();
+      }
 
       const updatedRecs = {
         ...oldRecs,
         medication: editMed,
-        dose: editDose,
+        dose: isNoMed ? "" : editDose,
         bloodTestLevel: editBloodTest,
         doctorSuggestions: updatedSuggestion,
+        noMedicationReason: isNoMed ? editNoMedReason.trim() : "",
       };
+
+      // Ensure doctor_notes captures the reason when no medication is prescribed
+      let finalDoctorNotes = editDoctorNotes || "";
+      if (isNoMed) {
+        const reasonLine = `No medication prescribed — Reason: ${editNoMedReason.trim()}`;
+        if (!finalDoctorNotes.toLowerCase().includes("no medication prescribed")) {
+          finalDoctorNotes = finalDoctorNotes
+            ? `${reasonLine}\n\n${finalDoctorNotes}`
+            : reasonLine;
+        }
+      }
 
       await supabase.from("consultations").update({
         intake_answers: updatedIntake,
         ai_recommendations: updatedRecs,
-        doctor_notes: editDoctorNotes,
+        doctor_notes: finalDoctorNotes,
       }).eq("id", consultation.id);
 
       queryClient.invalidateQueries({ queryKey: ["weight-loss-consultation", id] });
