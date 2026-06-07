@@ -46,6 +46,7 @@ export default function WeightLossConsultation() {
   const [editBloodTest, setEditBloodTest] = useState<BloodTestLevel>("none");
   const [editNotes, setEditNotes] = useState("");
   const [editDoctorNotes, setEditDoctorNotes] = useState("");
+  const [editNoMedReason, setEditNoMedReason] = useState("");
   const [refMed, setRefMed] = useState<string | null>(null);
 
   const { data: consultation, isLoading } = useQuery({
