@@ -27,7 +27,7 @@ import ShareGuideDialog from "@/components/ShareGuideDialog";
 import CrossProgramHistoryStrip from "@/components/CrossProgramHistoryStrip";
 import MedicationDetailSheet from "@/components/MedicationDetailSheet";
 
-const MEDICATION_OPTIONS: MedicationType[] = ["Mounjaro", "Wegovy", "Wegovy Pill", "Foundayo", "Rybelsus", "Ozempic", "Other"];
+const MEDICATION_OPTIONS: MedicationType[] = ["Mounjaro", "Wegovy", "Wegovy Pill", "Foundayo", "Rybelsus", "Ozempic", "Other", "None"];
 const REFERENCE_MEDS = new Set(["Mounjaro", "Wegovy", "Wegovy Pill", "Foundayo", "Rybelsus"]);
 
 export default function WeightLossConsultation() {
@@ -46,6 +46,7 @@ export default function WeightLossConsultation() {
   const [editBloodTest, setEditBloodTest] = useState<BloodTestLevel>("none");
   const [editNotes, setEditNotes] = useState("");
   const [editDoctorNotes, setEditDoctorNotes] = useState("");
+  const [editNoMedReason, setEditNoMedReason] = useState("");
   const [refMed, setRefMed] = useState<string | null>(null);
 
   const { data: consultation, isLoading } = useQuery({
@@ -120,11 +121,21 @@ export default function WeightLossConsultation() {
     setEditBloodTest((recs?.bloodTestLevel || treatment?.bloodTestLevel || "none") as BloodTestLevel);
     setEditNotes(treatment?.notes || "");
     setEditDoctorNotes(consultation?.doctor_notes || "");
+    setEditNoMedReason(treatment?.noMedicationReason || "");
     setEditOpen(true);
   };
 
   const saveEdit = async () => {
     if (!consultation) return;
+    const isNoMed = editMed === "None" || editMed === "";
+    if (isNoMed && !editNoMedReason.trim()) {
+      toast({
+        title: "Reason required",
+        description: "Please document why no medication is being prescribed.",
+        variant: "destructive",
+      });
+      return;
+    }
     setEditSaving(true);
     try {
       const intake = consultation.intake_answers as any;
@@ -136,32 +147,49 @@ export default function WeightLossConsultation() {
       const updatedTreatment = {
         ...(intake?.treatment || {}),
         medication: editMed,
-        dose: editDose,
+        dose: isNoMed ? "" : editDose,
         otherDetail: editOtherDetail,
         bloodTestLevel: editBloodTest,
         notes: editNotes,
+        noMedicationReason: isNoMed ? editNoMedReason.trim() : "",
       };
       const updatedIntake = { ...intake, treatment: updatedTreatment };
 
       // Regenerate clinical suggestion
-      const updatedSuggestion = generateClinicalSuggestion(
+      let updatedSuggestion = generateClinicalSuggestion(
         { ...patient, ...updatedTreatment },
         updatedTreatment,
         followupData
       );
+      if (isNoMed) {
+        const salutation = patient?.gender === "Female" ? "Ms" : "Mr";
+        updatedSuggestion = `booking ID ${patient?.bookingId || "N/A"} , ${salutation} ${patient?.name || ""} (${patient?.mobileNumber || "No phone"})\nNo GLP-1 medication prescribed at this visit.\nReason: ${editNoMedReason.trim()}${editNotes ? `\nNotes: ${editNotes}` : ""}`.trim();
+      }
 
       const updatedRecs = {
         ...oldRecs,
         medication: editMed,
-        dose: editDose,
+        dose: isNoMed ? "" : editDose,
         bloodTestLevel: editBloodTest,
         doctorSuggestions: updatedSuggestion,
+        noMedicationReason: isNoMed ? editNoMedReason.trim() : "",
       };
+
+      // Ensure doctor_notes captures the reason when no medication is prescribed
+      let finalDoctorNotes = editDoctorNotes || "";
+      if (isNoMed) {
+        const reasonLine = `No medication prescribed — Reason: ${editNoMedReason.trim()}`;
+        if (!finalDoctorNotes.toLowerCase().includes("no medication prescribed")) {
+          finalDoctorNotes = finalDoctorNotes
+            ? `${reasonLine}\n\n${finalDoctorNotes}`
+            : reasonLine;
+        }
+      }
 
       await supabase.from("consultations").update({
         intake_answers: updatedIntake,
         ai_recommendations: updatedRecs,
-        doctor_notes: editDoctorNotes,
+        doctor_notes: finalDoctorNotes,
       }).eq("id", consultation.id);
 
       queryClient.invalidateQueries({ queryKey: ["weight-loss-consultation", id] });
@@ -687,7 +715,7 @@ export default function WeightLossConsultation() {
                 <Input value={editOtherDetail} onChange={(e) => setEditOtherDetail(e.target.value)} placeholder="Enter medication name" />
               </div>
             )}
-            {editMed && editMed !== "Other" && (
+            {editMed && editMed !== "Other" && editMed !== "None" && (
               <div className="space-y-2">
                 <Label>Dose</Label>
                 <Select value={editDose} onValueChange={setEditDose}>
@@ -704,6 +732,20 @@ export default function WeightLossConsultation() {
               <div className="space-y-2">
                 <Label>Dose</Label>
                 <Input value={editDose} onChange={(e) => setEditDose(e.target.value)} placeholder="Enter dose" />
+              </div>
+            )}
+            {(editMed === "None" || editMed === "") && (
+              <div className="space-y-2">
+                <Label className="text-destructive">Reason for No Medication <span className="text-xs text-muted-foreground">(required)</span></Label>
+                <Textarea
+                  rows={3}
+                  value={editNoMedReason}
+                  onChange={(e) => setEditNoMedReason(e.target.value)}
+                  placeholder="e.g. Patient declined GLP-1, contraindication (pregnancy, MTC family history), BMI below threshold, awaiting baseline labs, lifestyle-only plan agreed, etc."
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  This reason will appear in the EMR summary and doctor notes.
+                </p>
               </div>
             )}
             <div className="space-y-2">
