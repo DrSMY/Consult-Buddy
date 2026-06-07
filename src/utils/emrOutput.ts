@@ -32,11 +32,19 @@ export function buildEmrOutput(input: EmrInput): string {
 
   // Medication prescribed
   lines.push("— MEDICATION PRESCRIBED —");
-  const medName = treatment?.medication === "Other"
+  const rawMed = treatment?.medication;
+  const isNoMed = !rawMed || rawMed === "None";
+  const medName = rawMed === "Other"
     ? (treatment?.otherDetail || "Other")
-    : (treatment?.medication || "None");
+    : (rawMed || "None");
   const dose = treatment?.dose || "";
-  lines.push(`Medication: ${medName}${dose ? ` ${dose}` : ""}`);
+  if (isNoMed) {
+    lines.push(`Medication: NOT PRESCRIBED`);
+    const reason = (treatment?.noMedicationReason || "").trim();
+    lines.push(`Reason for No Medication: ${reason || "Not documented — please update consultation notes."}`);
+  } else {
+    lines.push(`Medication: ${medName}${dose ? ` ${dose}` : ""}`);
+  }
   if (treatment?.notes) lines.push(`Treatment Notes: ${treatment.notes}`);
   lines.push("");
 
