@@ -121,6 +121,7 @@ export default function WeightLossConsultation() {
     setEditBloodTest((recs?.bloodTestLevel || treatment?.bloodTestLevel || "none") as BloodTestLevel);
     setEditNotes(treatment?.notes || "");
     setEditDoctorNotes(consultation?.doctor_notes || "");
+    setEditNoMedReason(treatment?.noMedicationReason || "");
     setEditOpen(true);
   };
 
