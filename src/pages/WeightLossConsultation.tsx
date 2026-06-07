@@ -715,7 +715,7 @@ export default function WeightLossConsultation() {
                 <Input value={editOtherDetail} onChange={(e) => setEditOtherDetail(e.target.value)} placeholder="Enter medication name" />
               </div>
             )}
-            {editMed && editMed !== "Other" && (
+            {editMed && editMed !== "Other" && editMed !== "None" && (
               <div className="space-y-2">
                 <Label>Dose</Label>
                 <Select value={editDose} onValueChange={setEditDose}>
@@ -732,6 +732,20 @@ export default function WeightLossConsultation() {
               <div className="space-y-2">
                 <Label>Dose</Label>
                 <Input value={editDose} onChange={(e) => setEditDose(e.target.value)} placeholder="Enter dose" />
+              </div>
+            )}
+            {(editMed === "None" || editMed === "") && (
+              <div className="space-y-2">
+                <Label className="text-destructive">Reason for No Medication <span className="text-xs text-muted-foreground">(required)</span></Label>
+                <Textarea
+                  rows={3}
+                  value={editNoMedReason}
+                  onChange={(e) => setEditNoMedReason(e.target.value)}
+                  placeholder="e.g. Patient declined GLP-1, contraindication (pregnancy, MTC family history), BMI below threshold, awaiting baseline labs, lifestyle-only plan agreed, etc."
+                />
+                <p className="text-[11px] text-muted-foreground">
+                  This reason will appear in the EMR summary and doctor notes.
+                </p>
               </div>
             )}
             <div className="space-y-2">
