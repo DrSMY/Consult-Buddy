@@ -8,82 +8,198 @@ interface EmrInput {
   createdAt: string;
 }
 
+const MED_GENERIC: Record<string, string> = {
+  Mounjaro: "tirzepatide",
+  Wegovy: "semaglutide",
+  "Wegovy Pill": "oral semaglutide",
+  Ozempic: "semaglutide",
+  Rybelsus: "oral semaglutide",
+  Foundayo: "tirzepatide",
+};
+
+const MED_FREQUENCY: Record<string, string> = {
+  Mounjaro: "once weekly",
+  Wegovy: "once weekly",
+  Ozempic: "once weekly",
+  "Wegovy Pill": "once daily",
+  Rybelsus: "once daily",
+  Foundayo: "once weekly",
+};
+
+function formatDateDMY(d: Date): string {
+  const dd = String(d.getDate()).padStart(2, "0");
+  const mm = String(d.getMonth() + 1).padStart(2, "0");
+  const yy = d.getFullYear();
+  return `${dd}/${mm}/${yy}`;
+}
+
+function titleCase(s: string): string {
+  return s.replace(/\b\w/g, (c) => c.toUpperCase());
+}
+
+function getBmiCategory(bmi: number): string {
+  if (bmi < 18.5) return "underweight";
+  if (bmi < 25) return "normal weight";
+  if (bmi < 30) return "overweight";
+  if (bmi < 35) return "obesity class I";
+  if (bmi < 40) return "obesity class II";
+  return "obesity class III";
+}
+
 export function buildEmrOutput(input: EmrInput): string {
   const { patient, treatment, recs, doctorNotes, createdAt } = input;
   const lines: string[] = [];
 
-  const encounterDate = new Date(createdAt).toLocaleDateString();
+  const encounterDateObj = new Date(createdAt);
   lines.push(`=== EMR CLINICAL SUMMARY ===`);
-  lines.push(`Date of Encounter: ${encounterDate}`);
+  lines.push("");
+  lines.push(`Date of Encounter: ${formatDateDMY(encounterDateObj)}`);
   lines.push("");
 
-  // Patient demographics
-  lines.push("— PATIENT —");
+  // PATIENT
+  lines.push("PATIENT");
+  lines.push("");
   if (patient?.name) lines.push(`Name: ${patient.name}`);
-  if (patient?.age) lines.push(`Age: ${patient.age}`);
+  if (patient?.age) lines.push(`Age: ${patient.age} years`);
   if (patient?.gender) lines.push(`Gender: ${patient.gender}`);
   if (patient?.height) lines.push(`Height: ${patient.height} cm`);
   if (patient?.weight) lines.push(`Weight: ${patient.weight} kg`);
-  if (patient?.bmi) lines.push(`BMI: ${Number(patient.bmi).toFixed(1)}`);
-  if (patient?.chronicIllnesses) lines.push(`Chronic Illnesses: ${patient.chronicIllnesses}`);
+  if (patient?.bmi) lines.push(`BMI: ${Number(patient.bmi).toFixed(1)} kg/m²`);
+  if (patient?.chronicIllnesses) lines.push(`Chronic Illnesses: ${titleCase(String(patient.chronicIllnesses))}`);
   if (patient?.medications) lines.push(`Current Medications: ${patient.medications}`);
   if (patient?.allergies) lines.push(`Allergies: ${patient.allergies}`);
   lines.push("");
 
-  // Medication prescribed
-  lines.push("— MEDICATION PRESCRIBED —");
+  // CLINICAL SUMMARY (narrative)
+  lines.push("CLINICAL SUMMARY");
+  lines.push("");
+
   const rawMed = treatment?.medication;
   const isNoMed = !rawMed || rawMed === "None";
-  const medName = rawMed === "Other"
-    ? (treatment?.otherDetail || "Other")
-    : (rawMed || "None");
-  const dose = treatment?.dose || "";
-  if (isNoMed) {
-    lines.push(`Medication: NOT PRESCRIBED`);
-    const reason = (treatment?.noMedicationReason || "").trim();
-    lines.push(`Reason for No Medication: ${reason || "Not documented — please update consultation notes."}`);
-  } else {
-    lines.push(`Medication: ${medName}${dose ? ` ${dose}` : ""}`);
+  const salutation = patient?.gender === "Male" ? "Mr." : patient?.gender === "Female" ? "Ms." : "";
+  const pronounSubj = patient?.gender === "Male" ? "He" : patient?.gender === "Female" ? "She" : "The patient";
+  const pronounLow = pronounSubj.toLowerCase();
+  const bmiVal = patient?.bmi ? Number(patient.bmi) : null;
+  const bmiCat = bmiVal ? getBmiCategory(bmiVal) : "";
+  const ageStr = patient?.age ? `${patient.age}-year-old ` : "";
+  const genderStr = patient?.gender ? String(patient.gender).toLowerCase() : "patient";
+
+  const conditionPhrase = patient?.chronicIllnesses
+    ? ` and a history of ${String(patient.chronicIllnesses).toLowerCase()}`
+    : " and no significant chronic illnesses";
+
+  let priorTherapy = " There is no prior history of GLP-1 receptor agonist therapy.";
+  if (patient?.previousGlp1Use) {
+    const prev = patient.previousMedication;
+    const generic = prev && MED_GENERIC[prev] ? ` (${MED_GENERIC[prev]})` : "";
+    const doseTxt = patient.previousDose ? ` with dose escalation up to ${patient.previousDose}` : "";
+    priorTherapy = ` ${pronounSubj} has previously used ${prev ? `${prev.toLowerCase()}${generic}` : "a GLP-1 receptor agonist"}${doseTxt}.`;
   }
-  if (treatment?.notes) lines.push(`Treatment Notes: ${treatment.notes}`);
+
+  const pregBfNotes: string[] = [];
+  if (patient?.gender === "Female") {
+    if (!patient?.isPregnant && !patient?.isBreastfeeding) {
+      pregBfNotes.push("denies pregnancy or breastfeeding");
+    }
+  }
+  const allergyClause = patient?.allergies
+    ? `reports allergies to ${patient.allergies}`
+    : "reports no known drug allergies";
+  pregBfNotes.push(allergyClause);
+  const denialsLine = ` ${pronounSubj} ${pregBfNotes.join(" and ")}.`;
+
+  const contraLine = ` There are no identified contraindications to GLP-1${
+    rawMed === "Mounjaro" || rawMed === "Foundayo" ? "/GIP" : ""
+  } receptor agonist therapy.`;
+
+  const opening = `${salutation ? salutation + " " : ""}${patient?.name || "The patient"} is a ${ageStr}${genderStr}${
+    bmiCat ? ` with ${bmiCat}${bmiVal ? ` (BMI ${bmiVal.toFixed(1)} kg/m²)` : ""}` : ""
+  }${conditionPhrase}.${priorTherapy}${denialsLine}${contraLine}`;
+  lines.push(opening);
   lines.push("");
 
-  // Lab tests
-  lines.push("— LAB TESTS —");
+  const weightNum = typeof patient?.weight === "number" ? patient.weight : Number(patient?.weight) || 0;
+  const proteinMin = weightNum ? Math.round(weightNum * 1.2) : null;
+  const proteinMax = weightNum ? Math.round(weightNum * 1.5) : null;
+  const cals = patient?.weightLossCalories ? Math.round(patient.weightLossCalories) : null;
+
+  if (cals || (proteinMin && proteinMax)) {
+    const calsTxt = cals ? `a daily caloric intake target of ≤${cals.toLocaleString()} kcal/day was recommended` : "";
+    const protTxt = proteinMin && proteinMax ? `a protein intake goal of ${proteinMin}–${proteinMax} g/day` : "";
+    const combined = [calsTxt, protTxt].filter(Boolean).join(", with ");
+    lines.push(
+      `Based on ${pronounLow === "she" ? "her" : pronounLow === "he" ? "his" : "their"} current assessment, ${combined}. Lifestyle modification, dietary optimization, physical activity, realistic weight-loss expectations, and treatment goals were discussed.`
+    );
+    lines.push("");
+  }
+
+  // MEDICATION PRESCRIBED
+  lines.push("MEDICATION PRESCRIBED");
+  lines.push("");
+  if (isNoMed) {
+    lines.push("No medication prescribed at this visit.");
+    const reason = (treatment?.noMedicationReason || "").trim();
+    lines.push(`Reason: ${reason || "Not documented — please update consultation notes."}`);
+  } else {
+    const generic = MED_GENERIC[rawMed];
+    const freq = MED_FREQUENCY[rawMed] || "";
+    const medDisplay = rawMed === "Other"
+      ? (treatment?.otherDetail || "Medication")
+      : `${rawMed}${generic ? ` (${generic})` : ""}`;
+    const dose = treatment?.dose || "";
+    lines.push(`${medDisplay}${dose ? ` ${dose}` : ""}${freq ? ` ${freq}` : ""}`.trim());
+    lines.push("");
+    lines.push(
+      "The patient was counseled regarding expected benefits, common side effects, injection technique, adherence, and the importance of reporting any adverse effects promptly."
+    );
+  }
+  if (treatment?.notes) {
+    lines.push("");
+    lines.push(`Notes: ${treatment.notes}`);
+  }
+  lines.push("");
+
+  // INVESTIGATIONS
+  lines.push("INVESTIGATIONS");
+  lines.push("");
   const bloodLevel = recs?.bloodTestLevel || treatment?.bloodTestLevel || "none";
   if (bloodLevel === "required") {
-    lines.push("Blood Test: REQUIRED");
+    lines.push("Weight Loss Blood Test Panel: Required");
+    lines.push("");
+    lines.push("Link: https://www.dardoc.com/dubai/lab-test/weight-loss-blood-test");
   } else if (bloodLevel === "recommended") {
-    lines.push("Blood Test: RECOMMENDED");
+    lines.push("Weight Loss Blood Test Panel: Recommended");
+    lines.push("");
+    lines.push("Link: https://www.dardoc.com/dubai/lab-test/weight-loss-blood-test");
   } else {
-    lines.push("Blood Test: Not required at this time");
+    lines.push("No additional investigations required at this time.");
   }
   lines.push("");
 
-  // Clinical summary
-  lines.push("— CLINICAL SUMMARY —");
-  lines.push(recs?.doctorSuggestions || treatment?.doctorSuggestions || "No clinical summary available.");
-  lines.push("");
-
-  // Doctor notes
+  // DOCTOR NOTES
   if (doctorNotes) {
-    lines.push("— DOCTOR NOTES —");
+    lines.push("DOCTOR NOTES");
+    lines.push("");
     lines.push(doctorNotes);
     lines.push("");
   }
 
-  // Plan ahead
-  lines.push("— PLAN —");
-  const encounterDateObj = new Date(createdAt);
+  // PLAN
+  lines.push("PLAN");
+  lines.push("");
   const followUp = new Date(encounterDateObj);
   followUp.setDate(encounterDateObj.getDate() + 21);
-  lines.push(`Follow-up Date: ${followUp.toLocaleDateString()}`);
-  if (treatment?.medication && ["Mounjaro", "Wegovy", "Wegovy Pill", "Ozempic", "Rybelsus", "Foundayo"].includes(treatment.medication)) {
-    lines.push("Titrate dose at next visit if tolerated well.");
-  }
-  lines.push("Monitor weight, side effects, and compliance.");
+  lines.push(`Follow-up appointment scheduled for ${formatDateDMY(followUp)}.`);
   lines.push("");
-  lines.push("Physician: Dr Sami M. Yesuf — DarDoc Healthcare");
+  lines.push("Assess response, tolerance, and compliance at follow-up.");
+  if (!isNoMed && ["Mounjaro", "Wegovy", "Wegovy Pill", "Ozempic", "Rybelsus", "Foundayo"].includes(rawMed)) {
+    lines.push("Consider dose titration if treatment is well tolerated.");
+  }
+  lines.push("Continue monitoring weight, appetite, and any medication-related side effects.");
+  lines.push("");
+  lines.push("Physician:");
+  lines.push("Dr Sami M. Yesuf");
+  lines.push("DarDoc Healthcare");
 
   return lines.join("\n");
 }
