@@ -76,7 +76,7 @@ serve(async (req) => {
       },
       body: JSON.stringify({
         from: 'PeptiDOC <onboarding@resend.dev>',
-        to: ['drsamimoha2013@gmail.com'],
+        to: [ADMIN_NOTIFICATION_EMAIL],
         subject: `New User Signup – Approval Needed: ${name || 'Unnamed'}`,
         html: `
           <h2>New User Awaiting Approval</h2>
