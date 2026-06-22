@@ -24,12 +24,12 @@ interface UserProfile {
 }
 
 export default function UserManagement() {
-  const { roles, user } = useAuth();
+  const { roles } = useAuth();
   const { toast } = useToast();
   const [users, setUsers] = useState<UserProfile[]>([]);
   const [loading, setLoading] = useState(true);
 
-  const isMainAdmin = user?.email === "dr.sami@dardoc.com";
+  const isMainAdmin = roles.includes("admin");
 
   const fetchUsers = async () => {
     const { data: profiles, error } = await supabase
