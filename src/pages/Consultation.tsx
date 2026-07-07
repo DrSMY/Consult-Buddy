@@ -24,6 +24,7 @@ import { sendGuideAsWhatsappText } from "@/utils/guideWhatsappText";
 import ShareGuideDialog from "@/components/ShareGuideDialog";
 import { getProtocolOptions, extractMl, extractVialMl, inferFrequency, type ProtocolOption } from "@/data/peptideProtocolOptions";
 import CrossProgramHistoryStrip from "@/components/CrossProgramHistoryStrip";
+import { buildPeptideEmrOutput } from "@/utils/emrOutput";
 
 interface PeptideRec {
   name: string;
