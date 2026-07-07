@@ -436,6 +436,61 @@ export default function Consultation() {
     setAiSuggestion(null);
   };
 
+  const runAiLabReview = async () => {
+    if (!recommendations || selectedPeptides.size === 0) return;
+    setReviewingLabs(true);
+    setLabReview(null);
+    setLabReviewApplied(false);
+    try {
+      const chosen = recommendations.recommended_peptides
+        .filter((p) => selectedPeptides.has(p.name))
+        .map((p) => ({ name: p.name, dosage: p.dosage, administration: p.administration, frequency: p.frequency }));
+      const candidates = Array.from(new Set([...derivedBasicTests, ...derivedAdvancedTests, ...customLabTests]));
+      const { data, error } = await supabase.functions.invoke("consultation", {
+        body: {
+          action: "review-lab-tests",
+          patient_name: consultation?.patient_name || "Patient",
+          intake_answers: consultation?.intake_answers || {},
+          chosen_peptides: chosen,
+          candidate_lab_tests: candidates,
+        },
+      });
+      if (error) throw error;
+      if (data?.error) throw new Error(data.error);
+      setLabReview({
+        pertinent: Array.isArray(data?.pertinent) ? data.pertinent : [],
+        not_pertinent: Array.isArray(data?.not_pertinent) ? data.not_pertinent : [],
+        rationale: data?.rationale || "",
+      });
+      toast({ title: "Lab review ready", description: "Review the pertinent tests below." });
+    } catch (e: any) {
+      toast({ title: "Lab review failed", description: e?.message || "Please try again.", variant: "destructive" });
+    } finally {
+      setReviewingLabs(false);
+    }
+  };
+
+  const applyLabReview = () => {
+    if (!labReview) return;
+    const drop = labReview.not_pertinent.map((n) => n.name).filter(Boolean);
+    if (drop.length === 0) {
+      setLabReviewApplied(true);
+      toast({ title: "No changes needed", description: "All lab tests are pertinent." });
+      return;
+    }
+    setRemovedLabTests((prev) => {
+      const next = new Set(prev);
+      drop.forEach((t) => next.add(t));
+      return next;
+    });
+    // Also drop from custom list if present
+    setCustomLabTests((prev) => prev.filter((t) => !drop.includes(t)));
+    setLabReviewApplied(true);
+    toast({ title: "Lab panel filtered", description: `${drop.length} non-pertinent test(s) removed.` });
+  };
+
+
+
   const updatePeptideField = (peptideName: string, field: keyof PeptideRec, value: any) => {
     if (!recommendations) return;
     const updated: Recommendation = {
