@@ -327,9 +327,16 @@ export function buildPeptideEmrOutput(input: PeptideEmrInput): string {
   if (heightNum) lines.push(`Height: ${Math.round(heightNum)} cm`);
   if (weightNum) lines.push(`Weight: ${Math.round(weightNum)} kg`);
   if (bmiVal) lines.push(`BMI: ${bmiVal.toFixed(1)} kg/m²`);
-  if (chronicIllnesses) lines.push(`Chronic Illnesses: ${titleCase(String(chronicIllnesses))}`);
-  if (medications) lines.push(`Current Medications: ${medications}`);
-  if (allergies) lines.push(`Allergies: ${allergies}`);
+  lines.push(`Chronic Illnesses: ${conditionsStr ? titleCase(conditionsStr) : "None reported"}`);
+  if (conditionsNotes) lines.push(`  Notes: ${conditionsNotes}`);
+  lines.push(`Current Medications: ${normalizeList(medications) || "None reported"}`);
+  lines.push(`Allergies: ${allergyStr || "No known drug allergies"}`);
+  if (cancerHistory) {
+    lines.push(`Cancer / Tumor History: ${cancerHistory}${cancerNotes ? ` — ${cancerNotes}` : ""}`);
+  } else {
+    lines.push("Cancer / Tumor History: No personal or family history reported");
+  }
+  if (goalsStr) lines.push(`Health Goals: ${goalsStr}`);
   if (chiefComplaint) lines.push(`Chief Concern: ${chiefComplaint}`);
   lines.push("");
 
@@ -338,22 +345,27 @@ export function buildPeptideEmrOutput(input: PeptideEmrInput): string {
   lines.push("");
   const salutation = gender === "Male" ? "Mr." : gender === "Female" ? "Ms." : "";
   const pronounSubj = gender === "Male" ? "He" : gender === "Female" ? "She" : "The patient";
+  const pronPoss = possessive(pronounSubj);
   const ageStr = age ? `${age}-year-old ` : "";
   const genderStr = gender ? String(gender).toLowerCase() : "patient";
-  const conditionPhrase = chronicIllnesses
-    ? ` with a history of ${String(chronicIllnesses).toLowerCase()}`
+  const conditionPhrase = conditionsStr
+    ? ` with a history of ${conditionsStr.toLowerCase()}`
     : " with no significant chronic illnesses";
   const bmiPhrase = bmiCat
     ? `, ${bmiCat}${bmiVal ? ` (BMI ${bmiVal.toFixed(1)} kg/m²)` : ""}`
     : "";
-  const allergyClause = allergies
-    ? `reports allergies to ${allergies}`
+  const allergyClause = allergyStr
+    ? `reports allergies to ${allergyStr}`
     : "reports no known drug allergies";
+  const cancerClause = cancerHistory
+    ? ` Cancer/tumor history: ${cancerHistory.toLowerCase()}${cancerNotes ? ` (${cancerNotes})` : ""}.`
+    : " No personal or family history of cancer or tumors reported.";
+  const goalsClause = goalsStr ? ` Stated health goals include ${goalsStr.toLowerCase()}.` : "";
   const chiefLine = chiefComplaint
     ? ` Presenting concern: ${chiefComplaint}.`
     : "";
 
-  const opening = `${salutation ? salutation + " " : ""}${patientName || "The patient"} is a ${ageStr}${genderStr}${bmiPhrase}${conditionPhrase}. ${pronounSubj} ${allergyClause}.${chiefLine} Following clinical review, a personalised peptide therapy plan was formulated based on ${pronounSubj.toLowerCase()} presentation, goals, and safety profile. There are no identified contraindications to the prescribed regimen.`;
+  const opening = `${salutation ? salutation + " " : ""}${patientName || "The patient"} is a ${ageStr}${genderStr}${bmiPhrase}${conditionPhrase}. ${pronounSubj} ${allergyClause}.${cancerClause}${goalsClause}${chiefLine} Following clinical review, a personalised peptide therapy plan was formulated based on ${pronPoss} presentation, goals, and safety profile. There are no identified contraindications to the prescribed regimen.`;
   lines.push(opening);
 
   if (clinicalSummary && clinicalSummary.trim()) {
