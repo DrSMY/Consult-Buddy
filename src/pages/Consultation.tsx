@@ -715,6 +715,35 @@ export default function Consultation() {
       ? finalLabTests.map((t) => `• ${t}`).join("\n")
       : "None required";
 
+    const emrNarrative = buildPeptideEmrOutput({
+      patientName: dnName,
+      age: intakeForNote.age,
+      gender: intakeForNote.gender,
+      height: intakeForNote.height,
+      weight: intakeForNote.weight,
+      chronicIllnesses: intakeForNote.chronic_illnesses || intakeForNote.chronicIllnesses || intakeForNote.medical_conditions,
+      medications: intakeForNote.current_medications || intakeForNote.medications,
+      allergies: intakeForNote.allergies,
+      chiefComplaint: intakeForNote.chief_complaint || intakeForNote.primary_concern || intakeForNote.goals,
+      clinicalSummary: recommendations.clinical_summary || "",
+      peptides: selectedRecs.map((p) => ({
+        name: p.name,
+        dosage: p.dosage,
+        administration: p.administration,
+        duration: p.duration,
+        frequency: FREQUENCY_OPTIONS.find((f) => f.value === p.frequency)?.label || p.frequency,
+        rationale: p.rationale,
+        vial_size_ml: p.vial_size_ml,
+        dose_per_injection_ml: p.dose_per_injection_ml,
+        supply_days: p.supply_days,
+      })),
+      supplements: selectedSupps.map((s) => ({ name: s.name, dosage: s.dosage, reason: s.reason })),
+      labTests: finalLabTests,
+      labTier,
+      labNotes,
+      createdAt: consultation?.created_at || new Date().toISOString(),
+    });
+
     const doctorNote = `🏥 DOCTOR NOTE — CONSULTATION
 
 👤 Patient Name: ${dnName}
@@ -745,10 +774,10 @@ ${SEP}
 ${dnLabLines}${labNotes ? `\n\nLab Notes: ${labNotes}` : ""}
 
 ${SEP}
-🩺 CLINICAL SUMMARY
+🩺 EMR CLINICAL SUMMARY
 ${SEP}
 
-${recommendations.clinical_summary || "—"}
+${emrNarrative}
 
 ${SEP}
 📌 PATIENT INSTRUCTIONS
