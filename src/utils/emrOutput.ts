@@ -277,6 +277,7 @@ export function buildPeptideEmrOutput(input: PeptideEmrInput): string {
     labTier,
     labNotes,
     createdAt,
+    intake = {},
   } = input;
 
   const lines: string[] = [];
@@ -287,6 +288,30 @@ export function buildPeptideEmrOutput(input: PeptideEmrInput): string {
   const bmiVal =
     heightNum && weightNum ? weightNum / ((heightNum / 100) ** 2) : null;
   const bmiCat = bmiVal ? getBmiCategory(bmiVal) : "";
+
+  // Consolidate allergies from multiple possible intake fields
+  const allergyStr = [
+    normalizeList(allergies),
+    normalizeList(intake.allergies_other),
+    normalizeList(intake.allergies_notes),
+  ].filter((s) => s && s.toLowerCase() !== "none").join(", ");
+
+  // Consolidate health conditions / chronic illnesses
+  const conditionsStr = [
+    normalizeList(chronicIllnesses),
+    normalizeList(intake.health_conditions),
+    normalizeList(intake.health_conditions_other),
+  ].filter((s) => s && s.toLowerCase() !== "none").join(", ");
+  const conditionsNotes = normalizeList(intake.health_conditions_notes);
+
+  // Cancer / family history
+  const cancerHistory = normalizeList(intake.cancer_history);
+  const cancerNotes = normalizeList(intake.cancer_history_notes);
+
+  // Health goals
+  const healthGoals = normalizeList(intake.health_goals);
+  const healthGoalsOther = normalizeList(intake.health_goals_other);
+  const goalsStr = [healthGoals, healthGoalsOther].filter(Boolean).join(", ");
 
   lines.push("=== EMR CLINICAL SUMMARY ===");
   lines.push("");
