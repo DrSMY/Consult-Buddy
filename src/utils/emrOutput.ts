@@ -203,3 +203,200 @@ export function buildEmrOutput(input: EmrInput): string {
 
   return lines.join("\n");
 }
+
+// ============================================================
+// PEPTIDE EMR OUTPUT (patient-centered narrative for peptide consultations)
+// ============================================================
+
+interface PeptideEmrPeptide {
+  name: string;
+  dosage?: string;
+  administration?: string;
+  duration?: string;
+  frequency?: string;
+  rationale?: string;
+  vial_size_ml?: number;
+  dose_per_injection_ml?: number;
+  supply_days?: number;
+}
+
+interface PeptideEmrSupplement {
+  name: string;
+  dosage?: string;
+  reason?: string;
+}
+
+interface PeptideEmrInput {
+  patientName?: string;
+  age?: number | string;
+  gender?: string;
+  height?: number | string;
+  weight?: number | string;
+  chronicIllnesses?: string;
+  medications?: string;
+  allergies?: string;
+  chiefComplaint?: string;
+  clinicalSummary?: string;
+  peptides: PeptideEmrPeptide[];
+  supplements: PeptideEmrSupplement[];
+  labTests: string[];
+  labTier?: string;
+  labNotes?: string;
+  createdAt?: string;
+}
+
+export function buildPeptideEmrOutput(input: PeptideEmrInput): string {
+  const {
+    patientName,
+    age,
+    gender,
+    height,
+    weight,
+    chronicIllnesses,
+    medications,
+    allergies,
+    chiefComplaint,
+    clinicalSummary,
+    peptides,
+    supplements,
+    labTests,
+    labTier,
+    labNotes,
+    createdAt,
+  } = input;
+
+  const lines: string[] = [];
+  const encounterDateObj = createdAt ? new Date(createdAt) : new Date();
+
+  const heightNum = height ? Number(height) : null;
+  const weightNum = weight ? Number(weight) : null;
+  const bmiVal =
+    heightNum && weightNum ? weightNum / ((heightNum / 100) ** 2) : null;
+  const bmiCat = bmiVal ? getBmiCategory(bmiVal) : "";
+
+  lines.push("=== EMR CLINICAL SUMMARY ===");
+  lines.push("");
+  lines.push(`Date of Encounter: ${formatDateDMY(encounterDateObj)}`);
+  lines.push("");
+
+  // PATIENT
+  lines.push("PATIENT");
+  lines.push("");
+  if (patientName) lines.push(`Name: ${patientName}`);
+  if (age) lines.push(`Age: ${age} years`);
+  if (gender) lines.push(`Gender: ${gender}`);
+  if (heightNum) lines.push(`Height: ${Math.round(heightNum)} cm`);
+  if (weightNum) lines.push(`Weight: ${Math.round(weightNum)} kg`);
+  if (bmiVal) lines.push(`BMI: ${bmiVal.toFixed(1)} kg/m²`);
+  if (chronicIllnesses) lines.push(`Chronic Illnesses: ${titleCase(String(chronicIllnesses))}`);
+  if (medications) lines.push(`Current Medications: ${medications}`);
+  if (allergies) lines.push(`Allergies: ${allergies}`);
+  if (chiefComplaint) lines.push(`Chief Concern: ${chiefComplaint}`);
+  lines.push("");
+
+  // CLINICAL SUMMARY narrative
+  lines.push("CLINICAL SUMMARY");
+  lines.push("");
+  const salutation = gender === "Male" ? "Mr." : gender === "Female" ? "Ms." : "";
+  const pronounSubj = gender === "Male" ? "He" : gender === "Female" ? "She" : "The patient";
+  const ageStr = age ? `${age}-year-old ` : "";
+  const genderStr = gender ? String(gender).toLowerCase() : "patient";
+  const conditionPhrase = chronicIllnesses
+    ? ` with a history of ${String(chronicIllnesses).toLowerCase()}`
+    : " with no significant chronic illnesses";
+  const bmiPhrase = bmiCat
+    ? `, ${bmiCat}${bmiVal ? ` (BMI ${bmiVal.toFixed(1)} kg/m²)` : ""}`
+    : "";
+  const allergyClause = allergies
+    ? `reports allergies to ${allergies}`
+    : "reports no known drug allergies";
+  const chiefLine = chiefComplaint
+    ? ` Presenting concern: ${chiefComplaint}.`
+    : "";
+
+  const opening = `${salutation ? salutation + " " : ""}${patientName || "The patient"} is a ${ageStr}${genderStr}${bmiPhrase}${conditionPhrase}. ${pronounSubj} ${allergyClause}.${chiefLine} Following clinical review, a personalised peptide therapy plan was formulated based on ${pronounSubj.toLowerCase()} presentation, goals, and safety profile. There are no identified contraindications to the prescribed regimen.`;
+  lines.push(opening);
+
+  if (clinicalSummary && clinicalSummary.trim()) {
+    lines.push("");
+    lines.push(clinicalSummary.trim());
+  }
+  lines.push("");
+
+  // MEDICATIONS PRESCRIBED
+  lines.push("MEDICATIONS PRESCRIBED");
+  lines.push("");
+  if (peptides.length === 0) {
+    lines.push("No peptide therapy prescribed at this visit.");
+  } else {
+    peptides.forEach((p, idx) => {
+      const parts: string[] = [`${idx + 1}. ${p.name}`];
+      const details: string[] = [];
+      if (p.dosage) details.push(p.dosage);
+      if (p.frequency) details.push(p.frequency);
+      if (p.administration) details.push(p.administration);
+      if (p.duration) details.push(`for ${p.duration}`);
+      if (details.length) parts.push(`— ${details.join(", ")}`);
+      lines.push(parts.join(" "));
+      if (p.rationale) lines.push(`   Rationale: ${p.rationale}`);
+      if (p.vial_size_ml && p.dose_per_injection_ml) {
+        const total = Math.floor(p.vial_size_ml / p.dose_per_injection_ml);
+        lines.push(
+          `   Supply: ${p.vial_size_ml} ml vial, ${p.dose_per_injection_ml} ml/injection (${total} injections${p.supply_days ? `, ~${p.supply_days} days` : ""})`
+        );
+      }
+    });
+    lines.push("");
+    lines.push(
+      "The patient was counseled regarding expected benefits, common side effects, injection technique, storage, adherence, and the importance of reporting any adverse effects promptly."
+    );
+  }
+  lines.push("");
+
+  // SUPPLEMENTS
+  if (supplements.length > 0) {
+    lines.push("SUPPORTIVE SUPPLEMENTS");
+    lines.push("");
+    supplements.forEach((s, idx) => {
+      lines.push(`${idx + 1}. ${s.name}${s.dosage ? ` — ${s.dosage}` : ""}`);
+      if (s.reason) lines.push(`   Purpose: ${s.reason}`);
+    });
+    lines.push("");
+  }
+
+  // INVESTIGATIONS
+  lines.push("INVESTIGATIONS");
+  lines.push("");
+  if (labTests.length === 0) {
+    lines.push("No additional investigations required at this time.");
+  } else {
+    const tierLabel = labTier === "advanced" ? "Advanced/Comprehensive Panel" : "Basic Panel";
+    lines.push(`Panel: ${tierLabel}`);
+    labTests.forEach((t) => lines.push(`- ${t}`));
+    if (labNotes) {
+      lines.push("");
+      lines.push(`Notes: ${labNotes}`);
+    }
+  }
+  lines.push("");
+
+  // PLAN
+  lines.push("PLAN");
+  lines.push("");
+  const followUp = new Date(encounterDateObj);
+  followUp.setDate(encounterDateObj.getDate() + 30);
+  lines.push(`Follow-up appointment scheduled for ${formatDateDMY(followUp)}.`);
+  lines.push("Assess response, tolerance, and compliance at follow-up.");
+  if (peptides.length > 0) {
+    lines.push("Consider dose titration if treatment is well tolerated.");
+    lines.push("Continue monitoring symptoms, injection-site reactions, and any medication-related side effects.");
+  }
+  lines.push("Reinforce lifestyle modifications, nutrition, hydration, sleep, and physical activity.");
+  lines.push("");
+  lines.push("Physician:");
+  lines.push("Dr Sami M. Yesuf");
+  lines.push("DarDoc Healthcare");
+
+  return lines.join("\n");
+}
+
