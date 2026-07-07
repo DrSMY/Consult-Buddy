@@ -1666,6 +1666,97 @@ SCOPE Certified Physician`;
                 </Card>
               )}
 
+              {/* ===== AI Lab Test Review (post medication selection) ===== */}
+              {wizardStep === "select" && selectedPeptides.size > 0 && (
+                <Card className="border-accent/40 bg-accent/5">
+                  <CardHeader className="pb-3">
+                    <CardTitle className="text-base flex items-center gap-2">
+                      <FlaskConical className="h-4 w-4 text-accent" /> AI Lab Test Review
+                    </CardTitle>
+                    <CardDescription>
+                      AI reviews the lab panel and keeps only tests pertinent to the medication(s) you selected.
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent className="space-y-3">
+                    {!labReview && (
+                      <Button
+                        size="sm"
+                        onClick={runAiLabReview}
+                        disabled={reviewingLabs}
+                        className="w-full"
+                      >
+                        {reviewingLabs ? (
+                          <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Reviewing…</>
+                        ) : (
+                          <>Review Pertinent Lab Tests</>
+                        )}
+                      </Button>
+                    )}
+                    {labReview && (
+                      <div className="space-y-3">
+                        {labReview.rationale && (
+                          <p className="text-xs text-muted-foreground italic border-l-2 border-accent/40 pl-2">
+                            {labReview.rationale}
+                          </p>
+                        )}
+                        {labReview.pertinent.length > 0 && (
+                          <div className="space-y-1.5">
+                            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                              Pertinent ({labReview.pertinent.length})
+                            </p>
+                            <div className="flex flex-wrap gap-1.5">
+                              {labReview.pertinent.map((t, i) => (
+                                <Badge key={i} variant="default" className="text-[11px]">
+                                  <CheckCircle className="h-3 w-3 mr-1" /> {t}
+                                </Badge>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+                        {labReview.not_pertinent.length > 0 && (
+                          <div className="space-y-1.5">
+                            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
+                              Not Pertinent ({labReview.not_pertinent.length})
+                            </p>
+                            <ul className="space-y-1">
+                              {labReview.not_pertinent.map((n, i) => (
+                                <li key={i} className="text-xs flex gap-2 items-start">
+                                  <Trash2 className="h-3 w-3 mt-0.5 text-muted-foreground shrink-0" />
+                                  <span>
+                                    <span className="font-medium">{n.name}</span>
+                                    <span className="text-muted-foreground"> — {n.reason}</span>
+                                  </span>
+                                </li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                        <div className="flex gap-2">
+                          <Button size="sm" variant="outline" onClick={runAiLabReview} disabled={reviewingLabs} className="flex-1">
+                            {reviewingLabs ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : null}
+                            Re-run
+                          </Button>
+                          <Button
+                            size="sm"
+                            onClick={applyLabReview}
+                            disabled={labReviewApplied}
+                            className="flex-1"
+                          >
+                            {labReviewApplied ? (
+                              <><CheckCircle className="h-3.5 w-3.5 mr-1.5" /> Applied</>
+                            ) : (
+                              <>Apply to Lab Panel</>
+                            )}
+                          </Button>
+                        </div>
+                      </div>
+                    )}
+                  </CardContent>
+                </Card>
+              )}
+
+
+
               {/* Patient Summary (inline) — visible during wizard select step */}
               {wizardStep === "select" && consultation && (
                 <PatientSummaryCard
