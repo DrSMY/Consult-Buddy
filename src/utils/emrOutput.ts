@@ -243,6 +243,20 @@ interface PeptideEmrInput {
   labTier?: string;
   labNotes?: string;
   createdAt?: string;
+  intake?: Record<string, any>;
+}
+
+// Normalize a field that may be a string, array, or null into a clean comma-joined string
+function normalizeList(val: any): string {
+  if (val == null) return "";
+  if (Array.isArray(val)) return val.filter(Boolean).map((x) => String(x).trim()).join(", ");
+  return String(val).trim();
+}
+
+function possessive(pronounSubj: string): string {
+  if (pronounSubj === "He") return "his";
+  if (pronounSubj === "She") return "her";
+  return "their";
 }
 
 export function buildPeptideEmrOutput(input: PeptideEmrInput): string {
