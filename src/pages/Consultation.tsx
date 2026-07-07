@@ -199,6 +199,14 @@ export default function Consultation() {
     lab_notes: string;
     clinical_notes: string;
   } | null>(null);
+  // AI lab-test review (filter to pertinent labs for chosen peptides)
+  const [reviewingLabs, setReviewingLabs] = useState(false);
+  const [labReview, setLabReview] = useState<{
+    pertinent: string[];
+    not_pertinent: Array<{ name: string; reason: string }>;
+    rationale: string;
+  } | null>(null);
+  const [labReviewApplied, setLabReviewApplied] = useState(false);
 
   useEffect(() => {
     loadConsultation();
