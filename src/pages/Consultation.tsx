@@ -335,6 +335,9 @@ export default function Consultation() {
 
   const togglePeptide = (name: string) => {
     setSelectedPeptides((prev) => { const next = new Set(prev); next.has(name) ? next.delete(name) : next.add(name); return next; });
+    // Invalidate previous lab review when the medication list changes
+    setLabReview(null);
+    setLabReviewApplied(false);
   };
   const toggleSupplement = (name: string) => {
     setSelectedSupplements((prev) => { const next = new Set(prev); next.has(name) ? next.delete(name) : next.add(name); return next; });
