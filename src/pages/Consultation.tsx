@@ -199,14 +199,6 @@ export default function Consultation() {
     lab_notes: string;
     clinical_notes: string;
   } | null>(null);
-  // AI lab-test review (filter to pertinent labs for chosen peptides)
-  const [reviewingLabs, setReviewingLabs] = useState(false);
-  const [labReview, setLabReview] = useState<{
-    pertinent: string[];
-    not_pertinent: Array<{ name: string; reason: string }>;
-    rationale: string;
-  } | null>(null);
-  const [labReviewApplied, setLabReviewApplied] = useState(false);
 
   useEffect(() => {
     loadConsultation();
@@ -335,9 +327,6 @@ export default function Consultation() {
 
   const togglePeptide = (name: string) => {
     setSelectedPeptides((prev) => { const next = new Set(prev); next.has(name) ? next.delete(name) : next.add(name); return next; });
-    // Invalidate previous lab review when the medication list changes
-    setLabReview(null);
-    setLabReviewApplied(false);
   };
   const toggleSupplement = (name: string) => {
     setSelectedSupplements((prev) => { const next = new Set(prev); next.has(name) ? next.delete(name) : next.add(name); return next; });
@@ -435,61 +424,6 @@ export default function Consultation() {
     });
     setAiSuggestion(null);
   };
-
-  const runAiLabReview = async () => {
-    if (!recommendations || selectedPeptides.size === 0) return;
-    setReviewingLabs(true);
-    setLabReview(null);
-    setLabReviewApplied(false);
-    try {
-      const chosen = recommendations.recommended_peptides
-        .filter((p) => selectedPeptides.has(p.name))
-        .map((p) => ({ name: p.name, dosage: p.dosage, administration: p.administration, frequency: p.frequency }));
-      const candidates = Array.from(new Set([...derivedBasicTests, ...derivedAdvancedTests, ...customLabTests]));
-      const { data, error } = await supabase.functions.invoke("consultation", {
-        body: {
-          action: "review-lab-tests",
-          patient_name: consultation?.patient_name || "Patient",
-          intake_answers: consultation?.intake_answers || {},
-          chosen_peptides: chosen,
-          candidate_lab_tests: candidates,
-        },
-      });
-      if (error) throw error;
-      if (data?.error) throw new Error(data.error);
-      setLabReview({
-        pertinent: Array.isArray(data?.pertinent) ? data.pertinent : [],
-        not_pertinent: Array.isArray(data?.not_pertinent) ? data.not_pertinent : [],
-        rationale: data?.rationale || "",
-      });
-      toast({ title: "Lab review ready", description: "Review the pertinent tests below." });
-    } catch (e: any) {
-      toast({ title: "Lab review failed", description: e?.message || "Please try again.", variant: "destructive" });
-    } finally {
-      setReviewingLabs(false);
-    }
-  };
-
-  const applyLabReview = () => {
-    if (!labReview) return;
-    const drop = labReview.not_pertinent.map((n) => n.name).filter(Boolean);
-    if (drop.length === 0) {
-      setLabReviewApplied(true);
-      toast({ title: "No changes needed", description: "All lab tests are pertinent." });
-      return;
-    }
-    setRemovedLabTests((prev) => {
-      const next = new Set(prev);
-      drop.forEach((t) => next.add(t));
-      return next;
-    });
-    // Also drop from custom list if present
-    setCustomLabTests((prev) => prev.filter((t) => !drop.includes(t)));
-    setLabReviewApplied(true);
-    toast({ title: "Lab panel filtered", description: `${drop.length} non-pertinent test(s) removed.` });
-  };
-
-
 
   const updatePeptideField = (peptideName: string, field: keyof PeptideRec, value: any) => {
     if (!recommendations) return;
@@ -1665,97 +1599,6 @@ SCOPE Certified Physician`;
                   </CardContent>
                 </Card>
               )}
-
-              {/* ===== AI Lab Test Review (post medication selection) ===== */}
-              {wizardStep === "select" && selectedPeptides.size > 0 && (
-                <Card className="border-accent/40 bg-accent/5">
-                  <CardHeader className="pb-3">
-                    <CardTitle className="text-base flex items-center gap-2">
-                      <FlaskConical className="h-4 w-4 text-accent" /> AI Lab Test Review
-                    </CardTitle>
-                    <CardDescription>
-                      AI reviews the lab panel and keeps only tests pertinent to the medication(s) you selected.
-                    </CardDescription>
-                  </CardHeader>
-                  <CardContent className="space-y-3">
-                    {!labReview && (
-                      <Button
-                        size="sm"
-                        onClick={runAiLabReview}
-                        disabled={reviewingLabs}
-                        className="w-full"
-                      >
-                        {reviewingLabs ? (
-                          <><Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> Reviewing…</>
-                        ) : (
-                          <>Review Pertinent Lab Tests</>
-                        )}
-                      </Button>
-                    )}
-                    {labReview && (
-                      <div className="space-y-3">
-                        {labReview.rationale && (
-                          <p className="text-xs text-muted-foreground italic border-l-2 border-accent/40 pl-2">
-                            {labReview.rationale}
-                          </p>
-                        )}
-                        {labReview.pertinent.length > 0 && (
-                          <div className="space-y-1.5">
-                            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                              Pertinent ({labReview.pertinent.length})
-                            </p>
-                            <div className="flex flex-wrap gap-1.5">
-                              {labReview.pertinent.map((t, i) => (
-                                <Badge key={i} variant="default" className="text-[11px]">
-                                  <CheckCircle className="h-3 w-3 mr-1" /> {t}
-                                </Badge>
-                              ))}
-                            </div>
-                          </div>
-                        )}
-                        {labReview.not_pertinent.length > 0 && (
-                          <div className="space-y-1.5">
-                            <p className="text-xs font-medium uppercase tracking-wider text-muted-foreground">
-                              Not Pertinent ({labReview.not_pertinent.length})
-                            </p>
-                            <ul className="space-y-1">
-                              {labReview.not_pertinent.map((n, i) => (
-                                <li key={i} className="text-xs flex gap-2 items-start">
-                                  <Trash2 className="h-3 w-3 mt-0.5 text-muted-foreground shrink-0" />
-                                  <span>
-                                    <span className="font-medium">{n.name}</span>
-                                    <span className="text-muted-foreground"> — {n.reason}</span>
-                                  </span>
-                                </li>
-                              ))}
-                            </ul>
-                          </div>
-                        )}
-                        <div className="flex gap-2">
-                          <Button size="sm" variant="outline" onClick={runAiLabReview} disabled={reviewingLabs} className="flex-1">
-                            {reviewingLabs ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : null}
-                            Re-run
-                          </Button>
-                          <Button
-                            size="sm"
-                            onClick={applyLabReview}
-                            disabled={labReviewApplied}
-                            className="flex-1"
-                          >
-                            {labReviewApplied ? (
-                              <><CheckCircle className="h-3.5 w-3.5 mr-1.5" /> Applied</>
-                            ) : (
-                              <>Apply to Lab Panel</>
-                            )}
-                          </Button>
-                        </div>
-                      </div>
-                    )}
-                  </CardContent>
-                </Card>
-              )}
-
-
 
               {/* Patient Summary (inline) — visible during wizard select step */}
               {wizardStep === "select" && consultation && (
