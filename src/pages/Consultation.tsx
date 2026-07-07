@@ -742,6 +742,7 @@ export default function Consultation() {
       labTier,
       labNotes,
       createdAt: consultation?.created_at || new Date().toISOString(),
+      intake: intakeForNote,
     });
 
     const doctorNote = `🏥 DOCTOR NOTE — CONSULTATION
