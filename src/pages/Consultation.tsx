@@ -504,7 +504,6 @@ export default function Consultation() {
       getMandatoryTests(p).forEach((t) => tests.add(t));
       if (getMandatoryTests(p).length === 0 && getRecommendedTests(p).length === 0) getLegacyTests(p).forEach((t) => tests.add(t));
     });
-    if (tests.size === 0 && selectedPeptides.size > 0) recommendations.required_blood_tests.forEach((t) => tests.add(t));
     return Array.from(tests).sort();
   }, [recommendations, selectedPeptides]);
 
@@ -515,11 +514,9 @@ export default function Consultation() {
     recommendations.recommended_peptides.filter((p) => selectedPeptides.has(p.name)).forEach((p) => {
       getRecommendedTests(p).forEach((t) => tests.add(t));
     });
-    if (tests.size === derivedBasicTests.length && selectedPeptides.size > 0 && recommendations.recommended_blood_tests) {
-      recommendations.recommended_blood_tests.forEach((t) => tests.add(t));
-    }
     return Array.from(tests).sort();
   }, [recommendations, selectedPeptides, derivedBasicTests]);
+
 
   // Final lab tests = (tier tests - removed) + custom
   const finalLabTests = useMemo(() => {
