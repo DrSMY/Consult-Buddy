@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -9,6 +9,13 @@ import { useToast } from "@/hooks/use-toast";
 import Logo from "@/components/Logo";
 
 type View = "login" | "signup" | "forgot";
+
+// Only accept same-origin relative paths for `next`, otherwise fall back to /dashboard.
+function safeNext(raw: string | null): string {
+  if (!raw) return "/dashboard";
+  if (!raw.startsWith("/") || raw.startsWith("//")) return "/dashboard";
+  return raw;
+}
 
 export default function Auth() {
   const [view, setView] = useState<View>("login");
@@ -20,6 +27,8 @@ export default function Auth() {
   const [resetSent, setResetSent] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const nextPath = safeNext(searchParams.get("next"));
 
   const handleForgotPassword = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -64,7 +73,7 @@ export default function Auth() {
             description: "Your account is awaiting admin approval. You'll be notified once you're approved — hang tight!",
           });
         } else {
-          navigate("/dashboard");
+          navigate(nextPath);
         }
       }
     } else {
@@ -73,7 +82,7 @@ export default function Auth() {
         password,
         options: {
           data: { full_name: fullName, phone },
-          emailRedirectTo: window.location.origin,
+          emailRedirectTo: `${window.location.origin}${nextPath}`,
         },
       });
       if (error) {
