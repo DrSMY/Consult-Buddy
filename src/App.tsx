@@ -19,6 +19,7 @@ import ResetPassword from "./pages/ResetPassword";
 import Install from "./pages/Install";
 import SharedGuide from "./pages/SharedGuide";
 import BookAppointment from "./pages/BookAppointment";
+import OAuthConsent from "./pages/OAuthConsent";
 import InstallBanner from "./components/InstallBanner";
 
 const queryClient = new QueryClient();
@@ -39,6 +40,7 @@ const App = () => (
             <Route path="/shared-guide" element={<SharedGuide />} />
             <Route path="/g/:file" element={<SharedGuide />} />
             <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/.lovable/oauth/consent" element={<OAuthConsent />} />
             <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
             <Route path="/program/peptides" element={<ProtectedRoute><PatientIntake /></ProtectedRoute>} />
             <Route path="/program/weight-loss" element={<ProtectedRoute><WeightLossIntake /></ProtectedRoute>} />
